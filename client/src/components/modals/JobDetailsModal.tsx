@@ -279,10 +279,11 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
             </div>
             {job.dodgeJobId && (
               <a
-                href={`https://www.construction.com/search?q=${encodeURIComponent(job.dodgeJobId)}`}
+                href={`https://www.google.com/search?q=Dodge+Data+Analytics+${encodeURIComponent(job.dodgeJobId)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-blue-600 hover:underline cursor-pointer flex items-center gap-1"
+                title="Search for this project in Dodge Data & Analytics"
                 data-testid="dodge-id-link"
               >
                 <FileText className="h-3 w-3" />
