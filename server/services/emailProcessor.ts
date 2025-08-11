@@ -4,6 +4,7 @@ import * as XLSX from "xlsx";
 import { eq } from "drizzle-orm";
 
 interface EquipmentRow {
+  equipmentNumber: string;
   model: string;
   customer: string;
   customerOnRent: string;
@@ -35,11 +36,12 @@ export class EmailProcessor {
       const processedData = dataAfterRowDeletion.map(row => {
         if (!row || row.length < 4) return null;
         return {
+          equipmentNumber: row[0] || `EQUIP-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`, // Equipment number first
           model: row[1] || '', // Column B (MODEL after deleting A)
-          customer: row[0] || '', // Original customer column
-          customerOnRent: row[2] || '', // CUSTOMER ON RENT
-          acctMgr: row[3] || '', // ACCT MGR 
-          dateOnOffRent: row[4] || '' // DATE ON/OFF RENT
+          customer: row[2] || '', // Customer column
+          customerOnRent: row[3] || '', // CUSTOMER ON RENT
+          acctMgr: row[4] || '', // ACCT MGR 
+          dateOnOffRent: row[5] || '' // DATE ON/OFF RENT
         };
       }).filter(row => row && row.model && row.customerOnRent);
 
@@ -56,6 +58,7 @@ export class EmailProcessor {
         if (!item) continue;
         
         await db.insert(rentalEquipment).values({
+          equipmentNumber: item.equipmentNumber || `EQUIP-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
           model: item.model,
           customer: item.customer,
           customerOnRent: item.customerOnRent,

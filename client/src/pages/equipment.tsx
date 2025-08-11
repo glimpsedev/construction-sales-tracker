@@ -177,6 +177,7 @@ export default function Equipment() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Equipment #</TableHead>
                     <TableHead>Model</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Customer On Rent</TableHead>
@@ -189,6 +190,7 @@ export default function Equipment() {
                 <TableBody>
                   {equipment.map((item) => (
                     <TableRow key={item.id} data-testid={`equipment-row-${item.id}`}>
+                      <TableCell className="font-bold text-blue-600">{item.equipmentNumber}</TableCell>
                       <TableCell className="font-medium">{item.model}</TableCell>
                       <TableCell>{item.customer}</TableCell>
                       <TableCell>{item.customerOnRent || 'N/A'}</TableCell>

@@ -62,6 +62,7 @@ export const users = pgTable("users", {
 // Equipment rental tracking table for daily email processing
 export const rentalEquipment = pgTable("rental_equipment", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  equipmentNumber: text("equipment_number").notNull(),
   model: text("model").notNull(),
   customer: text("customer").notNull(), 
   customerOnRent: text("customer_on_rent"), // Customer currently renting
