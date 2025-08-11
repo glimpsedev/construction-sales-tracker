@@ -36,9 +36,18 @@ export default function Dashboard() {
   const { toast } = useToast();
 
   const handleJobSelect = (job: Job) => {
+    console.log('Job selected:', job.name);
     setSelectedJob(job);
     setShowJobDetails(true);
-    setSidebarOpen(false); // Close sidebar when viewing job details
+    setSidebarOpen(false);
+    setShowMobileMenu(false);
+    // Force a small delay to ensure state updates
+    setTimeout(() => {
+      const panel = document.querySelector('.job-details-panel');
+      if (panel) {
+        console.log('Panel found, should be visible');
+      }
+    }, 100);
   };
 
   const handleFilterChange = (newFilters: typeof filters) => {
@@ -156,17 +165,19 @@ export default function Dashboard() {
 
       <div className="flex h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] relative">
         {/* Left Panel - Mobile Slide-in, Desktop Fixed */}
-        <div className={cn(
-          "bg-white border-r border-gray-200 shadow-lg transition-transform duration-300 ease-in-out",
-          // Desktop: fixed width when open
-          "lg:relative lg:translate-x-0",
-          sidebarOpen || showJobDetails ? "lg:w-96" : "lg:w-0",
-          // Mobile: slide in from left
-          "fixed lg:static inset-y-0 left-0 w-80 z-40",
-          "h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] top-14 md:top-16",
-          sidebarOpen || showJobDetails ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-          !(sidebarOpen || showJobDetails) && "lg:overflow-hidden"
-        )}>
+        {(sidebarOpen || showJobDetails) && (
+          <div 
+            className={cn(
+              "job-details-panel",
+              "bg-white border-r border-gray-200 shadow-xl",
+              // Mobile: full screen overlay
+              "fixed lg:relative",
+              "top-14 md:top-16 left-0 right-0 bottom-0",
+              "w-full lg:w-96",
+              "z-50",
+              "lg:h-full"
+            )}
+          >
           {showJobDetails && selectedJob ? (
             // Job Details Panel - Mobile Optimized
             <div className="w-full h-full overflow-y-auto p-4 md:p-6">
@@ -412,7 +423,8 @@ export default function Dashboard() {
               isLoading={isLoading}
             />
           )}
-        </div>
+          </div>
+        )}
 
         {/* Main Map Area - Always Visible */}
         <main className="flex-1 min-w-0 relative">
@@ -457,7 +469,8 @@ export default function Dashboard() {
         {/* Mobile Overlay Backdrop */}
         {(sidebarOpen || showJobDetails) && (
           <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+            style={{ top: '3.5rem' }}
             onClick={() => {
               setSidebarOpen(false);
               setShowJobDetails(false);
