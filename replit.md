@@ -24,8 +24,9 @@ The mapping functionality is implemented using Leaflet for interactive map visua
 The backend follows an Express.js API architecture with TypeScript, providing RESTful endpoints for job management, equipment tracking, and document processing. The server implements middleware for request logging, error handling, and file upload processing using Multer.
 
 The application uses a service-oriented architecture with separate services for:
-- Scraping service for automated data collection from Dodge Data & Analytics
+- California data service for automated data collection from government APIs
 - Document processor for extracting information from uploaded Word documents and text files
+- Email webhook service for automatic Excel processing from dedicated email address
 - Geocoding service for converting addresses to coordinates using Google Maps API
 - Storage abstraction layer supporting both in-memory and database implementations
 
@@ -57,6 +58,8 @@ All data sources are official government APIs providing authentic, real-time con
 
 **Database Services**: Neon serverless PostgreSQL for production database hosting, with connection string provided via DATABASE_URL environment variable.
 
-**File Processing**: Uppy.js for enhanced file upload experiences with drag-and-drop functionality and progress tracking. Document processing capabilities for Word documents and text files to extract project information.
+**File Processing**: Uppy.js for enhanced file upload experiences with drag-and-drop functionality and progress tracking. Document processing capabilities for Word documents and text files to extract project information. Email webhook integration for automatic Excel file processing.
+
+**Email Automation**: Dedicated email address for receiving Excel attachments with automatic processing pipeline. Webhook endpoints for integration with email service providers (Mailgun, SendGrid, Zapier). Equipment rental status updates via email without manual intervention.
 
 **Development Tools**: Vite for build tooling and development server, with specialized Replit integration for cloud development environment compatibility.

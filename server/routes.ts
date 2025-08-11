@@ -5,6 +5,7 @@ import { insertJobSchema, insertEquipmentSchema, insertDocumentSchema, type Job 
 import { scrapeService } from "./services/scrapeService";
 import { documentProcessor } from "./services/documentProcessor";
 import { emailProcessor } from "./services/emailProcessor";
+import { emailWebhookService } from "./services/emailWebhookService";
 import { geocodeAddress } from "./services/geocodingService";
 import multer from 'multer';
 import { CronJob } from 'cron';
@@ -356,6 +357,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error simulating email:", error);
       res.status(500).json({ error: "Failed to simulate email" });
     }
+  });
+
+  // Email webhook endpoint for automatic processing
+  app.post("/api/email-webhook", async (req, res) => {
+    await emailWebhookService.handleEmailWebhook(req, res);
+  });
+
+  // Get email setup instructions
+  app.get("/api/email-setup", (req, res) => {
+    res.json({
+      instructions: emailWebhookService.getWebhookInstructions(),
+      webhookUrl: `${req.protocol}://${req.get('host')}/api/email-webhook`,
+      dedicatedEmail: "equipment-reports@your-domain.com"
+    });
   });
 
   const httpServer = createServer(app);

@@ -10,7 +10,8 @@ import { useJobs } from "@/hooks/useJobs";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Mail, Settings } from "lucide-react";
+import { Link } from "wouter";
 import type { Job } from "@shared/schema";
 
 export default function Dashboard() {
@@ -82,6 +83,10 @@ export default function Dashboard() {
                 </a>
                 <a href="/equipment" className="text-gray-600 hover:text-primary font-medium pb-1">
                   Equipment
+                </a>
+                <a href="/email-setup" className="text-gray-600 hover:text-primary font-medium pb-1 flex items-center gap-1">
+                  <Mail className="h-4 w-4" />
+                  Email Setup
                 </a>
               </div>
               
