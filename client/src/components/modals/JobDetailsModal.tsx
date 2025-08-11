@@ -202,12 +202,23 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onPointerDownOutside={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Building className="h-5 w-5" />
-            {job.name}
+          <DialogTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Building className="h-5 w-5" />
+              <span className="truncate">{job.name}</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="lg:hidden"
+              data-testid="close-modal-button"
+            >
+              Close
+            </Button>
           </DialogTitle>
         </DialogHeader>
 

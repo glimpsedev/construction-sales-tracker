@@ -4,6 +4,7 @@ import InteractiveMap from "@/components/map/InteractiveMap";
 import FilterSidebar from "@/components/sidebar/FilterSidebar";
 import AddJobModal from "@/components/modals/AddJobModal";
 import DocumentUploadModal from "@/components/modals/DocumentUploadModal";
+import { JobDetailsModal } from "@/components/modals/JobDetailsModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useJobs } from "@/hooks/useJobs";
@@ -74,16 +75,12 @@ export default function Dashboard() {
   const handleJobSelect = (job: Job) => {
     console.log('Job selected:', job.name);
     setSelectedJob(job);
-    setShowJobDetails(true);
     setSidebarOpen(false);
     setShowMobileMenu(false);
-    // Force a small delay to ensure state updates
+    // Use setTimeout to ensure state is set before opening modal
     setTimeout(() => {
-      const panel = document.querySelector('.job-details-panel');
-      if (panel) {
-        console.log('Panel found, should be visible');
-      }
-    }, 100);
+      setShowJobDetails(true);
+    }, 50);
   };
 
   const handleFilterChange = (newFilters: typeof filters) => {
@@ -200,11 +197,10 @@ export default function Dashboard() {
       </header>
 
       <div className="flex h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] relative">
-        {/* Left Panel - Mobile Slide-in, Desktop Fixed */}
-        {(sidebarOpen || showJobDetails) && (
+        {/* Left Panel - Filter Sidebar */}
+        {sidebarOpen && (
           <div 
             className={cn(
-              "job-details-panel",
               "bg-white border-r border-gray-200 shadow-xl",
               // Mobile: full screen overlay
               "fixed lg:relative",
@@ -214,272 +210,6 @@ export default function Dashboard() {
               "lg:h-full"
             )}
           >
-          {showJobDetails && selectedJob ? (
-            // Job Details Panel - Mobile Optimized
-            <div className="w-full h-full overflow-y-auto p-4 md:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg md:text-xl font-semibold">Job Details</h2>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSidebarOpen(true);
-                      setShowJobDetails(false);
-                    }}
-                    className="lg:hidden"
-                  >
-                    <i className="fas fa-filter mr-2"></i>
-                    Filters
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setShowJobDetails(false);
-                      setSelectedJob(null);
-                      setSidebarOpen(false);
-                    }}
-                    data-testid="button-close-details"
-                  >
-                    <i className="fas fa-times"></i>
-                  </Button>
-                </div>
-              </div>
-              
-              {/* Temperature Rating Section */}
-              <div className="border-b pb-3 mb-3">
-                <p className="text-xs font-medium text-gray-500 mb-2">Job Temperature</p>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant={selectedJob.temperature === 'hot' ? 'default' : 'outline'}
-                    className={selectedJob.temperature === 'hot' ? 'bg-red-500 hover:bg-red-600' : ''}
-                    onClick={() => updateJobTemperature('hot')}
-                  >
-                    🔥 Hot
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={selectedJob.temperature === 'warm' ? 'default' : 'outline'}
-                    className={selectedJob.temperature === 'warm' ? 'bg-orange-500 hover:bg-orange-600' : ''}
-                    onClick={() => updateJobTemperature('warm')}
-                  >
-                    🌡️ Warm
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={selectedJob.temperature === 'cold' ? 'default' : 'outline'}
-                    className={selectedJob.temperature === 'cold' ? 'bg-gray-500 hover:bg-gray-600' : ''}
-                    onClick={() => updateJobTemperature('cold')}
-                  >
-                    ❄️ Cold
-                  </Button>
-                </div>
-              </div>
-              
-              {/* Job Information - All CSV Data */}
-              <div className="space-y-3">
-                {/* Project Name and Address */}
-                <div className="border-b pb-3">
-                  <h3 className="text-base md:text-lg font-semibold text-darktext">{selectedJob.name}</h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    <i className="fas fa-map-marker-alt mr-1"></i>
-                    {selectedJob.address}
-                  </p>
-                </div>
-                
-                {/* Project Value - Prominent Display */}
-                {selectedJob.projectValue && (
-                  <div className="bg-green-50 p-3 rounded">
-                    <p className="text-xs font-medium text-gray-500">Project Value</p>
-                    <p className="text-xl font-bold text-green-600">
-                      ${Number(selectedJob.projectValue).toLocaleString()}
-                    </p>
-                  </div>
-                )}
-                
-                {/* Important Dates */}
-                <div className="bg-blue-50 p-3 rounded">
-                  <p className="text-xs font-medium text-gray-500 mb-2">Project Timeline</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <p className="text-xs text-gray-500">Start/Bid Date</p>
-                      <p className="text-sm font-medium">
-                        {selectedJob.startDate ? new Date(selectedJob.startDate).toLocaleDateString() : 'Not specified'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">End Date</p>
-                      <p className="text-sm font-medium">
-                        {selectedJob.endDate ? new Date(selectedJob.endDate).toLocaleDateString() : 'Not specified'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Status and Type */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-xs font-medium text-gray-500">Status</p>
-                    <Badge className="mt-1 text-xs">{selectedJob.status || 'Unknown'}</Badge>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-gray-500">Type</p>
-                    <Badge variant="outline" className="mt-1 text-xs">{selectedJob.type || 'Commercial'}</Badge>
-                  </div>
-                </div>
-                
-                {/* Key Players Section */}
-                <div className="bg-gray-50 p-3 rounded space-y-2">
-                  <p className="text-xs font-medium text-gray-700 mb-2">Project Team</p>
-                  
-                  {selectedJob.contractor && (
-                    <div>
-                      <p className="text-xs text-gray-500">General Contractor</p>
-                      <p className="text-sm font-medium">{selectedJob.contractor}</p>
-                    </div>
-                  )}
-                  
-                  {selectedJob.officeContact && (
-                    <div>
-                      <p className="text-xs text-gray-500">Architect/Office Contact</p>
-                      <p className="text-sm font-medium">{selectedJob.officeContact}</p>
-                    </div>
-                  )}
-                  
-                  {selectedJob.orderedBy && (
-                    <div>
-                      <p className="text-xs text-gray-500">Ordered By</p>
-                      <p className="text-sm font-medium">{selectedJob.orderedBy}</p>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Contact Information - Clickable */}
-                {(selectedJob.phone || selectedJob.email) && (
-                  <div className="bg-yellow-50 p-3 rounded space-y-2">
-                    <p className="text-xs font-medium text-gray-700 mb-2">Contact Information</p>
-                    
-                    {selectedJob.phone && (
-                      <a 
-                        href={`tel:${selectedJob.phone}`}
-                        className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
-                      >
-                        <i className="fas fa-phone text-xs"></i>
-                        <span className="text-sm font-medium">{selectedJob.phone}</span>
-                      </a>
-                    )}
-                    
-                    {selectedJob.email && (
-                      <a 
-                        href={`mailto:${selectedJob.email}`}
-                        className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
-                      >
-                        <i className="fas fa-envelope text-xs"></i>
-                        <span className="text-sm font-medium break-all">{selectedJob.email}</span>
-                      </a>
-                    )}
-                  </div>
-                )}
-                
-                {/* Full Project Description - Contains All CSV Info */}
-                {selectedJob.description && (
-                  <div className="border rounded p-3">
-                    <p className="text-xs font-medium text-gray-700 mb-2">Full Project Details</p>
-                    <div className="text-xs text-gray-600 whitespace-pre-wrap">
-                      {selectedJob.description.split('\n').map((line, idx) => (
-                        <div key={idx} className="mb-1">
-                          {line.includes('Owner:') || line.includes('Architect:') || line.includes('Tags:') ? (
-                            <span className="font-medium">{line}</span>
-                          ) : (
-                            line
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Additional Information */}
-                {selectedJob.notes && (
-                  <div>
-                    <p className="text-xs font-medium text-gray-500">Tags/Notes</p>
-                    <p className="text-sm mt-1">{selectedJob.notes}</p>
-                  </div>
-                )}
-                
-                {selectedJob.specialConditions && (
-                  <div>
-                    <p className="text-xs font-medium text-gray-500">Special Conditions</p>
-                    <p className="text-sm mt-1">{selectedJob.specialConditions}</p>
-                  </div>
-                )}
-                
-                {/* Tracking Information */}
-                <div className="border-t pt-3 space-y-2">
-                  {selectedJob.dodgeJobId && (
-                    <div className="flex justify-between">
-                      <span className="text-xs text-gray-500">Dodge Report #</span>
-                      <span className="text-xs font-mono">{selectedJob.dodgeJobId}</span>
-                    </div>
-                  )}
-                  
-                  {selectedJob.isViewed && selectedJob.viewedAt && (
-                    <div className="flex justify-between">
-                      <span className="text-xs text-gray-500">First Viewed</span>
-                      <span className="text-xs">{new Date(selectedJob.viewedAt).toLocaleDateString()}</span>
-                    </div>
-                  )}
-                  
-                  {selectedJob.lastUpdated && (
-                    <div className="flex justify-between">
-                      <span className="text-xs text-gray-500">Last Updated</span>
-                      <span className="text-xs">{new Date(selectedJob.lastUpdated).toLocaleDateString()}</span>
-                    </div>
-                  )}
-                </div>
-                
-                {/* User Personal Notes */}
-                {selectedJob.userNotes && (
-                  <div className="bg-amber-50 p-3 rounded">
-                    <p className="text-xs font-medium text-gray-700">Your Notes</p>
-                    <p className="text-sm mt-1">{selectedJob.userNotes}</p>
-                  </div>
-                )}
-                
-                {/* Action Buttons */}
-                <div className="pt-4 space-y-2">
-                  <Button 
-                    className="w-full"
-                    onClick={() => {
-                      // Mark as viewed logic here
-                      toast({
-                        title: "Job Marked as Viewed",
-                        description: "This job has been marked as viewed."
-                      });
-                    }}
-                  >
-                    <Eye className="mr-2 h-4 w-4" />
-                    Mark as Viewed
-                  </Button>
-                  
-                  <Button 
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => {
-                      setShowJobDetails(false);
-                      setSelectedJob(null);
-                      setSidebarOpen(true);
-                    }}
-                  >
-                    Close Details
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            // Filter Sidebar
             <FilterSidebar
               isOpen={sidebarOpen}
               onToggle={toggleSidebar}
@@ -489,7 +219,6 @@ export default function Dashboard() {
               onJobSelect={handleJobSelect}
               isLoading={isLoading}
             />
-          )}
           </div>
         )}
 
@@ -534,20 +263,27 @@ export default function Dashboard() {
         </main>
         
         {/* Mobile Overlay Backdrop */}
-        {(sidebarOpen || showJobDetails) && (
+        {sidebarOpen && (
           <div 
             className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
             style={{ top: '3.5rem' }}
             onClick={() => {
               setSidebarOpen(false);
-              setShowJobDetails(false);
-              setSelectedJob(null);
             }}
           />
         )}
       </div>
 
       {/* Modals */}
+      <JobDetailsModal
+        job={selectedJob}
+        isOpen={showJobDetails && !!selectedJob}
+        onClose={() => {
+          setShowJobDetails(false);
+          setSelectedJob(null);
+        }}
+      />
+
       <AddJobModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
