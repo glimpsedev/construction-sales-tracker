@@ -276,8 +276,9 @@ export class CSVImportService {
     const tags = this.cleanString(row['Tags (Private)'] || row['Tags (Shared)'] || row['Tags'] || '');
     const userNotes = this.cleanString(row['User Notes'] || '');
     const specsAvailable = this.cleanString(row['Specs Available'] || '');
-    const targetStartDate = row['Target Start Date'] || row['Start Date'];
-    const targetEndDate = row['Target Completion Date'] || row['End Date'];
+    // Look for date columns - Dodge uses different column names in different exports
+    const targetStartDate = row['Target Start Date'] || row['Start Date'] || row['Bid Date'] || '';
+    const targetEndDate = row['Target Completion Date'] || row['End Date'] || row['Completion Date'] || '';
     
     // Get phone and email from new column format
     const phone = this.cleanString(row['GC: Company Phone'] || row['Owner: Company Phone'] || row['Phone'] || '');
@@ -451,12 +452,53 @@ export class CSVImportService {
    * Parse date string
    */
   private parseDate(dateStr?: string): string | null {
-    if (!dateStr) return null;
+    if (!dateStr || dateStr.trim() === '' || dateStr === 'NaT' || dateStr === 'nan') return null;
     
     try {
-      const date = new Date(dateStr);
-      return isNaN(date.getTime()) ? null : date.toISOString().split('T')[0];
-    } catch {
+      const cleanedDate = dateStr.toString().trim();
+      
+      // Handle Excel serial date numbers (days since 1900-01-01)
+      if (/^\d{5}$/.test(cleanedDate)) {
+        const excelSerialDate = parseInt(cleanedDate);
+        const jsDate = new Date((excelSerialDate - 25569) * 86400 * 1000);
+        return jsDate.toISOString().split('T')[0];
+      }
+      
+      // Handle various date formats
+      let date: Date;
+      
+      // Handle pandas datetime format (e.g., "2024-10-01 00:00:00")
+      if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}$/.test(cleanedDate)) {
+        date = new Date(cleanedDate.replace(' ', 'T') + 'Z');
+      }
+      // Try MM/DD/YYYY or M/D/YYYY format (most common in US)
+      else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(cleanedDate)) {
+        const [month, day, year] = cleanedDate.split('/').map(Number);
+        date = new Date(year, month - 1, day);
+      }
+      // Try YYYY-MM-DD format
+      else if (/^\d{4}-\d{2}-\d{2}$/.test(cleanedDate)) {
+        date = new Date(cleanedDate + 'T00:00:00');
+      }
+      // Try DD-MMM-YY format (e.g., "01-Jan-25")
+      else if (/^\d{1,2}-[A-Za-z]{3}-\d{2}$/.test(cleanedDate)) {
+        date = new Date(cleanedDate);
+      }
+      // Fallback to native Date parsing
+      else {
+        date = new Date(cleanedDate);
+      }
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        console.log(`Failed to parse date: ${dateStr}`);
+        return null;
+      }
+      
+      // Return in YYYY-MM-DD format
+      return date.toISOString().split('T')[0];
+    } catch (error) {
+      console.log(`Error parsing date "${dateStr}":`, error);
       return null;
     }
   }
