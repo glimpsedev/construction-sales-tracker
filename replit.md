@@ -17,6 +17,11 @@ Layout preferences: Sidebar should not block or overlap the map area. Fixed side
 - **Database Schema Update**: Added county field to jobs table for California county information from Dodge Data
 - **UI Improvements**: Enhanced JobDetailsModal to display all new Dodge fields including County, Valuation, Target Dates, and Project Team information
 - **Filter Visibility Fix**: Added prominent filter buttons in the header for both mobile and desktop views, making filters easily accessible
+- **Automatic Status Updates**: Jobs now automatically update their status based on target dates:
+  - Jobs with start dates in the past are marked as "active"
+  - Jobs with end dates in the past are marked as "completed"
+  - Jobs with future start dates remain as "planning"
+- **Date Parsing Fix**: Fixed Excel date parsing to handle Date objects and serial numbers correctly
 
 ## System Architecture
 

@@ -298,6 +298,31 @@ export class CSVImportService {
       userNotes ? `Notes: ${userNotes}` : ''
     ].filter(Boolean).join('\n');
 
+    // Parse dates first
+    const parsedStartDate = this.parseDate(targetStartDate);
+    const parsedEndDate = this.parseDate(targetEndDate);
+    
+    // Determine status based on dates
+    let jobStatus = this.normalizeStatus(status) || 'planning';
+    if (parsedStartDate) {
+      const startDate = new Date(parsedStartDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to start of day
+      
+      // If start date has passed, mark as active
+      if (startDate <= today) {
+        jobStatus = 'active';
+      }
+      
+      // If end date exists and has passed, mark as completed
+      if (parsedEndDate) {
+        const endDate = new Date(parsedEndDate);
+        if (endDate < today) {
+          jobStatus = 'completed';
+        }
+      }
+    }
+
     const newJob: InsertJob = {
       name: projectName,
       description: enhancedDescription,
@@ -306,10 +331,10 @@ export class CSVImportService {
       latitude: coordinates?.lat?.toString() || null,
       longitude: coordinates?.lng?.toString() || null,
       type: projectType as any,
-      status: (this.normalizeStatus(status) || 'planning') as any,
+      status: jobStatus as any,
       projectValue: projectValue?.toString() || null,
-      startDate: this.parseDate(targetStartDate) ? new Date(this.parseDate(targetStartDate)!) : null,
-      endDate: this.parseDate(targetEndDate) ? new Date(this.parseDate(targetEndDate)!) : null,
+      startDate: parsedStartDate ? new Date(parsedStartDate) : null,
+      endDate: parsedEndDate ? new Date(parsedEndDate) : null,
       contractor: contractorName || '',
       owner: ownerName || '',
       architect: architectName || '',
