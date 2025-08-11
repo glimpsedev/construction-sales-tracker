@@ -101,10 +101,7 @@ export default function FilterSidebar({
 
   return (
     <aside 
-      className={cn(
-        "w-full h-full bg-white overflow-y-auto",
-        !isOpen && "hidden"
-      )}
+      className="w-full h-full bg-white overflow-y-auto"
       data-testid="filter-sidebar"
     >
       <div className="p-6">
@@ -113,7 +110,7 @@ export default function FilterSidebar({
           <Button
             variant="ghost"
             size="icon"
-            className="sm:hidden"
+            className="lg:hidden"
             onClick={onToggle}
             data-testid="button-close-sidebar"
           >

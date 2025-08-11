@@ -70,6 +70,14 @@ export class CSVImportService {
             results.skipped++;
             continue;
           }
+          
+          // Skip non-California jobs
+          const state = this.cleanString(row['State'] || row['state'] || '');
+          if (state && state.toUpperCase() !== 'CA' && state.toUpperCase() !== 'CALIFORNIA') {
+            console.log(`Row ${i}: Skipped - not in California (State: ${state})`);
+            results.skipped++;
+            continue;
+          }
 
           // Extract and clean data - using the actual column names from the Dodge export
           const projectName = this.cleanString(projectNameRaw);

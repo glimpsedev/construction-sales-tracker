@@ -12,6 +12,7 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Settings, FileSpreadsheet } from "lucide-react";
 import { Link } from "wouter";
+import { cn } from "@/lib/utils";
 import type { Job } from "@shared/schema";
 
 export default function Dashboard() {
@@ -57,7 +58,7 @@ export default function Dashboard() {
               </div>
               
               {/* Navigation Tabs */}
-              <div className="hidden sm:flex items-center space-x-6 ml-8">
+              <div className="hidden lg:flex items-center space-x-6 ml-8">
                 <a href="/" className="text-primary font-medium border-b-2 border-primary pb-1">
                   Job Sites
                 </a>
@@ -85,12 +86,12 @@ export default function Dashboard() {
               {/* Document Upload Button */}
               <Button
                 variant="outline"
-                className="inline-flex items-center"
+                className="hidden lg:inline-flex items-center"
                 onClick={() => setShowUploadModal(true)}
                 data-testid="button-upload-docs"
               >
                 <i className="fas fa-file-upload mr-2"></i>
-                <span className="hidden sm:inline">Upload Docs</span>
+                <span>Upload Docs</span>
               </Button>
               
               {/* Add Job Button */}
@@ -106,7 +107,7 @@ export default function Dashboard() {
               {/* Mobile Menu Toggle */}
               <Button
                 variant="ghost"
-                className="sm:hidden p-2"
+                className="lg:hidden p-2"
                 onClick={toggleSidebar}
                 data-testid="button-menu-toggle"
               >
@@ -118,8 +119,16 @@ export default function Dashboard() {
       </header>
 
       <div className="flex h-[calc(100vh-4rem)] relative">
-        {/* Filter Sidebar - Fixed width when open */}
-        <aside className={`${sidebarOpen ? 'w-80' : 'w-0'} transition-all duration-300 flex-shrink-0 overflow-hidden bg-white border-r border-gray-200 shadow-sm`}>
+        {/* Filter Sidebar - Fixed width, responsive for mobile */}
+        <div className={cn(
+          "transition-all duration-300 flex-shrink-0 bg-white border-r border-gray-200 shadow-sm",
+          // Desktop: sidebar takes space in layout
+          sidebarOpen ? "lg:w-80 w-80" : "lg:w-0 w-0",
+          // Mobile: overlay sidebar
+          "lg:relative absolute lg:static h-full",
+          sidebarOpen ? "left-0 z-40" : "-left-80",
+          !sidebarOpen && "overflow-hidden"
+        )}>
           <FilterSidebar
             isOpen={sidebarOpen}
             onToggle={toggleSidebar}
@@ -129,7 +138,7 @@ export default function Dashboard() {
             onJobSelect={handleJobSelect}
             isLoading={isLoading}
           />
-        </aside>
+        </div>
 
         {/* Main Map Area - Takes remaining space */}
         <main className="flex-1 min-w-0 relative">
@@ -147,7 +156,7 @@ export default function Dashboard() {
             <Button
               variant="outline"
               size="icon"
-              className="absolute top-4 left-4 z-20 bg-white shadow-md"
+              className="absolute top-4 left-4 z-30 bg-white shadow-md"
               onClick={toggleSidebar}
               data-testid="button-open-sidebar"
             >
@@ -155,6 +164,14 @@ export default function Dashboard() {
             </Button>
           )}
         </main>
+        
+        {/* Mobile overlay backdrop when sidebar is open */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+            onClick={toggleSidebar}
+          />
+        )}
       </div>
 
       {/* Modals */}
