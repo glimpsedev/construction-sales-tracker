@@ -23,7 +23,10 @@ import {
   Mail, 
   User,
   FileText,
-  Save
+  Save,
+  Flame,
+  Thermometer,
+  Snowflake
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Job } from "@shared/schema";
@@ -154,6 +157,32 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
     }
   });
 
+  const updateTemperatureMutation = useMutation({
+    mutationFn: async ({ jobId, temperature }: { jobId: string; temperature: string }) => {
+      const response = await fetch(`/api/jobs/${jobId}/temperature`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ temperature })
+      });
+      if (!response.ok) throw new Error('Failed to update temperature');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      toast({
+        title: "Success",
+        description: "Job temperature updated"
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update job temperature",
+        variant: "destructive"
+      });
+    }
+  });
+
   if (!job) return null;
 
   const handleMarkViewed = () => {
@@ -247,6 +276,45 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
             <Badge variant="outline">{job.status}</Badge>
             <Badge variant="outline">{job.type}</Badge>
           </div>
+
+          {/* Temperature Rating */}
+          <Card>
+            <CardContent className="pt-4">
+              <h4 className="font-medium mb-3 text-sm">Job Temperature</h4>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant={job.temperature === 'hot' ? 'default' : 'outline'}
+                  className={job.temperature === 'hot' ? 'bg-red-500 hover:bg-red-600 text-white' : ''}
+                  onClick={() => updateTemperatureMutation.mutate({ jobId: job.id, temperature: 'hot' })}
+                  disabled={updateTemperatureMutation.isPending}
+                >
+                  <Flame className="h-4 w-4 mr-1" />
+                  Hot
+                </Button>
+                <Button
+                  size="sm"
+                  variant={job.temperature === 'warm' ? 'default' : 'outline'}
+                  className={job.temperature === 'warm' ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}
+                  onClick={() => updateTemperatureMutation.mutate({ jobId: job.id, temperature: 'warm' })}
+                  disabled={updateTemperatureMutation.isPending}
+                >
+                  <Thermometer className="h-4 w-4 mr-1" />
+                  Warm
+                </Button>
+                <Button
+                  size="sm"
+                  variant={job.temperature === 'cold' ? 'default' : 'outline'}
+                  className={job.temperature === 'cold' ? 'bg-blue-500 hover:bg-blue-600 text-white' : ''}
+                  onClick={() => updateTemperatureMutation.mutate({ jobId: job.id, temperature: 'cold' })}
+                  disabled={updateTemperatureMutation.isPending}
+                >
+                  <Snowflake className="h-4 w-4 mr-1" />
+                  Cold
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Description */}
           {job.description && (
