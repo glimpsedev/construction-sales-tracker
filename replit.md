@@ -41,7 +41,12 @@ The current implementation focuses on data management without complex authentica
 
 ### External Dependencies
 
-**Dodge Data & Analytics Integration**: Automated job scraping using scheduled cron jobs (daily at 6 AM) to fetch thousands of California construction projects. The integration targets all active, planning, and bidding construction projects in California with a limit of 1000 projects per fetch and expects API credentials to be provided via environment variables.
+**California Government Open Data Integration**: Real-time construction project data from multiple official government sources replacing Dodge Data & Analytics (which doesn't offer public API access). The system automatically fetches from:
+- San Francisco Building Permits API (data.sfgov.org) - Live building permits with coordinates
+- Los Angeles Building Permits API (data.lacity.org) - Municipal construction data  
+- San Jose Building Permits API (data.sanjoseca.gov) - Active building permits
+- California State Procurement Portal (future integration)
+All data sources are official government APIs providing authentic, real-time construction project information for California.
 
 **Google Services**: 
 - Google Geocoding API for converting addresses to map coordinates and reverse geocoding

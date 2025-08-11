@@ -242,14 +242,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Scraping routes
+  // California data fetching routes
   app.post("/api/scrape/manual", async (req, res) => {
     try {
       await scrapeService.scrapeDailyJobs();
-      res.json({ success: true, message: 'Manual scraping completed' });
+      res.json({ success: true, message: 'California construction data updated successfully' });
     } catch (error) {
-      console.error('Manual scraping failed:', error);
-      res.status(500).json({ error: 'Manual scraping failed' });
+      console.error('California data fetch failed:', error);
+      res.status(500).json({ error: 'Failed to fetch California construction data' });
     }
   });
 
