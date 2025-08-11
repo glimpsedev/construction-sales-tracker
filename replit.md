@@ -2,13 +2,14 @@
 
 ## Overview
 
-Construction Sales Tracker is a comprehensive web application designed to help construction sales professionals manage and track job sites in California through an interactive mapping interface. The application integrates with Dodge Data & Analytics to automatically import California construction project data and provides tools for visualizing, filtering, and managing construction opportunities on a map-based interface.
+Construction Sales Tracker is a comprehensive web application designed to help construction sales professionals manage and track job sites nationwide through an interactive mapping interface. The application integrates with Dodge Data & Analytics to automatically import construction project data from across the United States and provides tools for visualizing, filtering, and managing construction opportunities on a map-based interface.
 
 The system features real-time job site tracking, automated data scraping from construction databases, document processing capabilities for extracting project information, and comprehensive filtering and search functionality. Users can view construction projects on an interactive map, manage equipment assignments, process uploaded documents, and track project status updates.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Layout preferences: Sidebar should not block or overlap the map area. Fixed sidebar width with responsive map area.
 
 ## System Architecture
 
@@ -40,7 +41,7 @@ The current implementation focuses on data management without complex authentica
 
 ### External Dependencies
 
-**Dodge Data & Analytics Integration**: Automated job scraping using scheduled cron jobs (daily at 6 AM) to fetch new California construction projects. The integration targets construction projects specifically in California and expects API credentials to be provided via environment variables.
+**Dodge Data & Analytics Integration**: Automated job scraping using scheduled cron jobs (daily at 6 AM) to fetch new construction projects from across the United States. The integration targets all active, planning, and bidding construction projects nationwide and expects API credentials to be provided via environment variables.
 
 **Google Services**: 
 - Google Geocoding API for converting addresses to map coordinates and reverse geocoding

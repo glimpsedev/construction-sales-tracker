@@ -95,19 +95,21 @@ export default function Dashboard() {
       </header>
 
       <div className="flex h-[calc(100vh-4rem)]">
-        {/* Filter Sidebar */}
-        <FilterSidebar
-          isOpen={sidebarOpen}
-          onToggle={toggleSidebar}
-          jobs={jobs}
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          onJobSelect={handleJobSelect}
-          isLoading={isLoading}
-        />
+        {/* Filter Sidebar - Fixed width */}
+        <div className={`transition-all duration-300 ${sidebarOpen ? 'w-96' : 'w-0'} overflow-hidden`}>
+          <FilterSidebar
+            isOpen={sidebarOpen}
+            onToggle={toggleSidebar}
+            jobs={jobs}
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            onJobSelect={handleJobSelect}
+            isLoading={isLoading}
+          />
+        </div>
 
-        {/* Main Map Area */}
-        <main className="flex-1 relative">
+        {/* Main Map Area - Takes remaining space */}
+        <main className="flex-1 relative min-w-0">
           <MapContainer className="h-full w-full">
             <InteractiveMap
               jobs={jobs}
