@@ -71,21 +71,26 @@ export class CSVImportService {
             continue;
           }
           
-          // Skip non-California jobs
+          // Skip non-California jobs - check county for California locations
           const state = this.cleanString(row['State'] || row['state'] || '');
+          const county = this.cleanString(row['County'] || row['COUNTY'] || row['county'] || '');
+          
+          // If we have a county but no state, assume it's California if county exists
+          const isCaliforniaJob = (!state || state.toUpperCase() === 'CA' || state.toUpperCase() === 'CALIFORNIA') && county;
+          
           if (state && state.toUpperCase() !== 'CA' && state.toUpperCase() !== 'CALIFORNIA') {
             console.log(`Row ${i}: Skipped - not in California (State: ${state})`);
             results.skipped++;
             continue;
           }
 
-          // Extract and clean data - using the actual column names from the Dodge export
+          // Extract and clean data - using the actual column names from the new Dodge export format
           const projectName = this.cleanString(projectNameRaw);
-          const description = this.cleanString(row['Project Description'] || '');
+          const description = this.cleanString(row['Comments'] || row['Project Description'] || '');
           const fullAddress = this.buildFullAddress(row);
-          const projectValue = this.parseProjectValue(row['Low Value'] || row['High Value']);
-          const projectType = this.normalizeProjectType(row['Project Type(s)']);
-          const dodgeProjectId = this.cleanString(row['Dodge Report Number'] || '');
+          const projectValue = this.parseProjectValue(row['Valuation'] || row['Low Value'] || row['High Value']);
+          const projectType = this.normalizeProjectType(row['Primary Project Type'] || row['Project Type(s)']);
+          const dodgeProjectId = this.cleanString(row['Project ID'] || row['Dodge Report Number'] || '');
 
           // Create new job (duplicates temporarily disabled)
           await this.createNewJobFromCSV(row, projectName, description, fullAddress, projectValue, projectType, dodgeProjectId);
@@ -262,31 +267,34 @@ export class CSVImportService {
       coordinates = await geocodeAddress(fullAddress);
     }
 
-    // Extract additional info from various fields
-    const ownerName = this.cleanString(row['Owner Name (Link)'] || row['Owner'] || '');
-    const architectName = this.cleanString(row['Architect Name (Link)'] || row['Architect'] || '');
-    const status = this.cleanString(row['Status'] || '');
-    const actionStages = this.cleanString(row['Action Stage(s)'] || '');
-    const tags = this.cleanString(row['Tags'] || '');
-    const bidDate = row['Bid Date'];
+    // Extract additional info from new Dodge format columns
+    const ownerName = this.cleanString(row['Owner: Company Name'] || row['Owner Name (Link)'] || row['Owner'] || '');
+    const architectName = this.cleanString(row['Architect: Company Name'] || row['Architect Name (Link)'] || row['Architect'] || '');
+    const contractorName = this.cleanString(row['GC: Company Name'] || row['Contractor'] || '');
+    const status = this.cleanString(row['Work Type'] || row['Status'] || '');
+    const deliverySystem = this.cleanString(row['Delivery System'] || '');
+    const tags = this.cleanString(row['Tags (Private)'] || row['Tags (Shared)'] || row['Tags'] || '');
+    const userNotes = this.cleanString(row['User Notes'] || '');
+    const specsAvailable = this.cleanString(row['Specs Available'] || '');
+    const targetStartDate = row['Target Start Date'] || row['Start Date'];
+    const targetEndDate = row['Target Completion Date'] || row['End Date'];
     
-    // Try to extract phone number from various fields
-    const allText = `${status} ${ownerName} ${architectName} ${description}`;
-    const phoneMatch = allText.match(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/);
-    const phone = phoneMatch ? phoneMatch[0] : this.cleanString(row['Phone'] || '');
-    
-    // Try to extract email from various fields
-    const emailMatch = allText.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
-    const email = emailMatch ? emailMatch[0] : this.cleanString(row['Email'] || '');
+    // Get phone and email from new column format
+    const phone = this.cleanString(row['GC: Company Phone'] || row['Owner: Company Phone'] || row['Phone'] || '');
+    const email = this.cleanString(row['GC: Company Email'] || row['Email'] || '');
+    const gcContactName = this.cleanString(row['GC: Contact Name'] || '');
+    const gcWebsite = this.cleanString(row['GC: Company Website'] || '');
     
     // Enhance description with all available info
     const enhancedDescription = [
       description,
       ownerName ? `Owner: ${ownerName}` : '',
       architectName ? `Architect: ${architectName}` : '',
-      actionStages ? `Action Stages: ${actionStages}` : '',
+      deliverySystem ? `Delivery System: ${deliverySystem}` : '',
+      specsAvailable ? `Specs Available: ${specsAvailable}` : '',
+      gcWebsite ? `Website: ${gcWebsite}` : '',
       tags ? `Tags: ${tags}` : '',
-      bidDate ? `Bid Date: ${bidDate}` : ''
+      userNotes ? `Notes: ${userNotes}` : ''
     ].filter(Boolean).join('\n');
 
     const newJob: InsertJob = {
@@ -296,23 +304,25 @@ export class CSVImportService {
       latitude: coordinates?.lat?.toString() || null,
       longitude: coordinates?.lng?.toString() || null,
       type: projectType as any,
-      status: (this.normalizeStatus(actionStages || status) || 'planning') as any,
+      status: (this.normalizeStatus(status) || 'planning') as any,
       projectValue: projectValue?.toString() || null,
-      startDate: this.parseDate(bidDate || row['Start Date']) ? new Date(this.parseDate(bidDate || row['Start Date'])!) : null,
-      endDate: this.parseDate(row['End Date'] || row['Completion Date']) ? new Date(this.parseDate(row['End Date'] || row['Completion Date'])!) : null,
-      contractor: this.cleanString(row['Contractor'] || row['GC'] || row['General Contractor'] || ownerName || ''),
+      startDate: this.parseDate(targetStartDate) ? new Date(this.parseDate(targetStartDate)!) : null,
+      endDate: this.parseDate(targetEndDate) ? new Date(this.parseDate(targetEndDate)!) : null,
+      contractor: contractorName || '',
+      owner: ownerName || '',
+      architect: architectName || '',
       phone: phone,
       email: email,
+      officeContact: gcContactName || '',
+      specialConditions: deliverySystem || '',
       notes: tags || '', // Use tags as notes
       orderedBy: this.cleanString(row['Ordered By'] || ''),
-      officeContact: architectName || '',
-      specialConditions: this.cleanString(row['Special Conditions'] || ''),
       isCustom: false,
       dodgeJobId: dodgeProjectId,
       // Track viewing status
       isViewed: false,
       viewedAt: null,
-      userNotes: ''
+      userNotes: userNotes || ''
     };
 
     await db.insert(jobs).values(newJob);
@@ -334,6 +344,7 @@ export class CSVImportService {
 
   /**
    * Parse project value from string or number
+   * Handles formats like "$ 85000000" or "$ 4500000 - $ 5000000"
    */
   private parseProjectValue(value?: any): number | null {
     if (!value) return null;
@@ -341,8 +352,20 @@ export class CSVImportService {
     // If it's already a number, return it
     if (typeof value === 'number') return value;
     
-    // Remove currency symbols, commas, and other formatting from strings
+    // Convert to string and clean up
     const valueStr = String(value);
+    
+    // Handle range format (e.g., "$ 4500000 - $ 5000000")
+    if (valueStr.includes('-')) {
+      const parts = valueStr.split('-');
+      // Take the higher value from the range
+      const highValue = parts[parts.length - 1];
+      const cleaned = highValue.replace(/[$,\s]/g, '');
+      const number = parseFloat(cleaned);
+      return isNaN(number) ? null : number;
+    }
+    
+    // Handle single value
     const cleaned = valueStr.replace(/[$,\s]/g, '');
     const number = parseFloat(cleaned);
     
@@ -351,21 +374,38 @@ export class CSVImportService {
 
   /**
    * Normalize project type
+   * Handles new Dodge format types like "Middle/Senior High School", "Water Line", etc.
    */
   private normalizeProjectType(type?: string): string {
     if (!type) return 'commercial';
     
     const normalized = type.toLowerCase().trim();
     
-    if (normalized.includes('commercial') || normalized.includes('office') || normalized.includes('retail')) {
+    // Educational facilities
+    if (normalized.includes('school') || normalized.includes('education') || normalized.includes('university')) {
       return 'commercial';
     }
-    if (normalized.includes('residential') || normalized.includes('housing') || normalized.includes('apartment')) {
-      return 'residential';
-    }
-    if (normalized.includes('industrial') || normalized.includes('warehouse') || normalized.includes('manufacturing')) {
+    // Infrastructure
+    if (normalized.includes('water') || normalized.includes('sewer') || normalized.includes('pipeline') || 
+        normalized.includes('power') || normalized.includes('utility')) {
       return 'industrial';
     }
+    // Residential
+    if (normalized.includes('residential') || normalized.includes('housing') || normalized.includes('apartment') ||
+        normalized.includes('condo') || normalized.includes('townhome')) {
+      return 'residential';
+    }
+    // Commercial
+    if (normalized.includes('commercial') || normalized.includes('office') || normalized.includes('retail') ||
+        normalized.includes('restaurant') || normalized.includes('hotel')) {
+      return 'commercial';
+    }
+    // Industrial
+    if (normalized.includes('industrial') || normalized.includes('warehouse') || normalized.includes('manufacturing') ||
+        normalized.includes('facility') || normalized.includes('plant')) {
+      return 'industrial';
+    }
+    // Equipment
     if (normalized.includes('equipment') || normalized.includes('machinery')) {
       return 'equipment';
     }
@@ -375,12 +415,21 @@ export class CSVImportService {
 
   /**
    * Normalize status
+   * Handles new Dodge format "Work Type" values like "New Project"
    */
   private normalizeStatus(status?: string): string | null {
     if (!status) return null;
     
     const normalized = status.toLowerCase().trim();
     
+    // New project types from Dodge
+    if (normalized.includes('new project') || normalized.includes('new')) {
+      return 'planning';
+    }
+    if (normalized.includes('addition') || normalized.includes('alteration') || normalized.includes('renovation')) {
+      return 'active';
+    }
+    // Standard status mappings
     if (normalized.includes('active') || normalized.includes('construction') || normalized.includes('building')) {
       return 'active';
     }
