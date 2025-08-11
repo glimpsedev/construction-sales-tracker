@@ -19,8 +19,9 @@ export default function Dashboard() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // Start closed on mobile
   const [showJobDetails, setShowJobDetails] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [filters, setFilters] = useState({
     search: '',
     status: ['active'] as string[],
@@ -50,104 +51,153 @@ export default function Dashboard() {
 
   return (
     <div className="bg-neutral font-sans min-h-screen" data-testid="dashboard">
-      {/* Header */}
+      {/* Mobile-Optimized Header */}
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center">
-                <i className="fas fa-map-marked-alt text-primary text-2xl mr-3"></i>
-                <h1 className="text-xl font-semibold text-darktext">Construction Sales Tracker</h1>
-              </div>
-              
-              {/* Navigation Tabs */}
-              <div className="hidden lg:flex items-center space-x-6 ml-8">
-                <a href="/" className="text-primary font-medium border-b-2 border-primary pb-1">
-                  Job Sites
-                </a>
-                <a href="/equipment" className="text-gray-600 hover:text-primary font-medium pb-1">
-                  Equipment
-                </a>
-                <a href="/email-setup" className="text-gray-600 hover:text-primary font-medium pb-1 flex items-center gap-1">
-                  <Mail className="h-4 w-4" />
-                  Email Setup
-                </a>
-                <a href="/dodge-import" className="text-gray-600 hover:text-primary font-medium pb-1 flex items-center gap-1">
-                  <FileSpreadsheet className="h-4 w-4" />
-                  Dodge Import
-                </a>
-              </div>
-              
-              {/* Navigation Link to Database Management */}
-              <a href="/database" className="text-gray-600 hover:text-primary font-medium pb-1 flex items-center gap-1">
-                <Settings className="h-4 w-4" />
-                Database
-              </a>
+        <div className="px-3 md:px-6">
+          <div className="flex justify-between items-center h-14 md:h-16">
+            {/* Logo and Title */}
+            <div className="flex items-center gap-2">
+              <i className="fas fa-map-marked-alt text-primary text-lg md:text-2xl"></i>
+              <h1 className="text-base md:text-xl font-semibold text-darktext hidden sm:block">Construction Tracker</h1>
             </div>
             
-            <div className="flex items-center space-x-4">
-              {/* Document Upload Button */}
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center gap-4">
+              <Link href="/dodge-import">
+                <Button variant="outline" size="sm">
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Import CSV
+                </Button>
+              </Link>
               <Button
                 variant="outline"
-                className="hidden lg:inline-flex items-center"
+                size="sm"
                 onClick={() => setShowUploadModal(true)}
-                data-testid="button-upload-docs"
               >
                 <i className="fas fa-file-upload mr-2"></i>
-                <span>Upload Docs</span>
+                Upload Docs
               </Button>
-              
-              {/* Add Job Button */}
               <Button
-                className="inline-flex items-center bg-primary hover:bg-blue-700"
+                size="sm"
+                className="bg-primary hover:bg-blue-700"
                 onClick={() => setShowAddModal(true)}
-                data-testid="button-add-job"
               >
                 <i className="fas fa-plus mr-2"></i>
                 Add Job
               </Button>
-              
-              {/* Mobile Menu Toggle */}
+            </div>
+            
+            {/* Mobile Controls */}
+            <div className="flex items-center gap-2 lg:hidden">
               <Button
-                variant="ghost"
-                className="lg:hidden p-2"
-                onClick={toggleSidebar}
-                data-testid="button-menu-toggle"
+                size="sm"
+                variant="outline"
+                onClick={() => setShowAddModal(true)}
+                className="px-2"
               >
-                <i className="fas fa-bars"></i>
+                <i className="fas fa-plus"></i>
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+              >
+                <i className="fas fa-ellipsis-v"></i>
               </Button>
             </div>
           </div>
         </div>
+        
+        {/* Mobile Dropdown Menu */}
+        {showMobileMenu && (
+          <div className="lg:hidden border-t bg-white">
+            <div className="px-3 py-2 space-y-1">
+              <Link href="/dodge-import">
+                <button
+                  onClick={() => setShowMobileMenu(false)}
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded flex items-center gap-2"
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Import CSV
+                </button>
+              </Link>
+              <button
+                onClick={() => {
+                  setShowUploadModal(true);
+                  setShowMobileMenu(false);
+                }}
+                className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded flex items-center gap-2"
+              >
+                <i className="fas fa-file-upload"></i>
+                Upload Documents
+              </button>
+              <Link href="/equipment">
+                <button
+                  onClick={() => setShowMobileMenu(false)}
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded flex items-center gap-2"
+                >
+                  <Settings className="h-4 w-4" />
+                  Equipment
+                </button>
+              </Link>
+              <Link href="/email-setup">
+                <button
+                  onClick={() => setShowMobileMenu(false)}
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded flex items-center gap-2"
+                >
+                  <Mail className="h-4 w-4" />
+                  Email Setup
+                </button>
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
 
-      <div className="flex h-[calc(100vh-4rem)] relative">
-        {/* Left Panel - Filter Sidebar or Job Details */}
+      <div className="flex h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] relative">
+        {/* Left Panel - Mobile Slide-in, Desktop Fixed */}
         <div className={cn(
-          "transition-all duration-300 flex-shrink-0 bg-white border-r border-gray-200 shadow-sm",
-          // Show panel when either sidebar or job details is open
-          (sidebarOpen || showJobDetails) ? "lg:w-96 w-full lg:relative absolute" : "lg:w-0 w-0",
-          // Mobile: full width overlay
-          "h-full z-40",
-          !(sidebarOpen || showJobDetails) && "overflow-hidden"
+          "bg-white border-r border-gray-200 shadow-lg transition-transform duration-300 ease-in-out",
+          // Desktop: fixed width when open
+          "lg:relative lg:translate-x-0",
+          sidebarOpen || showJobDetails ? "lg:w-96" : "lg:w-0",
+          // Mobile: slide in from left
+          "fixed lg:static inset-y-0 left-0 w-80 z-40",
+          "h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] top-14 md:top-16",
+          sidebarOpen || showJobDetails ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          !(sidebarOpen || showJobDetails) && "lg:overflow-hidden"
         )}>
           {showJobDetails && selectedJob ? (
-            // Job Details Panel
-            <div className="w-full h-full overflow-y-auto p-6">
+            // Job Details Panel - Mobile Optimized
+            <div className="w-full h-full overflow-y-auto p-4 md:p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">Job Details</h2>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    setShowJobDetails(false);
-                    setSelectedJob(null);
-                    setSidebarOpen(true);
-                  }}
-                  data-testid="button-close-details"
-                >
-                  <i className="fas fa-times"></i>
-                </Button>
+                <h2 className="text-lg md:text-xl font-semibold">Job Details</h2>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSidebarOpen(true);
+                      setShowJobDetails(false);
+                    }}
+                    className="lg:hidden"
+                  >
+                    <i className="fas fa-filter mr-2"></i>
+                    Filters
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setShowJobDetails(false);
+                      setSelectedJob(null);
+                      setSidebarOpen(false);
+                    }}
+                    data-testid="button-close-details"
+                  >
+                    <i className="fas fa-times"></i>
+                  </Button>
+                </div>
               </div>
               
               {/* Job Information */}
@@ -328,7 +378,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Main Map Area - Takes remaining space */}
+        {/* Main Map Area - Always Visible */}
         <main className="flex-1 min-w-0 relative">
           <MapContainer className="h-full w-full">
             <InteractiveMap
@@ -339,12 +389,27 @@ export default function Dashboard() {
             />
           </MapContainer>
           
-          {/* Toggle Button when sidebar is closed */}
+          {/* Mobile Floating Action Buttons */}
+          <div className="lg:hidden fixed bottom-6 right-6 z-30 flex flex-col gap-3">
+            {/* Filter Toggle Button */}
+            {!sidebarOpen && !showJobDetails && (
+              <Button
+                size="icon"
+                className="h-14 w-14 rounded-full shadow-lg bg-white hover:bg-gray-100"
+                onClick={toggleSidebar}
+                data-testid="button-open-filter"
+              >
+                <i className="fas fa-filter text-xl"></i>
+              </Button>
+            )}
+          </div>
+          
+          {/* Desktop Filter Toggle */}
           {!sidebarOpen && !showJobDetails && (
             <Button
               variant="outline"
               size="icon"
-              className="absolute top-4 left-4 z-30 bg-white shadow-md"
+              className="hidden lg:flex absolute top-4 left-4 z-30 bg-white shadow-md"
               onClick={toggleSidebar}
               data-testid="button-open-sidebar"
             >
@@ -353,11 +418,15 @@ export default function Dashboard() {
           )}
         </main>
         
-        {/* Mobile overlay backdrop when sidebar is open */}
-        {sidebarOpen && (
+        {/* Mobile Overlay Backdrop */}
+        {(sidebarOpen || showJobDetails) && (
           <div 
             className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
-            onClick={toggleSidebar}
+            onClick={() => {
+              setSidebarOpen(false);
+              setShowJobDetails(false);
+              setSelectedJob(null);
+            }}
           />
         )}
       </div>
