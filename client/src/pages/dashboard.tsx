@@ -117,9 +117,9 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="flex h-[calc(100vh-4rem)]">
-        {/* Filter Sidebar */}
-        <aside className={`${sidebarOpen ? 'w-96' : 'w-0'} transition-all duration-300 flex-shrink-0 overflow-hidden bg-white border-r z-10`}>
+      <div className="flex h-[calc(100vh-4rem)] relative">
+        {/* Filter Sidebar - Fixed width when open */}
+        <aside className={`${sidebarOpen ? 'w-80' : 'w-0'} transition-all duration-300 flex-shrink-0 overflow-hidden bg-white border-r border-gray-200 shadow-sm`}>
           <FilterSidebar
             isOpen={sidebarOpen}
             onToggle={toggleSidebar}
@@ -131,8 +131,8 @@ export default function Dashboard() {
           />
         </aside>
 
-        {/* Main Map Area */}
-        <main className={`flex-1 ${sidebarOpen ? 'ml-0' : 'ml-0'}`}>
+        {/* Main Map Area - Takes remaining space */}
+        <main className="flex-1 min-w-0 relative">
           <MapContainer className="h-full w-full">
             <InteractiveMap
               jobs={jobs}
@@ -141,6 +141,19 @@ export default function Dashboard() {
               isLoading={isLoading}
             />
           </MapContainer>
+          
+          {/* Toggle Button when sidebar is closed */}
+          {!sidebarOpen && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="absolute top-4 left-4 z-20 bg-white shadow-md"
+              onClick={toggleSidebar}
+              data-testid="button-open-sidebar"
+            >
+              <i className="fas fa-bars"></i>
+            </Button>
+          )}
         </main>
       </div>
 

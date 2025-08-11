@@ -102,12 +102,8 @@ export default function FilterSidebar({
   return (
     <aside 
       className={cn(
-        "w-80 bg-white border-r border-gray-200 shadow-sm overflow-y-auto transition-transform duration-300 z-30",
-        "sm:relative sm:translate-x-0",
-        !isOpen && "sm:hidden",
-        // Mobile styles
-        "fixed inset-y-0 left-0 sm:static",
-        !isOpen && "-translate-x-full sm:translate-x-0"
+        "w-full h-full bg-white overflow-y-auto",
+        !isOpen && "hidden"
       )}
       data-testid="filter-sidebar"
     >

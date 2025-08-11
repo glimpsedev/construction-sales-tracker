@@ -53,34 +53,38 @@ export class CSVImportService {
       const rawData = XLSX.utils.sheet_to_json(firstSheet) as DodgeCSVRow[];
 
       console.log(`Processing ${rawData.length} rows from Dodge CSV`);
+      
+      // Debug: Check the first row to see column names
+      if (rawData.length > 0) {
+        console.log('First row columns:', Object.keys(rawData[0]));
+      }
 
       for (let i = 0; i < rawData.length; i++) {
         const row = rawData[i];
         
         try {
-          // Skip empty rows
-          if (!row || !row['Project Name']) {
+          // Skip empty rows - check for various possible column names
+          const projectNameRaw = row['Project Name (Link)'] || row['Project Name'] || row['project name'] || row['Name'] || '';
+          if (!row || !projectNameRaw) {
+            console.log(`Row ${i}: Skipped - no project name found`);
             results.skipped++;
             continue;
           }
 
-          // Extract and clean data
-          const projectName = this.cleanString(row['Project Name']);
+          // Extract and clean data - using the actual column names from the Dodge export
+          const projectName = this.cleanString(projectNameRaw);
           const description = this.cleanString(row['Project Description'] || '');
           const fullAddress = this.buildFullAddress(row);
-          const projectValue = this.parseProjectValue(row['Project Value']);
-          const projectType = this.normalizeProjectType(row['Project Type']);
-          const dodgeProjectId = this.cleanString(row['Project ID'] || '');
+          const projectValue = this.parseProjectValue(row['Low Value'] || row['High Value']);
+          const projectType = this.normalizeProjectType(row['Project Type(s)']);
+          const dodgeProjectId = this.cleanString(row['Dodge Report Number'] || '');
 
-          console.log(`Processing row ${i}: ${projectName} with address: ${fullAddress}`);
-          
           // Create new job (duplicates temporarily disabled)
           await this.createNewJobFromCSV(row, projectName, description, fullAddress, projectValue, projectType, dodgeProjectId);
           results.imported++;
-          console.log(`Successfully imported: ${projectName}`);
-          
-          // Limit for testing
-          if (i >= 10) break;
+          if (i < 5) {
+            console.log(`Imported: ${projectName} at ${fullAddress}`);
+          }
 
         } catch (error) {
           const errorMsg = `Row ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`;
@@ -284,20 +288,24 @@ export class CSVImportService {
       row['Address'],
       row['City'],
       row['State'],
-      row['ZIP']
+      row['Zip Code'] || row['ZIP']
     ].filter(part => part && part.trim());
     
     return parts.join(', ');
   }
 
   /**
-   * Parse project value from string
+   * Parse project value from string or number
    */
-  private parseProjectValue(value?: string): number | null {
+  private parseProjectValue(value?: any): number | null {
     if (!value) return null;
     
-    // Remove currency symbols, commas, and other formatting
-    const cleaned = value.replace(/[$,\s]/g, '');
+    // If it's already a number, return it
+    if (typeof value === 'number') return value;
+    
+    // Remove currency symbols, commas, and other formatting from strings
+    const valueStr = String(value);
+    const cleaned = valueStr.replace(/[$,\s]/g, '');
     const number = parseFloat(cleaned);
     
     return isNaN(number) ? null : number;
@@ -368,8 +376,10 @@ export class CSVImportService {
   /**
    * Clean and trim string values
    */
-  private cleanString(value?: string): string {
-    return value ? value.trim() : '';
+  private cleanString(value?: any): string {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value.trim();
+    return String(value).trim();
   }
 }
 
