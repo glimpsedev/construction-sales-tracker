@@ -19,6 +19,7 @@ export interface IStorage {
     search?: string;
     status?: string[];
     type?: string[];
+    temperature?: string[];
     startDate?: Date;
     endDate?: Date;
     minValue?: number;
@@ -129,6 +130,10 @@ export class MemStorage implements IStorage {
 
     if (filters.type && filters.type.length > 0) {
       result = result.filter(job => filters.type!.includes(job.type));
+    }
+
+    if (filters.temperature && filters.temperature.length > 0) {
+      result = result.filter(job => job.temperature && filters.temperature!.includes(job.temperature));
     }
 
     if (filters.startDate) {
@@ -262,6 +267,7 @@ export class DatabaseStorage implements IStorage {
     search?: string;
     status?: string[];
     type?: string[];
+    temperature?: string[];
     startDate?: Date;
     endDate?: Date;
     minValue?: number;
@@ -284,6 +290,10 @@ export class DatabaseStorage implements IStorage {
 
     if (filters.type && filters.type.length > 0) {
       conditions.push(inArray(jobs.type, filters.type as any));
+    }
+
+    if (filters.temperature && filters.temperature.length > 0) {
+      conditions.push(inArray(jobs.temperature, filters.temperature as any));
     }
 
     if (filters.startDate) {

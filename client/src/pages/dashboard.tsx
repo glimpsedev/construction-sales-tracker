@@ -29,11 +29,47 @@ export default function Dashboard() {
     startDate: '',
     endDate: '',
     minValue: '',
-    maxValue: ''
+    maxValue: '',
+    temperature: [] as string[],
+    viewStatus: 'all'
   });
 
   const { data: jobs = [], isLoading, refetch } = useJobs(filters);
   const { toast } = useToast();
+
+  // Update job temperature mutation
+  const updateTemperatureMutation = useMutation({
+    mutationFn: async ({ jobId, temperature }: { jobId: string; temperature: string }) => {
+      const response = await fetch(`/api/jobs/${jobId}/temperature`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ temperature })
+      });
+      if (!response.ok) throw new Error('Failed to update temperature');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      toast({
+        title: "Success",
+        description: "Job temperature updated"
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update job temperature",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const updateJobTemperature = (temperature: string) => {
+    if (selectedJob) {
+      updateTemperatureMutation.mutate({ jobId: selectedJob.id, temperature });
+      setSelectedJob({ ...selectedJob, temperature } as Job);
+    }
+  };
 
   const handleJobSelect = (job: Job) => {
     console.log('Job selected:', job.name);
@@ -207,6 +243,37 @@ export default function Dashboard() {
                     data-testid="button-close-details"
                   >
                     <i className="fas fa-times"></i>
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Temperature Rating Section */}
+              <div className="border-b pb-3 mb-3">
+                <p className="text-xs font-medium text-gray-500 mb-2">Job Temperature</p>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant={selectedJob.temperature === 'hot' ? 'default' : 'outline'}
+                    className={selectedJob.temperature === 'hot' ? 'bg-red-500 hover:bg-red-600' : ''}
+                    onClick={() => updateJobTemperature('hot')}
+                  >
+                    🔥 Hot
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={selectedJob.temperature === 'warm' ? 'default' : 'outline'}
+                    className={selectedJob.temperature === 'warm' ? 'bg-orange-500 hover:bg-orange-600' : ''}
+                    onClick={() => updateJobTemperature('warm')}
+                  >
+                    🌡️ Warm
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={selectedJob.temperature === 'cold' ? 'default' : 'outline'}
+                    className={selectedJob.temperature === 'cold' ? 'bg-gray-500 hover:bg-gray-600' : ''}
+                    onClick={() => updateJobTemperature('cold')}
+                  >
+                    ❄️ Cold
                   </Button>
                 </div>
               </div>

@@ -8,6 +8,7 @@ export const jobStatusEnum = pgEnum("job_status", ["active", "completed", "plann
 export const jobTypeEnum = pgEnum("job_type", ["commercial", "residential", "industrial", "equipment", "other"]);
 export const equipmentStatusEnum = pgEnum("equipment_status", ["starting", "stopping", "maintenance"]);
 export const rentalStatusEnum = pgEnum("rental_status", ["on_rent", "off_rent", "maintenance"]);
+export const jobTemperatureEnum = pgEnum("job_temperature", ["hot", "warm", "cold"]);
 
 export const jobs = pgTable("jobs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -36,7 +37,8 @@ export const jobs = pgTable("jobs", {
   // User interaction tracking
   isViewed: boolean("is_viewed").default(false),
   viewedAt: timestamp("viewed_at"),
-  userNotes: text("user_notes").default("")
+  userNotes: text("user_notes").default(""),
+  temperature: jobTemperatureEnum("temperature")
 });
 
 export const equipment = pgTable("equipment", {

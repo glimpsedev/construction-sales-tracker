@@ -75,8 +75,11 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
 
         if (isNaN(lat) || isNaN(lng)) return;
 
-        // Create custom icon based on viewed status and project type
-        const iconColor = job.isViewed ? getViewedStatusColor() : getUnviewedStatusColor();
+        // Create custom icon based on temperature or viewed status
+        const iconColor = job.temperature === 'hot' ? 'bg-red-500' :
+                         job.temperature === 'warm' ? 'bg-orange-500' :
+                         job.temperature === 'cold' ? 'bg-gray-500' :
+                         job.isViewed ? getViewedStatusColor() : getUnviewedStatusColor();
         const iconHtml = getStatusIcon(job.status, job.type);
         
         const customIcon = L.divIcon({

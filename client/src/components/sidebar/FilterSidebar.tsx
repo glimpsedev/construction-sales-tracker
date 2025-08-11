@@ -20,6 +20,8 @@ interface FilterSidebarProps {
     endDate: string;
     minValue: string;
     maxValue: string;
+    temperature?: string[];
+    viewStatus?: string;
   };
   onFilterChange: (filters: any) => void;
   onJobSelect: (job: Job) => void;
@@ -283,6 +285,63 @@ export default function FilterSidebar({
                 onChange={(e) => handleFilterChange('endDate', e.target.value)}
                 data-testid="input-end-date"
               />
+            </div>
+          </div>
+
+          {/* Temperature Filter */}
+          <div>
+            <h3 className="text-sm font-medium text-darktext mb-3">Temperature</h3>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="temp-hot"
+                    checked={filters.temperature?.includes('hot')}
+                    onCheckedChange={(checked) => {
+                      const temps = filters.temperature || [];
+                      handleFilterChange('temperature', checked
+                        ? [...temps, 'hot']
+                        : temps.filter((t: string) => t !== 'hot')
+                      );
+                    }}
+                  />
+                  <label htmlFor="temp-hot" className="text-sm cursor-pointer">🔥 Hot</label>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="temp-warm"
+                    checked={filters.temperature?.includes('warm')}
+                    onCheckedChange={(checked) => {
+                      const temps = filters.temperature || [];
+                      handleFilterChange('temperature', checked
+                        ? [...temps, 'warm']
+                        : temps.filter((t: string) => t !== 'warm')
+                      );
+                    }}
+                  />
+                  <label htmlFor="temp-warm" className="text-sm cursor-pointer">🌡️ Warm</label>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="temp-cold"
+                    checked={filters.temperature?.includes('cold')}
+                    onCheckedChange={(checked) => {
+                      const temps = filters.temperature || [];
+                      handleFilterChange('temperature', checked
+                        ? [...temps, 'cold']
+                        : temps.filter((t: string) => t !== 'cold')
+                      );
+                    }}
+                  />
+                  <label htmlFor="temp-cold" className="text-sm cursor-pointer">❄️ Cold</label>
+                </div>
+              </div>
             </div>
           </div>
 

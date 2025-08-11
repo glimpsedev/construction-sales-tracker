@@ -68,6 +68,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         search,
         status,
         type,
+        temperature,
         startDate,
         endDate,
         minValue,
@@ -78,6 +79,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         search: search as string,
         status: status ? (status as string).split(',') : undefined,
         type: type ? (type as string).split(',') : undefined,
+        temperature: temperature ? (temperature as string).split(',') : undefined,
         startDate: startDate ? new Date(startDate as string) : undefined,
         endDate: endDate ? new Date(endDate as string) : undefined,
         minValue: minValue ? parseFloat(minValue as string) : undefined,
@@ -406,6 +408,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating job notes:", error);
       res.status(500).json({ error: "Failed to update job notes" });
+    }
+  });
+
+  // Update job temperature
+  app.patch("/api/jobs/:id/temperature", async (req, res) => {
+    try {
+      const { temperature } = req.body;
+      
+      if (!['hot', 'warm', 'cold'].includes(temperature)) {
+        return res.status(400).json({ error: 'Invalid temperature value' });
+      }
+      
+      await db
+        .update(jobs)
+        .set({
+          temperature: temperature as any
+        })
+        .where(eq(jobs.id, req.params.id));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating job temperature:", error);
+      res.status(500).json({ error: "Failed to update temperature" });
     }
   });
 
