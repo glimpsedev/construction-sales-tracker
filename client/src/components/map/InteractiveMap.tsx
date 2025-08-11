@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import type { Job } from "@shared/schema";
 
+// Extend Leaflet Map type to include our custom property
+declare module 'leaflet' {
+  interface Map {
+    _userHasInteracted?: boolean;
+  }
+}
+
 // Fix for default markers in Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -38,6 +45,11 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
       zoom: 6,
       zoomControl: false
     });
+    
+    // Track user interaction to prevent automatic recentering
+    map.on('dragstart zoomstart', () => {
+      map._userHasInteracted = true;
+    });
 
     // Add tile layer
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -67,13 +79,20 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
     markers.forEach(marker => map.removeLayer(marker));
     markers.clear();
 
-    // Add new markers
+    // Add new markers - filter out jobs outside California
     jobs.forEach(job => {
       if (job.latitude && job.longitude) {
         const lat = parseFloat(job.latitude);
         const lng = parseFloat(job.longitude);
 
         if (isNaN(lat) || isNaN(lng)) return;
+        
+        // Filter out jobs outside California bounds
+        // California roughly: lat 32.5 to 42, lng -124.5 to -114
+        if (lat < 32.5 || lat > 42 || lng < -124.5 || lng > -114) {
+          console.log(`Skipping job outside California: ${job.name} at ${lat}, ${lng}`);
+          return;
+        }
 
         // Create custom icon based on temperature or viewed status
         const iconColor = job.temperature === 'hot' ? 'bg-red-500' :
@@ -110,9 +129,19 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
       }
     });
 
-    // Fit bounds if we have jobs with coordinates
-    const validJobs = jobs.filter(job => job.latitude && job.longitude);
-    if (validJobs.length > 0) {
+    // Fit bounds only on initial load - filter California jobs only
+    const validJobs = jobs.filter(job => {
+      if (!job.latitude || !job.longitude) return false;
+      const lat = parseFloat(job.latitude);
+      const lng = parseFloat(job.longitude);
+      // Only include California jobs
+      return !isNaN(lat) && !isNaN(lng) && 
+             lat >= 32.5 && lat <= 42 && 
+             lng >= -124.5 && lng <= -114;
+    });
+    
+    // Only fit bounds if this is the first load (no user interaction yet)
+    if (validJobs.length > 0 && !mapInstanceRef.current._userHasInteracted) {
       const bounds = L.latLngBounds(
         validJobs.map(job => [parseFloat(job.latitude!), parseFloat(job.longitude!)])
       );
@@ -120,15 +149,14 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
     }
   }, [jobs, mapLoaded, onJobSelect]);
 
-  // Highlight selected job
+  // Highlight selected job without moving the map
   useEffect(() => {
     if (!mapInstanceRef.current || !selectedJob) return;
 
     const marker = markersRef.current.get(selectedJob.id);
     if (marker && selectedJob.latitude && selectedJob.longitude) {
-      const lat = parseFloat(selectedJob.latitude);
-      const lng = parseFloat(selectedJob.longitude);
-      mapInstanceRef.current.setView([lat, lng], 15);
+      // Just highlight the marker, don't move the map
+      // You could add visual feedback here if needed
     }
   }, [selectedJob]);
 
