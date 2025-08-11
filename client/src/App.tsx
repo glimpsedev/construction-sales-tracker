@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/dashboard";
 import Equipment from "@/pages/equipment";
 import { EmailSetupPage } from "@/pages/email-setup";
+import { DodgeImportPage } from "@/pages/dodge-import";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -14,6 +15,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/equipment" component={Equipment} />
       <Route path="/email-setup" component={EmailSetupPage} />
+      <Route path="/dodge-import" component={DodgeImportPage} />
       <Route component={NotFound} />
     </Switch>
   );

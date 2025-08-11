@@ -2,7 +2,7 @@ import { useState } from "react";
 import { MapContainer } from "@/components/ui/map-container";
 import InteractiveMap from "@/components/map/InteractiveMap";
 import FilterSidebar from "@/components/sidebar/FilterSidebar";
-import JobDetailsModal from "@/components/modals/JobDetailsModal";
+import { JobDetailsModal } from "@/components/modals/JobDetailsModal";
 import AddJobModal from "@/components/modals/AddJobModal";
 import DocumentUploadModal from "@/components/modals/DocumentUploadModal";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { useJobs } from "@/hooks/useJobs";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { RefreshCw, Mail, Settings } from "lucide-react";
+import { RefreshCw, Mail, Settings, FileSpreadsheet } from "lucide-react";
 import { Link } from "wouter";
 import type { Job } from "@shared/schema";
 
@@ -87,6 +87,10 @@ export default function Dashboard() {
                 <a href="/email-setup" className="text-gray-600 hover:text-primary font-medium pb-1 flex items-center gap-1">
                   <Mail className="h-4 w-4" />
                   Email Setup
+                </a>
+                <a href="/dodge-import" className="text-gray-600 hover:text-primary font-medium pb-1 flex items-center gap-1">
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Dodge Import
                 </a>
               </div>
               
@@ -174,14 +178,11 @@ export default function Dashboard() {
       </div>
 
       {/* Modals */}
-      {selectedJob && (
-        <JobDetailsModal
-          job={selectedJob}
-          isOpen={!!selectedJob}
-          onClose={() => setSelectedJob(null)}
-          onUpdate={refetch}
-        />
-      )}
+      <JobDetailsModal
+        job={selectedJob}
+        isOpen={!!selectedJob}
+        onClose={() => setSelectedJob(null)}
+      />
 
       <AddJobModal
         isOpen={showAddModal}

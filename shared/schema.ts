@@ -29,6 +29,14 @@ export const jobs = pgTable("jobs", {
   isCustom: boolean("is_custom").default(false),
   dodgeJobId: text("dodge_job_id"), // For tracking Dodge Data jobs
   createdAt: timestamp("created_at").defaultNow(),
+  // Additional fields for Dodge CSV import
+  description: text("description"),
+  phone: text("phone"),
+  email: text("email"),
+  // User interaction tracking
+  isViewed: boolean("is_viewed").default(false),
+  viewedAt: timestamp("viewed_at"),
+  userNotes: text("user_notes").default("")
 });
 
 export const equipment = pgTable("equipment", {

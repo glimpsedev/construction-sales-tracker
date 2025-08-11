@@ -1,291 +1,354 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import React, { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { 
+  Eye, 
+  EyeOff, 
+  MapPin, 
+  Building, 
+  DollarSign, 
+  Calendar, 
+  Phone, 
+  Mail, 
+  User,
+  FileText,
+  Save
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 import type { Job } from "@shared/schema";
 
 interface JobDetailsModalProps {
-  job: Job;
+  job: Job | null;
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: () => void;
 }
 
-export default function JobDetailsModal({ job, isOpen, onClose, onUpdate }: JobDetailsModalProps) {
-  const [isUpdating, setIsUpdating] = useState(false);
+export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) {
+  const [notes, setNotes] = useState(job?.userNotes || "");
+  const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const handleMarkCompleted = async () => {
-    if (job.status === 'completed') return;
-    
-    try {
-      setIsUpdating(true);
-      await apiRequest('PUT', `/api/jobs/${job.id}`, { status: 'completed' });
-      toast({
-        title: "Success",
-        description: "Job marked as completed"
+  // Update notes when job changes
+  React.useEffect(() => {
+    if (job) {
+      setNotes(job.userNotes || "");
+    }
+  }, [job]);
+
+  const markViewedMutation = useMutation({
+    mutationFn: async ({ jobId, notes }: { jobId: string; notes: string }) => {
+      const response = await fetch(`/api/jobs/${jobId}/mark-viewed`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes })
       });
-      onUpdate();
-    } catch (error) {
+      
+      if (!response.ok) {
+        throw new Error('Failed to mark job as viewed');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       toast({
+        title: "Job Marked as Viewed",
+        description: "Job status updated successfully"
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
         title: "Error",
-        description: "Failed to update job status",
-        variant: "destructive"
+        description: "Failed to mark job as viewed"
       });
-    } finally {
-      setIsUpdating(false);
     }
-  };
+  });
 
-  const handleGetDirections = () => {
-    if (job.address) {
-      const encodedAddress = encodeURIComponent(job.address);
-      window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`, '_blank');
+  const updateNotesMutation = useMutation({
+    mutationFn: async ({ jobId, notes }: { jobId: string; notes: string }) => {
+      const response = await fetch(`/api/jobs/${jobId}/notes`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update notes');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      setIsEditing(false);
+      toast({
+        title: "Notes Updated",
+        description: "Job notes saved successfully"
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update notes"
+      });
     }
+  });
+
+  if (!job) return null;
+
+  const handleMarkViewed = () => {
+    markViewedMutation.mutate({ jobId: job.id, notes });
   };
 
-  const handleExportJob = () => {
-    const jobData = {
-      ...job,
-      exported_at: new Date().toISOString()
-    };
-    
-    const dataStr = JSON.stringify(jobData, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = `job-${job.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.json`;
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
+  const handleSaveNotes = () => {
+    updateNotesMutation.mutate({ jobId: job.id, notes });
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'completed': return 'bg-secondary/20 text-secondary';
-      case 'planning': return 'bg-blue-100 text-blue-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const handleCancel = () => {
+    setNotes(job.userNotes || "");
+    setIsEditing(false);
+  };
+
+  const formatCurrency = (value: string | null) => {
+    if (!value) return "Not specified";
+    const num = parseFloat(value);
+    return isNaN(num) ? value : `$${num.toLocaleString()}`;
+  };
+
+  const formatDate = (dateValue: string | Date | null) => {
+    if (!dateValue) return "Not specified";
+    try {
+      const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue;
+      return date.toLocaleDateString();
+    } catch {
+      return typeof dateValue === 'string' ? dateValue : "Invalid date";
     }
-  };
-
-  const formatValue = (value?: string) => {
-    if (!value) return 'Not specified';
-    const numValue = parseFloat(value);
-    return `$${numValue.toLocaleString()}`;
-  };
-
-  const formatDate = (date?: Date | string) => {
-    if (!date) return 'Not specified';
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-screen overflow-y-auto" data-testid="job-details-modal">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl" data-testid="modal-title">
+          <DialogTitle className="flex items-center gap-2">
+            <Building className="h-5 w-5" />
             {job.name}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Basic Information */}
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-sm font-medium text-darktext mb-3">Project Details</h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs text-gray-500">Address</label>
-                  <p className="font-mono text-sm" data-testid="job-address">
-                    {job.address}
-                  </p>
-                </div>
-                
-                {job.contractor && (
-                  <div>
-                    <label className="text-xs text-gray-500">General Contractor</label>
-                    <p className="text-sm" data-testid="job-contractor">
-                      {job.contractor}
-                    </p>
-                  </div>
-                )}
-                
-                <div>
-                  <label className="text-xs text-gray-500">Project Value</label>
-                  <p className="text-lg font-semibold text-primary" data-testid="job-value">
-                    {formatValue(job.projectValue)}
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="text-xs text-gray-500">Status</label>
-                  <Badge className={getStatusColor(job.status)} data-testid="job-status">
-                    {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
-                  </Badge>
-                </div>
-                
-                <div>
-                  <label className="text-xs text-gray-500">Project Type</label>
-                  <Badge variant="outline" data-testid="job-type">
-                    {job.type.charAt(0).toUpperCase() + job.type.slice(1)}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-
-            {/* Timeline Information */}
-            <div>
-              <h3 className="text-sm font-medium text-darktext mb-3">Timeline</h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs text-gray-500">Start Date</label>
-                  <p className="text-sm" data-testid="job-start-date">
-                    {formatDate(job.startDate)}
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="text-xs text-gray-500">Target Completion</label>
-                  <p className="text-sm" data-testid="job-end-date">
-                    {formatDate(job.endDate)}
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="text-xs text-gray-500">Last Updated</label>
-                  <p className="text-sm text-gray-600" data-testid="job-last-updated">
-                    {formatDate(job.lastUpdated)}
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="text-xs text-gray-500">Created</label>
-                  <p className="text-sm text-gray-600" data-testid="job-created">
-                    {formatDate(job.createdAt)}
-                  </p>
-                </div>
-              </div>
-            </div>
+          {/* Status Badge */}
+          <div className="flex items-center gap-2">
+            {job.isViewed ? (
+              <Badge variant="secondary" className="bg-gray-100">
+                <Eye className="h-3 w-3 mr-1" />
+                Viewed
+              </Badge>
+            ) : (
+              <Badge variant="default" className="bg-blue-100 text-blue-800">
+                <EyeOff className="h-3 w-3 mr-1" />
+                New
+              </Badge>
+            )}
+            <Badge variant="outline">{job.status}</Badge>
+            <Badge variant="outline">{job.type}</Badge>
           </div>
 
-          {/* Special Conditions */}
-          {job.specialConditions && (
-            <div>
-              <h3 className="text-sm font-medium text-darktext mb-3">Special Conditions</h3>
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <p className="text-sm text-blue-800" data-testid="job-special-conditions">
-                  {job.specialConditions}
-                </p>
-              </div>
-            </div>
+          {/* Description */}
+          {job.description && (
+            <Card>
+              <CardContent className="pt-4">
+                <h4 className="font-medium mb-2">Description</h4>
+                <p className="text-sm text-gray-600">{job.description}</p>
+              </CardContent>
+            </Card>
           )}
+
+          {/* Location Info */}
+          <Card>
+            <CardContent className="pt-4">
+              <h4 className="font-medium mb-3 flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Location
+              </h4>
+              <p className="text-sm">{job.address}</p>
+              {job.latitude && job.longitude && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Coordinates: {job.latitude}, {job.longitude}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Project Details */}
+          <Card>
+            <CardContent className="pt-4">
+              <h4 className="font-medium mb-3">Project Details</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <label className="text-gray-500 text-xs">Project Value</label>
+                  <div className="flex items-center gap-1">
+                    <DollarSign className="h-3 w-3" />
+                    {formatCurrency(job.projectValue)}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-500 text-xs">Contractor</label>
+                  <div className="flex items-center gap-1">
+                    <User className="h-3 w-3" />
+                    {job.contractor || "Not specified"}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-500 text-xs">Start Date</label>
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {formatDate(job.startDate)}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-500 text-xs">End Date</label>
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {formatDate(job.endDate)}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Contact Information */}
-          {(job.orderedBy || job.officeContact) && (
-            <div>
-              <h3 className="text-sm font-medium text-darktext mb-3">Contacts</h3>
-              <div className="grid sm:grid-cols-2 gap-4">
-                {job.orderedBy && (
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="text-sm font-medium">Ordered By</h4>
-                    <p className="text-sm mt-1" data-testid="job-ordered-by">
-                      {job.orderedBy}
-                    </p>
-                  </div>
-                )}
-                
-                {job.officeContact && (
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="text-sm font-medium">Office Contact</h4>
-                    <p className="text-sm mt-1" data-testid="job-office-contact">
-                      {job.officeContact}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
+          {(job.phone || job.email) && (
+            <Card>
+              <CardContent className="pt-4">
+                <h4 className="font-medium mb-3">Contact Information</h4>
+                <div className="space-y-2 text-sm">
+                  {job.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-3 w-3" />
+                      <a href={`tel:${job.phone}`} className="text-blue-600 hover:underline">
+                        {job.phone}
+                      </a>
+                    </div>
+                  )}
+                  {job.email && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-3 w-3" />
+                      <a href={`mailto:${job.email}`} className="text-blue-600 hover:underline">
+                        {job.email}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           )}
 
-          {/* Notes */}
-          {job.notes && (
-            <div>
-              <h3 className="text-sm font-medium text-darktext mb-3">Notes</h3>
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <p className="text-sm text-yellow-800" data-testid="job-notes">
-                  {job.notes}
-                </p>
-              </div>
-            </div>
+          {/* Dodge Data ID */}
+          {job.dodgeJobId && (
+            <Card>
+              <CardContent className="pt-4">
+                <h4 className="font-medium mb-2">Dodge Data ID</h4>
+                <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                  {job.dodgeJobId}
+                </code>
+              </CardContent>
+            </Card>
           )}
 
-          {/* Source Information */}
-          <div className="text-xs text-gray-500 flex items-center space-x-4">
-            {job.isCustom && (
-              <span className="flex items-center">
-                <i className="fas fa-user mr-1"></i>
-                Custom Job
-              </span>
-            )}
-            
-            {job.dodgeJobId && (
-              <span className="flex items-center">
-                <i className="fas fa-database mr-1"></i>
-                Dodge ID: {job.dodgeJobId}
-              </span>
-            )}
-            
-            {job.latitude && job.longitude && (
-              <span className="flex items-center">
-                <i className="fas fa-map-marker-alt mr-1"></i>
-                {parseFloat(job.latitude).toFixed(4)}, {parseFloat(job.longitude).toFixed(4)}
-              </span>
-            )}
-          </div>
-        </div>
+          <Separator />
 
-        <Separator />
+          {/* Notes Section */}
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Your Notes
+                </h4>
+                {!isEditing && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsEditing(true)}
+                    data-testid="edit-notes-button"
+                  >
+                    Edit
+                  </Button>
+                )}
+              </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-3">
-          {job.status !== 'completed' && (
+              {isEditing ? (
+                <div className="space-y-3">
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Add your notes about this job..."
+                    className="min-h-[100px]"
+                    data-testid="notes-textarea"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handleSaveNotes}
+                      disabled={updateNotesMutation.isPending}
+                      data-testid="save-notes-button"
+                    >
+                      <Save className="h-3 w-3 mr-1" />
+                      {updateNotesMutation.isPending ? "Saving..." : "Save"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCancel}
+                      data-testid="cancel-notes-button"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-gray-600">
+                  {job.userNotes || "No notes added yet"}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            {!job.isViewed && (
+              <Button
+                onClick={handleMarkViewed}
+                disabled={markViewedMutation.isPending}
+                className="flex-1"
+                data-testid="mark-viewed-button"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                {markViewedMutation.isPending ? "Marking..." : "Mark as Viewed"}
+              </Button>
+            )}
             <Button
-              className="bg-secondary hover:bg-green-600"
-              onClick={handleMarkCompleted}
-              disabled={isUpdating}
-              data-testid="button-mark-completed"
+              variant="outline"
+              onClick={onClose}
+              className={job.isViewed ? "flex-1" : ""}
+              data-testid="close-button"
             >
-              <i className="fas fa-check mr-2"></i>
-              {isUpdating ? 'Updating...' : 'Mark Completed'}
+              Close
             </Button>
-          )}
-          
-          <Button
-            variant="outline"
-            onClick={handleGetDirections}
-            data-testid="button-get-directions"
-          >
-            <i className="fas fa-route mr-2"></i>
-            Get Directions
-          </Button>
-          
-          <Button
-            variant="outline"
-            onClick={handleExportJob}
-            data-testid="button-export-job"
-          >
-            <i className="fas fa-download mr-2"></i>
-            Export
-          </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

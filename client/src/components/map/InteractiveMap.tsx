@@ -75,8 +75,8 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
 
         if (isNaN(lat) || isNaN(lng)) return;
 
-        // Create custom icon based on status
-        const iconColor = getStatusColor(job.status);
+        // Create custom icon based on viewed status and project type
+        const iconColor = job.isViewed ? getViewedStatusColor() : getUnviewedStatusColor();
         const iconHtml = getStatusIcon(job.status, job.type);
         
         const customIcon = L.divIcon({
@@ -252,23 +252,15 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
 
       {/* Legend */}
       <div className="absolute bottom-4 left-4 bg-white p-4 rounded-lg shadow-md border border-gray-200" data-testid="map-legend">
-        <h4 className="text-sm font-medium text-darktext mb-3">Legend</h4>
+        <h4 className="text-sm font-medium text-darktext mb-3">Job Status</h4>
         <div className="space-y-2">
           <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-primary rounded-full"></div>
-            <span className="text-xs">Active Jobs</span>
+            <div className="w-4 h-4 bg-blue-600 rounded-full"></div>
+            <span className="text-xs">New/Unviewed Jobs</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-secondary rounded-full"></div>
-            <span className="text-xs">Completed</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-accent rounded-full"></div>
-            <span className="text-xs">Planning</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-purple-500 rounded-full"></div>
-            <span className="text-xs">Custom/Equipment</span>
+            <div className="w-4 h-4 bg-gray-500 rounded-full"></div>
+            <span className="text-xs">Viewed Jobs</span>
           </div>
         </div>
       </div>
@@ -284,4 +276,13 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
       )}
     </div>
   );
+}
+
+// Color functions for viewed vs unviewed jobs
+function getViewedStatusColor(): string {
+  return "bg-gray-500"; // Gray for viewed jobs
+}
+
+function getUnviewedStatusColor(): string {
+  return "bg-blue-600"; // Blue for unviewed jobs
 }

@@ -2,9 +2,9 @@
 
 ## Overview
 
-Construction Sales Tracker is a comprehensive web application designed to help construction sales professionals manage and track job sites in California through an interactive mapping interface. The application integrates with Dodge Data & Analytics to automatically import thousands of California construction project data and provides tools for visualizing, filtering, and managing construction opportunities on a map-based interface.
+Construction Sales Tracker is a comprehensive web application designed to help construction sales professionals manage and track job sites in California through an interactive mapping interface. The application integrates with Dodge Data & Analytics via CSV import functionality to process thousands of California construction project records with intelligent duplicate handling and provides tools for visualizing, filtering, and managing construction opportunities on a map-based interface.
 
-The system features real-time job site tracking, automated data scraping from construction databases, document processing capabilities for extracting project information, and comprehensive filtering and search functionality. Users can view construction projects on an interactive map, manage equipment assignments, process uploaded documents, and track project status updates.
+The system features comprehensive job tracking with viewed/unviewed status, note-taking capabilities, CSV import with duplicate detection, automated data collection from government APIs, document processing capabilities, and email automation for equipment management. Users can import Dodge CSV files, view construction projects on an interactive map with color-coded status indicators, mark jobs as viewed, add personal notes, manage equipment assignments, and track project status updates.
 
 ## User Preferences
 
@@ -24,11 +24,12 @@ The mapping functionality is implemented using Leaflet for interactive map visua
 The backend follows an Express.js API architecture with TypeScript, providing RESTful endpoints for job management, equipment tracking, and document processing. The server implements middleware for request logging, error handling, and file upload processing using Multer.
 
 The application uses a service-oriented architecture with separate services for:
-- California data service for automated data collection from government APIs
-- Document processor for extracting information from uploaded Word documents and text files
-- Email webhook service for automatic Excel processing from dedicated email address
-- Geocoding service for converting addresses to coordinates using Google Maps API
-- Storage abstraction layer supporting both in-memory and database implementations
+- **CSV Import Service**: Processes Dodge Data CSV exports with intelligent duplicate detection and job merging
+- **California Data Service**: Automated data collection from government APIs  
+- **Document Processor**: Extracting information from uploaded Word documents and text files
+- **Email Webhook Service**: Automatic Excel processing from dedicated email address
+- **Geocoding Service**: Converting addresses to coordinates using Google Maps API
+- **Storage Abstraction Layer**: Supporting both in-memory and database implementations
 
 ### Data Storage Solutions
 
@@ -42,12 +43,10 @@ The current implementation focuses on data management without complex authentica
 
 ### External Dependencies
 
-**California Government Open Data Integration**: Real-time construction project data from multiple official government sources replacing Dodge Data & Analytics (which doesn't offer public API access). The system automatically fetches from:
-- San Francisco Building Permits API (data.sfgov.org) - Live building permits with coordinates
-- Los Angeles Building Permits API (data.lacity.org) - Municipal construction data  
-- San Jose Building Permits API (data.sanjoseca.gov) - Active building permits
-- California State Procurement Portal (future integration)
-All data sources are official government APIs providing authentic, real-time construction project information for California.
+**Data Integration Capabilities**: The system supports multiple data sources for construction project information:
+- **Dodge Data & Analytics CSV Import**: Primary data source via CSV file uploads with intelligent duplicate detection, job tracking, and user interaction features
+- **California Government Open Data Integration**: Real-time construction project data from multiple official government sources including San Francisco, Los Angeles, and San Jose building permits APIs
+All data sources provide authentic construction project information for California with comprehensive filtering and mapping visualization.
 
 **Google Services**: 
 - Google Geocoding API for converting addresses to map coordinates and reverse geocoding

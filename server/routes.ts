@@ -1,11 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertJobSchema, insertEquipmentSchema, insertDocumentSchema, type Job } from "@shared/schema";
+import { insertJobSchema, insertEquipmentSchema, insertDocumentSchema, jobs, type Job } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import { db } from "./db";
 import { scrapeService } from "./services/scrapeService";
 import { documentProcessor } from "./services/documentProcessor";
 import { emailProcessor } from "./services/emailProcessor";
 import { emailWebhookService } from "./services/emailWebhookService";
+import { csvImportService } from "./services/csvImportService";
 import { geocodeAddress } from "./services/geocodingService";
 import multer from 'multer';
 import { CronJob } from 'cron';
@@ -371,6 +374,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       webhookUrl: `${req.protocol}://${req.get('host')}/api/email-webhook`,
       dedicatedEmail: "equipment-reports@your-domain.com"
     });
+  });
+
+  // CSV import routes for Dodge Data
+  app.post("/api/import-dodge-csv", uploadExcel.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No CSV file uploaded" });
+      }
+
+      const results = await csvImportService.importDodgeCSV(req.file.buffer);
+      res.json({ 
+        success: true, 
+        message: `Import completed: ${results.imported} new jobs, ${results.updated} updated, ${results.skipped} skipped`,
+        results 
+      });
+    } catch (error) {
+      console.error("Error importing Dodge CSV:", error);
+      res.status(500).json({ 
+        error: "Failed to import CSV",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Mark job as viewed
+  app.put("/api/jobs/:id/mark-viewed", async (req, res) => {
+    try {
+      const { notes } = req.body;
+      
+      await db
+        .update(jobs)
+        .set({
+          isViewed: true,
+          viewedAt: new Date(),
+          userNotes: notes || ''
+        })
+        .where(eq(jobs.id, req.params.id));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking job as viewed:", error);
+      res.status(500).json({ error: "Failed to mark job as viewed" });
+    }
+  });
+
+  // Update job notes
+  app.put("/api/jobs/:id/notes", async (req, res) => {
+    try {
+      const { notes } = req.body;
+      
+      await db
+        .update(jobs)
+        .set({
+          userNotes: notes || ''
+        })
+        .where(eq(jobs.id, req.params.id));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating job notes:", error);
+      res.status(500).json({ error: "Failed to update job notes" });
+    }
   });
 
   const httpServer = createServer(app);
