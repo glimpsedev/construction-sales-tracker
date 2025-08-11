@@ -46,6 +46,7 @@ export class ScrapeService {
   private async fetchJobsFromDodge(): Promise<DodgeJobData[]> {
     // This would make actual API calls to Dodge Data & Analytics
     // Using the provided API key in environment variables
+    // Focused on California construction projects
     
     const headers = {
       'Authorization': `Bearer ${this.apiKey}`,
@@ -54,8 +55,8 @@ export class ScrapeService {
     };
 
     try {
-      // Example API endpoint structure - would need actual Dodge API documentation
-      const response = await fetch(`${this.baseUrl}/api/v1/projects`, {
+      // Example API endpoint structure targeting California projects
+      const response = await fetch(`${this.baseUrl}/api/v1/projects?state=CA&status=active,planning`, {
         headers,
         method: 'GET'
       });

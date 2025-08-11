@@ -34,8 +34,8 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
 
     // Create map centered on California (good default for construction)
     const map = L.map(mapRef.current, {
-      center: [34.0522, -118.2437], // Los Angeles
-      zoom: 10,
+      center: [36.7783, -119.4179], // California center
+      zoom: 6,
       zoomControl: false
     });
 
