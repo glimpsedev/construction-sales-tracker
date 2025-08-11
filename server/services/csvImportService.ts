@@ -85,13 +85,20 @@ export class CSVImportService {
             const hasChanges = await this.updateExistingJobIfNeeded(existingJob, row, fullAddress, projectValue, projectType);
             if (hasChanges) {
               results.updated++;
+              console.log(`Updated job: ${projectName} (ID: ${existingJob.id})`);
             } else {
               results.skipped++;
+              if (i < 5) { // Log first few skips for debugging
+                console.log(`Skipped duplicate job: ${projectName} (Dodge ID: ${dodgeProjectId})`);
+              }
             }
           } else {
             // Create new job
             await this.createNewJobFromCSV(row, projectName, description, fullAddress, projectValue, projectType, dodgeProjectId);
             results.imported++;
+            if (i < 5) { // Log first few imports for debugging
+              console.log(`Imported new job: ${projectName} (Dodge ID: ${dodgeProjectId})`);
+            }
           }
 
         } catch (error) {
@@ -128,7 +135,10 @@ export class CSVImportService {
         .where(eq(jobs.dodgeJobId, criteria.dodgeJobId))
         .limit(1);
       
-      if (existingById) return existingById;
+      if (existingById) {
+        // console.log(`Found duplicate by Dodge ID: ${criteria.dodgeJobId}`);
+        return existingById;
+      }
     }
 
     // Then try name + address match

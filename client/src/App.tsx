@@ -7,6 +7,7 @@ import Dashboard from "@/pages/dashboard";
 import Equipment from "@/pages/equipment";
 import { EmailSetupPage } from "@/pages/email-setup";
 import { DodgeImportPage } from "@/pages/dodge-import";
+import DatabaseManagement from "@/pages/database-management";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/equipment" component={Equipment} />
       <Route path="/email-setup" component={EmailSetupPage} />
       <Route path="/dodge-import" component={DodgeImportPage} />
+      <Route path="/database" component={DatabaseManagement} />
       <Route component={NotFound} />
     </Switch>
   );

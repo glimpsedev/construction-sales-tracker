@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertJobSchema, insertEquipmentSchema, insertDocumentSchema, jobs, type Job } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc, and, or, gte, lte, sql, count, asc, isNotNull } from "drizzle-orm";
 import { db } from "./db";
 import { scrapeService } from "./services/scrapeService";
 import { documentProcessor } from "./services/documentProcessor";
@@ -439,5 +439,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  // Debug endpoint to check database status
+  app.get('/api/debug/job-count', async (req, res) => {
+    try {
+      const totalJobs = await db.select({ count: sql`count(*)` }).from(jobs);
+      const jobsWithDodgeId = await db.select({ count: sql`count(*)` }).from(jobs).where(isNotNull(jobs.dodgeJobId));
+      const viewedJobs = await db.select({ count: sql`count(*)` }).from(jobs).where(eq(jobs.isViewed, true));
+      
+      res.json({
+        totalJobs: totalJobs[0].count,
+        jobsWithDodgeId: jobsWithDodgeId[0].count,
+        viewedJobs: viewedJobs[0].count,
+        unviewedJobs: Number(totalJobs[0].count) - Number(viewedJobs[0].count)
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get job counts' });
+    }
+  });
+
+  // Clear all jobs endpoint for testing
+  app.delete('/api/debug/clear-jobs', async (req, res) => {
+    try {
+      const result = await db.delete(jobs);
+      res.json({ 
+        success: true, 
+        message: 'All jobs cleared from database',
+        deletedCount: result.rowCount || 0
+      });
+    } catch (error) {
+      console.error('Error clearing jobs:', error);
+      res.status(500).json({ error: 'Failed to clear jobs' });
+    }
+  });
+
   return httpServer;
 }
