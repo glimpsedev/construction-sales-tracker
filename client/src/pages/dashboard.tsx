@@ -200,137 +200,173 @@ export default function Dashboard() {
                 </div>
               </div>
               
-              {/* Job Information */}
-              <div className="space-y-4">
+              {/* Job Information - All CSV Data */}
+              <div className="space-y-3">
                 {/* Project Name and Address */}
-                <div className="border-b pb-4">
-                  <h3 className="text-lg font-semibold text-darktext">{selectedJob.name}</h3>
+                <div className="border-b pb-3">
+                  <h3 className="text-base md:text-lg font-semibold text-darktext">{selectedJob.name}</h3>
                   <p className="text-sm text-gray-600 mt-1">
                     <i className="fas fa-map-marker-alt mr-1"></i>
                     {selectedJob.address}
                   </p>
                 </div>
                 
-                {/* Project Value */}
+                {/* Project Value - Prominent Display */}
                 {selectedJob.projectValue && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Project Value</p>
-                    <p className="text-lg font-semibold text-green-600">
+                  <div className="bg-green-50 p-3 rounded">
+                    <p className="text-xs font-medium text-gray-500">Project Value</p>
+                    <p className="text-xl font-bold text-green-600">
                       ${Number(selectedJob.projectValue).toLocaleString()}
                     </p>
                   </div>
                 )}
                 
-                {/* Status and Type */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Status</p>
-                    <Badge className="mt-1">{selectedJob.status}</Badge>
-                  </div>
-                  {selectedJob.type && (
+                {/* Important Dates */}
+                <div className="bg-blue-50 p-3 rounded">
+                  <p className="text-xs font-medium text-gray-500 mb-2">Project Timeline</p>
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <p className="text-sm font-medium text-gray-500">Type</p>
-                      <Badge variant="outline" className="mt-1">{selectedJob.type}</Badge>
+                      <p className="text-xs text-gray-500">Start/Bid Date</p>
+                      <p className="text-sm font-medium">
+                        {selectedJob.startDate ? new Date(selectedJob.startDate).toLocaleDateString() : 'Not specified'}
+                      </p>
                     </div>
-                  )}
+                    <div>
+                      <p className="text-xs text-gray-500">End Date</p>
+                      <p className="text-sm font-medium">
+                        {selectedJob.endDate ? new Date(selectedJob.endDate).toLocaleDateString() : 'Not specified'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
                 
-                {/* Contractor */}
-                {selectedJob.contractor && (
+                {/* Status and Type */}
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Contractor</p>
-                    <p className="text-sm font-semibold">{selectedJob.contractor}</p>
+                    <p className="text-xs font-medium text-gray-500">Status</p>
+                    <Badge className="mt-1 text-xs">{selectedJob.status || 'Unknown'}</Badge>
                   </div>
-                )}
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">Type</p>
+                    <Badge variant="outline" className="mt-1 text-xs">{selectedJob.type || 'Commercial'}</Badge>
+                  </div>
+                </div>
                 
-                {/* Contact Information */}
-                <div className="space-y-2">
-                  {selectedJob.phone && (
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Phone</p>
-                      <a 
-                        href={`tel:${selectedJob.phone}`}
-                        className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-2"
-                      >
-                        <i className="fas fa-phone"></i>
-                        {selectedJob.phone}
-                      </a>
-                    </div>
-                  )}
+                {/* Key Players Section */}
+                <div className="bg-gray-50 p-3 rounded space-y-2">
+                  <p className="text-xs font-medium text-gray-700 mb-2">Project Team</p>
                   
-                  {selectedJob.email && (
+                  {selectedJob.contractor && (
                     <div>
-                      <p className="text-sm font-medium text-gray-500">Email</p>
-                      <a 
-                        href={`mailto:${selectedJob.email}`}
-                        className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-2"
-                      >
-                        <i className="fas fa-envelope"></i>
-                        {selectedJob.email}
-                      </a>
+                      <p className="text-xs text-gray-500">General Contractor</p>
+                      <p className="text-sm font-medium">{selectedJob.contractor}</p>
                     </div>
                   )}
                   
                   {selectedJob.officeContact && (
                     <div>
-                      <p className="text-sm font-medium text-gray-500">Office Contact</p>
-                      <p className="text-sm">{selectedJob.officeContact}</p>
+                      <p className="text-xs text-gray-500">Architect/Office Contact</p>
+                      <p className="text-sm font-medium">{selectedJob.officeContact}</p>
+                    </div>
+                  )}
+                  
+                  {selectedJob.orderedBy && (
+                    <div>
+                      <p className="text-xs text-gray-500">Ordered By</p>
+                      <p className="text-sm font-medium">{selectedJob.orderedBy}</p>
                     </div>
                   )}
                 </div>
                 
-                {/* Dates */}
-                <div className="grid grid-cols-2 gap-4">
-                  {selectedJob.startDate && (
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Start Date</p>
-                      <p className="text-sm">{new Date(selectedJob.startDate).toLocaleDateString()}</p>
-                    </div>
-                  )}
-                  {selectedJob.endDate && (
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">End Date</p>
-                      <p className="text-sm">{new Date(selectedJob.endDate).toLocaleDateString()}</p>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Description */}
-                {selectedJob.description && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Description</p>
-                    <p className="text-sm mt-1 text-gray-700">{selectedJob.description}</p>
+                {/* Contact Information - Clickable */}
+                {(selectedJob.phone || selectedJob.email) && (
+                  <div className="bg-yellow-50 p-3 rounded space-y-2">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Contact Information</p>
+                    
+                    {selectedJob.phone && (
+                      <a 
+                        href={`tel:${selectedJob.phone}`}
+                        className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                      >
+                        <i className="fas fa-phone text-xs"></i>
+                        <span className="text-sm font-medium">{selectedJob.phone}</span>
+                      </a>
+                    )}
+                    
+                    {selectedJob.email && (
+                      <a 
+                        href={`mailto:${selectedJob.email}`}
+                        className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                      >
+                        <i className="fas fa-envelope text-xs"></i>
+                        <span className="text-sm font-medium break-all">{selectedJob.email}</span>
+                      </a>
+                    )}
                   </div>
                 )}
                 
-                {/* Special Conditions */}
+                {/* Full Project Description - Contains All CSV Info */}
+                {selectedJob.description && (
+                  <div className="border rounded p-3">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Full Project Details</p>
+                    <div className="text-xs text-gray-600 whitespace-pre-wrap">
+                      {selectedJob.description.split('\n').map((line, idx) => (
+                        <div key={idx} className="mb-1">
+                          {line.includes('Owner:') || line.includes('Architect:') || line.includes('Tags:') ? (
+                            <span className="font-medium">{line}</span>
+                          ) : (
+                            line
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Additional Information */}
+                {selectedJob.notes && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">Tags/Notes</p>
+                    <p className="text-sm mt-1">{selectedJob.notes}</p>
+                  </div>
+                )}
+                
                 {selectedJob.specialConditions && (
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Special Conditions</p>
-                    <p className="text-sm mt-1 text-gray-700">{selectedJob.specialConditions}</p>
+                    <p className="text-xs font-medium text-gray-500">Special Conditions</p>
+                    <p className="text-sm mt-1">{selectedJob.specialConditions}</p>
                   </div>
                 )}
                 
-                {/* Dodge Job ID */}
-                {selectedJob.dodgeJobId && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Dodge Report #</p>
-                    <p className="text-sm font-mono">{selectedJob.dodgeJobId}</p>
-                  </div>
-                )}
+                {/* Tracking Information */}
+                <div className="border-t pt-3 space-y-2">
+                  {selectedJob.dodgeJobId && (
+                    <div className="flex justify-between">
+                      <span className="text-xs text-gray-500">Dodge Report #</span>
+                      <span className="text-xs font-mono">{selectedJob.dodgeJobId}</span>
+                    </div>
+                  )}
+                  
+                  {selectedJob.isViewed && selectedJob.viewedAt && (
+                    <div className="flex justify-between">
+                      <span className="text-xs text-gray-500">First Viewed</span>
+                      <span className="text-xs">{new Date(selectedJob.viewedAt).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                  
+                  {selectedJob.lastUpdated && (
+                    <div className="flex justify-between">
+                      <span className="text-xs text-gray-500">Last Updated</span>
+                      <span className="text-xs">{new Date(selectedJob.lastUpdated).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                </div>
                 
-                {/* User Notes */}
+                {/* User Personal Notes */}
                 {selectedJob.userNotes && (
-                  <div className="bg-yellow-50 p-3 rounded">
-                    <p className="text-sm font-medium text-gray-700">Notes</p>
+                  <div className="bg-amber-50 p-3 rounded">
+                    <p className="text-xs font-medium text-gray-700">Your Notes</p>
                     <p className="text-sm mt-1">{selectedJob.userNotes}</p>
-                  </div>
-                )}
-                
-                {/* Last Updated */}
-                {selectedJob.lastUpdated && (
-                  <div className="text-xs text-gray-500">
-                    Last updated: {new Date(selectedJob.lastUpdated).toLocaleString()}
                   </div>
                 )}
                 
