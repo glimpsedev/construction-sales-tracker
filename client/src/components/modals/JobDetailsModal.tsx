@@ -260,21 +260,35 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
         </div>
 
         <div className="space-y-6">
-          {/* Status Badge */}
-          <div className="flex items-center gap-2">
-            {job.isViewed ? (
-              <Badge variant="secondary" className="bg-gray-100">
-                <Eye className="h-3 w-3 mr-1" />
-                Viewed
-              </Badge>
-            ) : (
-              <Badge variant="default" className="bg-blue-100 text-blue-800">
-                <EyeOff className="h-3 w-3 mr-1" />
-                New
-              </Badge>
+          {/* Status Badge and Dodge ID */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {job.isViewed ? (
+                <Badge variant="secondary" className="bg-gray-100">
+                  <Eye className="h-3 w-3 mr-1" />
+                  Viewed
+                </Badge>
+              ) : (
+                <Badge variant="default" className="bg-blue-100 text-blue-800">
+                  <EyeOff className="h-3 w-3 mr-1" />
+                  New
+                </Badge>
+              )}
+              <Badge variant="outline">{job.status}</Badge>
+              <Badge variant="outline">{job.type}</Badge>
+            </div>
+            {job.dodgeJobId && (
+              <a
+                href={`https://www.construction.com/search?q=${encodeURIComponent(job.dodgeJobId)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-blue-600 hover:underline cursor-pointer flex items-center gap-1"
+                data-testid="dodge-id-link"
+              >
+                <FileText className="h-3 w-3" />
+                Dodge ID: {job.dodgeJobId}
+              </a>
             )}
-            <Badge variant="outline">{job.status}</Badge>
-            <Badge variant="outline">{job.type}</Badge>
           </div>
 
           {/* Temperature Rating */}
