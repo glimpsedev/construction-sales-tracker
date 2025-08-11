@@ -32,10 +32,10 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    // Create map centered on US for nationwide coverage
+    // Create map centered on California
     const map = L.map(mapRef.current, {
-      center: [39.8283, -98.5795], // US center
-      zoom: 4,
+      center: [36.7783, -119.4179], // California center
+      zoom: 6,
       zoomControl: false
     });
 

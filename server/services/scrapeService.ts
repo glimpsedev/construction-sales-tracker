@@ -55,8 +55,8 @@ export class ScrapeService {
     };
 
     try {
-      // Example API endpoint structure for all Dodge projects nationwide
-      const response = await fetch(`${this.baseUrl}/api/v1/projects?status=active,planning,bidding`, {
+      // Dodge API endpoint for California construction projects
+      const response = await fetch(`${this.baseUrl}/api/v1/projects?state=CA&status=active,planning,bidding&limit=1000`, {
         headers,
         method: 'GET'
       });

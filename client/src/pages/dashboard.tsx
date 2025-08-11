@@ -50,6 +50,16 @@ export default function Dashboard() {
                 <h1 className="text-xl font-semibold text-darktext">Construction Sales Tracker</h1>
               </div>
               
+              {/* Navigation Tabs */}
+              <div className="hidden sm:flex items-center space-x-6 ml-8">
+                <a href="/" className="text-primary font-medium border-b-2 border-primary pb-1">
+                  Job Sites
+                </a>
+                <a href="/equipment" className="text-gray-600 hover:text-primary font-medium pb-1">
+                  Equipment
+                </a>
+              </div>
+              
               {/* Data Status Indicator */}
               <div className="hidden sm:flex items-center space-x-2 px-3 py-1 bg-secondary/10 rounded-full">
                 <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>

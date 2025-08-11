@@ -7,6 +7,7 @@ import { z } from "zod";
 export const jobStatusEnum = pgEnum("job_status", ["active", "completed", "planning", "pending"]);
 export const jobTypeEnum = pgEnum("job_type", ["commercial", "residential", "industrial", "equipment", "other"]);
 export const equipmentStatusEnum = pgEnum("equipment_status", ["starting", "stopping", "maintenance"]);
+export const rentalStatusEnum = pgEnum("rental_status", ["on_rent", "off_rent", "maintenance"]);
 
 export const jobs = pgTable("jobs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -58,6 +59,21 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
 });
 
+// Equipment rental tracking table for daily email processing
+export const rentalEquipment = pgTable("rental_equipment", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  model: text("model").notNull(),
+  customer: text("customer").notNull(), 
+  customerOnRent: text("customer_on_rent"), // Customer currently renting
+  acctMgr: text("acct_mgr"), // Account Manager (Hudson, etc.)
+  location: text("location"),
+  dateOnOffRent: text("date_on_off_rent"), // Date equipment went on/off rent
+  status: rentalStatusEnum("status").notNull().default("on_rent"), // on_rent, off_rent, maintenance
+  notes: text("notes"),
+  emailProcessedAt: timestamp("email_processed_at").defaultNow(),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull()
+});
+
 export const jobsRelations = relations(jobs, ({ many }) => ({
   equipment: many(equipment),
 }));
@@ -91,6 +107,12 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
 });
 
+export const insertRentalEquipmentSchema = createInsertSchema(rentalEquipment).omit({
+  id: true,
+  emailProcessedAt: true,
+  lastUpdated: true,
+});
+
 export type Job = typeof jobs.$inferSelect;
 export type InsertJob = z.infer<typeof insertJobSchema>;
 export type Equipment = typeof equipment.$inferSelect;
@@ -99,3 +121,5 @@ export type Document = typeof documents.$inferSelect;
 export type InsertDocument = z.infer<typeof insertDocumentSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type RentalEquipment = typeof rentalEquipment.$inferSelect;
+export type InsertRentalEquipment = z.infer<typeof insertRentalEquipmentSchema>;

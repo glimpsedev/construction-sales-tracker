@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertJobSchema, insertEquipmentSchema, insertDocumentSchema, type Job } from "@shared/schema";
 import { scrapeService } from "./services/scrapeService";
 import { documentProcessor } from "./services/documentProcessor";
+import { emailProcessor } from "./services/emailProcessor";
 import { geocodeAddress } from "./services/geocodingService";
 import multer from 'multer';
 import { CronJob } from 'cron';
@@ -25,6 +26,26 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error('Invalid file type. Only Word documents and text files are allowed.'));
+    }
+  }
+});
+
+// Configure multer for Excel files (equipment status emails)
+const uploadExcel = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel'
+    ];
+    
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only Excel files are allowed.'));
     }
   }
 });
@@ -293,6 +314,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Geocoding error:', error);
       res.status(500).json({ error: 'Geocoding failed' });
+    }
+  });
+
+  // Equipment rental routes
+  app.get("/api/rental-equipment", async (req, res) => {
+    try {
+      const equipment = await emailProcessor.getCurrentRentalStatus();
+      res.json(equipment);
+    } catch (error) {
+      console.error("Error fetching rental equipment:", error);
+      res.status(500).json({ error: "Failed to fetch rental equipment" });
+    }
+  });
+
+  // Process equipment status email (Excel file)
+  app.post("/api/process-equipment-email", uploadExcel.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      await emailProcessor.processEquipmentStatusExcel(req.file.buffer);
+      res.json({ success: true, message: "Equipment status processed successfully" });
+    } catch (error) {
+      console.error("Error processing equipment email:", error);
+      res.status(500).json({ error: "Failed to process equipment email" });
+    }
+  });
+
+  // Simulate daily email webhook (for testing)
+  app.post("/api/simulate-email", uploadExcel.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      await emailProcessor.simulateEmailReceived(req.file.buffer);
+      res.json({ success: true, message: "Email simulation completed" });
+    } catch (error) {
+      console.error("Error simulating email:", error);
+      res.status(500).json({ error: "Failed to simulate email" });
     }
   });
 
