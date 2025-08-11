@@ -333,11 +333,25 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
                 <MapPin className="h-4 w-4" />
                 Location
               </h4>
-              <p className="text-sm">{job.address}</p>
+              <a 
+                href={`https://maps.google.com/?q=${encodeURIComponent(job.address)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:underline cursor-pointer"
+                data-testid="address-link"
+              >
+                {job.address}
+              </a>
               {job.latitude && job.longitude && (
-                <p className="text-xs text-gray-500 mt-1">
+                <a
+                  href={`https://maps.google.com/?q=${job.latitude},${job.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-gray-500 hover:text-blue-600 hover:underline mt-1 block cursor-pointer"
+                  data-testid="coordinates-link"
+                >
                   Coordinates: {job.latitude}, {job.longitude}
-                </p>
+                </a>
               )}
             </CardContent>
           </Card>

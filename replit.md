@@ -4,7 +4,7 @@
 
 Construction Sales Tracker is a comprehensive web application designed to help construction sales professionals manage and track job sites in California through an interactive mapping interface. The application exclusively integrates with Dodge Data & Analytics via CSV/Excel import functionality to process California construction project records and provides tools for visualizing, filtering, and managing construction opportunities on a map-based interface.
 
-The system features comprehensive job tracking with viewed/unviewed status, note-taking capabilities, CSV/Excel import with automatic California-only filtering, document processing capabilities, and email automation for equipment management. Users can import Dodge Excel files, view construction projects on an interactive map with color-coded status indicators, mark jobs as viewed, add personal notes, manage equipment assignments, and track project status updates. The application automatically filters out non-California jobs to maintain a focused map view.
+The system features comprehensive job tracking with viewed/unviewed status, note-taking capabilities, CSV/Excel import with automatic California-only filtering, document processing capabilities, and email automation for equipment management. Users can import Dodge Excel files, view construction projects on an interactive map with color-coded status indicators, mark jobs as viewed, add personal notes, manage equipment assignments, and track project status updates. The application automatically filters out non-California jobs to maintain a focused map view. Job locations are interactive - clicking on addresses or coordinates opens directions in the user's default map provider.
 
 ## User Preferences
 
