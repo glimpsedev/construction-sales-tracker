@@ -451,54 +451,62 @@ export class CSVImportService {
   /**
    * Parse date string
    */
-  private parseDate(dateStr?: string): string | null {
-    if (!dateStr || dateStr.trim() === '' || dateStr === 'NaT' || dateStr === 'nan') return null;
+  private parseDate(dateStr?: any): string | null {
+    if (!dateStr || dateStr === 'NaT' || dateStr === 'nan' || dateStr === '') return null;
     
     try {
-      const cleanedDate = dateStr.toString().trim();
-      
-      // Handle Excel serial date numbers (days since 1900-01-01)
-      if (/^\d{5}$/.test(cleanedDate)) {
-        const excelSerialDate = parseInt(cleanedDate);
-        const jsDate = new Date((excelSerialDate - 25569) * 86400 * 1000);
-        return jsDate.toISOString().split('T')[0];
-      }
-      
-      // Handle various date formats
       let date: Date;
       
-      // Handle pandas datetime format (e.g., "2024-10-01 00:00:00")
-      if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}$/.test(cleanedDate)) {
-        date = new Date(cleanedDate.replace(' ', 'T') + 'Z');
+      // If it's already a Date object (from Excel parsing)
+      if (dateStr instanceof Date) {
+        date = dateStr;
       }
-      // Try MM/DD/YYYY or M/D/YYYY format (most common in US)
-      else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(cleanedDate)) {
-        const [month, day, year] = cleanedDate.split('/').map(Number);
-        date = new Date(year, month - 1, day);
+      // If it's a number (Excel serial date)
+      else if (typeof dateStr === 'number') {
+        // Excel serial date numbers (days since 1900-01-01)
+        date = new Date((dateStr - 25569) * 86400 * 1000);
       }
-      // Try YYYY-MM-DD format
-      else if (/^\d{4}-\d{2}-\d{2}$/.test(cleanedDate)) {
-        date = new Date(cleanedDate + 'T00:00:00');
+      // If it's a string, parse it
+      else if (typeof dateStr === 'string') {
+        const cleanedDate = dateStr.trim();
+        
+        // Handle pandas datetime format (e.g., "2024-10-01 00:00:00")
+        if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}$/.test(cleanedDate)) {
+          date = new Date(cleanedDate.replace(' ', 'T') + 'Z');
+        }
+        // Try MM/DD/YYYY or M/D/YYYY format (most common in US)
+        else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(cleanedDate)) {
+          const [month, day, year] = cleanedDate.split('/').map(Number);
+          date = new Date(year, month - 1, day);
+        }
+        // Try YYYY-MM-DD format
+        else if (/^\d{4}-\d{2}-\d{2}$/.test(cleanedDate)) {
+          date = new Date(cleanedDate + 'T00:00:00');
+        }
+        // Try DD-MMM-YY format (e.g., "01-Jan-25")
+        else if (/^\d{1,2}-[A-Za-z]{3}-\d{2}$/.test(cleanedDate)) {
+          date = new Date(cleanedDate);
+        }
+        // Fallback to native Date parsing
+        else {
+          date = new Date(cleanedDate);
+        }
       }
-      // Try DD-MMM-YY format (e.g., "01-Jan-25")
-      else if (/^\d{1,2}-[A-Za-z]{3}-\d{2}$/.test(cleanedDate)) {
-        date = new Date(cleanedDate);
-      }
-      // Fallback to native Date parsing
+      // Convert whatever it is to string first, then parse
       else {
-        date = new Date(cleanedDate);
+        const strValue = String(dateStr).trim();
+        date = new Date(strValue);
       }
       
       // Check if date is valid
-      if (isNaN(date.getTime())) {
-        console.log(`Failed to parse date: ${dateStr}`);
+      if (!date || isNaN(date.getTime())) {
         return null;
       }
       
       // Return in YYYY-MM-DD format
       return date.toISOString().split('T')[0];
     } catch (error) {
-      console.log(`Error parsing date "${dateStr}":`, error);
+      // Silent fail for invalid dates
       return null;
     }
   }
