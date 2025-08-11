@@ -10,7 +10,7 @@ import { useJobs } from "@/hooks/useJobs";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { RefreshCw, Mail, Settings, FileSpreadsheet } from "lucide-react";
+import { Mail, Settings, FileSpreadsheet } from "lucide-react";
 import { Link } from "wouter";
 import type { Job } from "@shared/schema";
 
@@ -31,26 +31,6 @@ export default function Dashboard() {
 
   const { data: jobs = [], isLoading, refetch } = useJobs(filters);
   const { toast } = useToast();
-
-  // Mutation to refresh California construction data
-  const refreshDataMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch('/api/scrape/manual', { method: 'POST' });
-      if (!response.ok) throw new Error('Failed to refresh data');
-      return response.json();
-    },
-    onSuccess: () => {
-      refetch();
-      toast({ title: "Data Updated", description: "California construction data refreshed successfully" });
-    },
-    onError: () => {
-      toast({ title: "Update Failed", description: "Failed to refresh construction data", variant: "destructive" });
-    }
-  });
-
-  const handleRefreshData = () => {
-    refreshDataMutation.mutate();
-  };
 
   const handleJobSelect = (job: Job) => {
     setSelectedJob(job);
@@ -94,27 +74,14 @@ export default function Dashboard() {
                 </a>
               </div>
               
-              {/* Data Status Indicator */}
-              <div className="hidden sm:flex items-center space-x-2 px-3 py-1 bg-green-50 rounded-full">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm text-green-700 font-medium">CA Gov Data</span>
-                <span className="text-xs text-gray-500">Real permits & contracts</span>
-              </div>
+              {/* Navigation Link to Database Management */}
+              <a href="/database" className="text-gray-600 hover:text-primary font-medium pb-1 flex items-center gap-1">
+                <Settings className="h-4 w-4" />
+                Database
+              </a>
             </div>
             
             <div className="flex items-center space-x-4">
-              {/* Refresh Data Button */}
-              <Button
-                variant="outline"
-                onClick={handleRefreshData}
-                disabled={refreshDataMutation.isPending}
-                className="flex items-center"
-                data-testid="button-refresh-data"
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${refreshDataMutation.isPending ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">{refreshDataMutation.isPending ? 'Updating...' : 'Update CA Data'}</span>
-              </Button>
-
               {/* Document Upload Button */}
               <Button
                 variant="outline"

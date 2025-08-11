@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { Database, Trash2, AlertTriangle, BarChart3 } from "lucide-react";
+import { GeocodeButton } from "@/components/GeocodeButton";
 
 interface DatabaseStats {
   totalJobs: string;
@@ -161,6 +162,29 @@ export default function DatabaseManagement() {
                 </Button>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Geocoding Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              Geocode Job Addresses
+            </CardTitle>
+            <CardDescription>
+              Convert job addresses to map coordinates for display
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Alert className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Jobs without coordinates won't appear on the map. Click below to geocode addresses.
+              </AlertDescription>
+            </Alert>
+
+            <GeocodeButton />
           </CardContent>
         </Card>
 

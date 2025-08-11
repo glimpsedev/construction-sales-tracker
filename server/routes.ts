@@ -4,14 +4,14 @@ import { storage } from "./storage";
 import { insertJobSchema, insertEquipmentSchema, insertDocumentSchema, jobs, type Job } from "@shared/schema";
 import { eq, desc, and, or, gte, lte, sql, count, asc, isNotNull } from "drizzle-orm";
 import { db } from "./db";
-import { scrapeService } from "./services/scrapeService";
+
 import { documentProcessor } from "./services/documentProcessor";
 import { emailProcessor } from "./services/emailProcessor";
 import { emailWebhookService } from "./services/emailWebhookService";
 import { csvImportService } from "./services/csvImportService";
 import { geocodeAddress } from "./services/geocodingService";
 import multer from 'multer';
-import { CronJob } from 'cron';
+
 
 // Configure multer for file uploads
 const upload = multer({
@@ -55,17 +55,6 @@ const uploadExcel = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Schedule daily scraping at 6 AM
-  const dailyScrapeJob = new CronJob('0 6 * * *', async () => {
-    console.log('Running daily job scraping...');
-    try {
-      await scrapeService.scrapeDailyJobs();
-    } catch (error) {
-      console.error('Daily scraping failed:', error);
-    }
-  });
-  dailyScrapeJob.start();
-
   // Job routes
   app.get("/api/jobs", async (req, res) => {
     try {
@@ -246,31 +235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // California data fetching routes
-  app.post("/api/scrape/manual", async (req, res) => {
-    try {
-      await scrapeService.scrapeDailyJobs();
-      res.json({ success: true, message: 'California construction data updated successfully' });
-    } catch (error) {
-      console.error('California data fetch failed:', error);
-      res.status(500).json({ error: 'Failed to fetch California construction data' });
-    }
-  });
 
-  app.post("/api/scrape/location", async (req, res) => {
-    try {
-      const { location, radius } = req.body;
-      if (!location) {
-        return res.status(400).json({ error: 'Location is required' });
-      }
-      
-      const jobs = await scrapeService.searchJobsByLocation(location, radius || 50);
-      res.json({ jobs, count: jobs.length });
-    } catch (error) {
-      console.error('Location search failed:', error);
-      res.status(500).json({ error: 'Location search failed' });
-    }
-  });
 
   // Statistics route
   app.get("/api/stats", async (req, res) => {
@@ -469,6 +434,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error clearing jobs:', error);
       res.status(500).json({ error: 'Failed to clear jobs' });
+    }
+  });
+
+  // Geocode missing coordinates
+  app.post('/api/geocode-missing', async (req, res) => {
+    try {
+      const jobsWithoutCoords = await db
+        .select()
+        .from(jobs)
+        .where(
+          sql`${jobs.latitude} IS NULL AND ${jobs.address} IS NOT NULL`
+        )
+        .limit(50); // Process 50 at a time to avoid API limits
+
+      console.log(`Found ${jobsWithoutCoords.length} jobs without coordinates`);
+
+      let geocoded = 0;
+      let failed = 0;
+
+      for (const job of jobsWithoutCoords) {
+        if (job.address) {
+          try {
+            const coords = await geocodeAddress(job.address);
+            if (coords) {
+              await db
+                .update(jobs)
+                .set({
+                  latitude: coords.lat.toString(),
+                  longitude: coords.lng.toString()
+                })
+                .where(eq(jobs.id, job.id));
+              geocoded++;
+            } else {
+              failed++;
+            }
+            // Add delay to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 200));
+          } catch (error) {
+            console.error(`Failed to geocode job ${job.id}:`, error);
+            failed++;
+          }
+        }
+      }
+
+      res.json({
+        success: true,
+        message: `Geocoding completed: ${geocoded} successful, ${failed} failed`,
+        geocoded,
+        failed,
+        remaining: jobsWithoutCoords.length === 50 ? 'More jobs may need geocoding' : 'All jobs processed'
+      });
+    } catch (error) {
+      console.error('Error geocoding jobs:', error);
+      res.status(500).json({ error: 'Failed to geocode jobs' });
     }
   });
 
