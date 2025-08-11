@@ -43,13 +43,19 @@ const uploadExcel = multer({
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-excel'
+      'application/vnd.ms-excel',
+      'text/csv'
     ];
     
-    if (allowedTypes.includes(file.mimetype)) {
+    const allowedExtensions = ['.xlsx', '.xls', '.csv'];
+    const hasValidExtension = allowedExtensions.some(ext => 
+      file.originalname.toLowerCase().endsWith(ext)
+    );
+    
+    if (allowedTypes.includes(file.mimetype) || hasValidExtension) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only Excel files are allowed.'));
+      cb(new Error('Invalid file type. Only Excel and CSV files are allowed.'));
     }
   }
 });

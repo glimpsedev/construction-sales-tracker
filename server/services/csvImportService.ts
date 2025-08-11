@@ -72,34 +72,15 @@ export class CSVImportService {
           const projectType = this.normalizeProjectType(row['Project Type']);
           const dodgeProjectId = this.cleanString(row['Project ID'] || '');
 
-          // Check for existing job using multiple criteria
-          const existingJob = await this.findExistingJob({
-            name: projectName,
-            address: fullAddress,
-            projectValue: projectValue?.toString(),
-            dodgeJobId: dodgeProjectId
-          });
-
-          if (existingJob) {
-            // Update existing job with new data if needed
-            const hasChanges = await this.updateExistingJobIfNeeded(existingJob, row, fullAddress, projectValue, projectType);
-            if (hasChanges) {
-              results.updated++;
-              console.log(`Updated job: ${projectName} (ID: ${existingJob.id})`);
-            } else {
-              results.skipped++;
-              if (i < 5) { // Log first few skips for debugging
-                console.log(`Skipped duplicate job: ${projectName} (Dodge ID: ${dodgeProjectId})`);
-              }
-            }
-          } else {
-            // Create new job
-            await this.createNewJobFromCSV(row, projectName, description, fullAddress, projectValue, projectType, dodgeProjectId);
-            results.imported++;
-            if (i < 5) { // Log first few imports for debugging
-              console.log(`Imported new job: ${projectName} (Dodge ID: ${dodgeProjectId})`);
-            }
-          }
+          console.log(`Processing row ${i}: ${projectName} with address: ${fullAddress}`);
+          
+          // Create new job (duplicates temporarily disabled)
+          await this.createNewJobFromCSV(row, projectName, description, fullAddress, projectValue, projectType, dodgeProjectId);
+          results.imported++;
+          console.log(`Successfully imported: ${projectName}`);
+          
+          // Limit for testing
+          if (i >= 10) break;
 
         } catch (error) {
           const errorMsg = `Row ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`;
@@ -128,7 +109,7 @@ export class CSVImportService {
   }): Promise<Job | null> {
     
     // First try exact match on Dodge Project ID if available
-    if (criteria.dodgeJobId) {
+    if (criteria.dodgeJobId && criteria.dodgeJobId.trim() !== '') {
       const [existingById] = await db
         .select()
         .from(jobs)
@@ -136,7 +117,7 @@ export class CSVImportService {
         .limit(1);
       
       if (existingById) {
-        // console.log(`Found duplicate by Dodge ID: ${criteria.dodgeJobId}`);
+        console.log(`Found duplicate by Dodge ID: ${criteria.dodgeJobId}`);
         return existingById;
       }
     }
