@@ -377,26 +377,36 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
               <h4 className="font-medium mb-3">Project Details</h4>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <label className="text-gray-500 text-xs">Project Value</label>
+                  <label className="text-gray-500 text-xs">Valuation</label>
                   <div className="flex items-center gap-1">
                     <DollarSign className="h-3 w-3" />
                     {formatCurrency(job.projectValue)}
                   </div>
                 </div>
                 <div>
-                  <label className="text-gray-500 text-xs">Start Date</label>
+                  <label className="text-gray-500 text-xs">County</label>
+                  <div>{job.county || "Not specified"}</div>
+                </div>
+                <div>
+                  <label className="text-gray-500 text-xs">Target Start Date</label>
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
                     {formatDate(job.startDate)}
                   </div>
                 </div>
                 <div>
-                  <label className="text-gray-500 text-xs">End Date</label>
+                  <label className="text-gray-500 text-xs">Target Completion Date</label>
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
                     {formatDate(job.endDate)}
                   </div>
                 </div>
+                {job.specialConditions && (
+                  <div className="col-span-2">
+                    <label className="text-gray-500 text-xs">Delivery System</label>
+                    <div>{job.specialConditions}</div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -424,7 +434,7 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
               {isEditingTeam ? (
                 <div className="space-y-3">
                   <div>
-                    <label className="text-sm font-medium">Contractor</label>
+                    <label className="text-sm font-medium">General Contractor (GC)</label>
                     <Input
                       value={teamData.contractor}
                       onChange={(e) => setTeamData({...teamData, contractor: e.target.value})}
@@ -433,7 +443,7 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Owner</label>
+                    <label className="text-sm font-medium">Owner Company</label>
                     <Input
                       value={teamData.owner}
                       onChange={(e) => setTeamData({...teamData, owner: e.target.value})}
@@ -451,20 +461,20 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
                     />
                   </div>
                   <div>
+                    <label className="text-sm font-medium">GC Contact Name</label>
+                    <Input
+                      value={teamData.officeContact}
+                      onChange={(e) => setTeamData({...teamData, officeContact: e.target.value})}
+                      placeholder="Enter GC contact name"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
                     <label className="text-sm font-medium">Ordered By</label>
                     <Input
                       value={teamData.orderedBy}
                       onChange={(e) => setTeamData({...teamData, orderedBy: e.target.value})}
                       placeholder="Enter who ordered the project"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Office Contact</label>
-                    <Input
-                      value={teamData.officeContact}
-                      onChange={(e) => setTeamData({...teamData, officeContact: e.target.value})}
-                      placeholder="Enter office contact name"
                       className="mt-1"
                     />
                   </div>
@@ -491,27 +501,27 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
               ) : (
                 <div className="space-y-2 text-sm">
                   <div>
-                    <span className="text-gray-500">Contractor:</span>{" "}
+                    <span className="text-gray-500">General Contractor (GC):</span>{" "}
                     <span className="font-medium">{job.contractor || "Not specified"}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Owner:</span>{" "}
+                    <span className="text-gray-500">Owner Company:</span>{" "}
                     <span className="font-medium">{job.owner || "Not specified"}</span>
                   </div>
                   <div>
                     <span className="text-gray-500">Architect:</span>{" "}
                     <span className="font-medium">{job.architect || "Not specified"}</span>
                   </div>
+                  {job.officeContact && (
+                    <div>
+                      <span className="text-gray-500">GC Contact Name:</span>{" "}
+                      <span className="font-medium">{job.officeContact}</span>
+                    </div>
+                  )}
                   {job.orderedBy && (
                     <div>
                       <span className="text-gray-500">Ordered By:</span>{" "}
                       <span className="font-medium">{job.orderedBy}</span>
-                    </div>
-                  )}
-                  {job.officeContact && (
-                    <div>
-                      <span className="text-gray-500">Office Contact:</span>{" "}
-                      <span className="font-medium">{job.officeContact}</span>
                     </div>
                   )}
                 </div>
@@ -546,14 +556,31 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
             </Card>
           )}
 
-          {/* Dodge Data ID */}
-          {job.dodgeJobId && (
+          {/* Additional Project Info */}
+          {(job.notes || job.specialConditions || job.userNotes) && (
             <Card>
               <CardContent className="pt-4">
-                <h4 className="font-medium mb-2">Dodge Data ID</h4>
-                <code className="text-xs bg-gray-100 px-2 py-1 rounded">
-                  {job.dodgeJobId}
-                </code>
+                <h4 className="font-medium mb-3">Additional Information</h4>
+                <div className="space-y-2 text-sm">
+                  {job.specialConditions && (
+                    <div>
+                      <span className="text-gray-500">Delivery System:</span>{" "}
+                      <span className="font-medium">{job.specialConditions}</span>
+                    </div>
+                  )}
+                  {job.notes && (
+                    <div>
+                      <span className="text-gray-500">Tags:</span>{" "}
+                      <span className="font-medium">{job.notes}</span>
+                    </div>
+                  )}
+                  {job.userNotes && (
+                    <div>
+                      <span className="text-gray-500">Import Notes:</span>{" "}
+                      <span className="font-medium">{job.userNotes}</span>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}
