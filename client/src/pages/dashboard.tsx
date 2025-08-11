@@ -117,9 +117,9 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="flex h-[calc(100vh-4rem)]">
+      <div className="flex h-[calc(100vh-4rem)] relative">
         {/* Filter Sidebar - Fixed width */}
-        <div className={`transition-all duration-300 ${sidebarOpen ? 'w-96' : 'w-0'} overflow-hidden`}>
+        <div className={`${sidebarOpen ? 'w-96' : 'w-0'} transition-all duration-300 flex-shrink-0 overflow-hidden bg-white border-r`}>
           <FilterSidebar
             isOpen={sidebarOpen}
             onToggle={toggleSidebar}
@@ -132,8 +132,8 @@ export default function Dashboard() {
         </div>
 
         {/* Main Map Area - Takes remaining space */}
-        <main className="flex-1 relative min-w-0">
-          <MapContainer className="h-full w-full">
+        <main className="flex-1 relative overflow-hidden">
+          <MapContainer className="absolute inset-0">
             <InteractiveMap
               jobs={jobs}
               selectedJob={selectedJob}
