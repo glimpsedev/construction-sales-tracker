@@ -2,10 +2,10 @@ import { useState } from "react";
 import { MapContainer } from "@/components/ui/map-container";
 import InteractiveMap from "@/components/map/InteractiveMap";
 import FilterSidebar from "@/components/sidebar/FilterSidebar";
-import { JobDetailsModal } from "@/components/modals/JobDetailsModal";
 import AddJobModal from "@/components/modals/AddJobModal";
 import DocumentUploadModal from "@/components/modals/DocumentUploadModal";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useJobs } from "@/hooks/useJobs";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -20,6 +20,7 @@ export default function Dashboard() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showJobDetails, setShowJobDetails] = useState(false);
   const [filters, setFilters] = useState({
     search: '',
     status: ['active'] as string[],
@@ -35,6 +36,8 @@ export default function Dashboard() {
 
   const handleJobSelect = (job: Job) => {
     setSelectedJob(job);
+    setShowJobDetails(true);
+    setSidebarOpen(false); // Close sidebar when viewing job details
   };
 
   const handleFilterChange = (newFilters: typeof filters) => {
@@ -119,25 +122,96 @@ export default function Dashboard() {
       </header>
 
       <div className="flex h-[calc(100vh-4rem)] relative">
-        {/* Filter Sidebar - Fixed width, responsive for mobile */}
+        {/* Left Panel - Filter Sidebar or Job Details */}
         <div className={cn(
           "transition-all duration-300 flex-shrink-0 bg-white border-r border-gray-200 shadow-sm",
-          // Desktop: sidebar takes space in layout
-          sidebarOpen ? "lg:w-80 w-80" : "lg:w-0 w-0",
-          // Mobile: overlay sidebar
-          "lg:relative absolute lg:static h-full",
-          sidebarOpen ? "left-0 z-40" : "-left-80",
-          !sidebarOpen && "overflow-hidden"
+          // Show panel when either sidebar or job details is open
+          (sidebarOpen || showJobDetails) ? "lg:w-96 w-full lg:relative absolute" : "lg:w-0 w-0",
+          // Mobile: full width overlay
+          "h-full z-40",
+          !(sidebarOpen || showJobDetails) && "overflow-hidden"
         )}>
-          <FilterSidebar
-            isOpen={sidebarOpen}
-            onToggle={toggleSidebar}
-            jobs={jobs}
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            onJobSelect={handleJobSelect}
-            isLoading={isLoading}
-          />
+          {showJobDetails && selectedJob ? (
+            // Job Details Panel
+            <div className="w-full h-full overflow-y-auto p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Job Details</h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setShowJobDetails(false);
+                    setSelectedJob(null);
+                    setSidebarOpen(true);
+                  }}
+                  data-testid="button-close-details"
+                >
+                  <i className="fas fa-times"></i>
+                </Button>
+              </div>
+              
+              {/* Job Information */}
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-darktext">{selectedJob.name}</h3>
+                  <p className="text-sm text-gray-600 mt-1">{selectedJob.address}</p>
+                </div>
+                
+                {selectedJob.projectValue && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Project Value</p>
+                    <p className="text-lg font-semibold text-green-600">
+                      ${Number(selectedJob.projectValue).toLocaleString()}
+                    </p>
+                  </div>
+                )}
+                
+                {selectedJob.contractor && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Contractor</p>
+                    <p className="text-sm">{selectedJob.contractor}</p>
+                  </div>
+                )}
+                
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Status</p>
+                  <Badge className="mt-1">{selectedJob.status}</Badge>
+                </div>
+                
+                {selectedJob.description && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Description</p>
+                    <p className="text-sm mt-1">{selectedJob.description}</p>
+                  </div>
+                )}
+                
+                <div className="pt-4">
+                  <Button 
+                    className="w-full"
+                    onClick={() => {
+                      // Mark as viewed logic here
+                      setShowJobDetails(false);
+                      setSelectedJob(null);
+                      setSidebarOpen(true);
+                    }}
+                  >
+                    Mark as Viewed
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Filter Sidebar
+            <FilterSidebar
+              isOpen={sidebarOpen}
+              onToggle={toggleSidebar}
+              jobs={jobs}
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              onJobSelect={handleJobSelect}
+              isLoading={isLoading}
+            />
+          )}
         </div>
 
         {/* Main Map Area - Takes remaining space */}
@@ -152,7 +226,7 @@ export default function Dashboard() {
           </MapContainer>
           
           {/* Toggle Button when sidebar is closed */}
-          {!sidebarOpen && (
+          {!sidebarOpen && !showJobDetails && (
             <Button
               variant="outline"
               size="icon"
@@ -175,12 +249,6 @@ export default function Dashboard() {
       </div>
 
       {/* Modals */}
-      <JobDetailsModal
-        job={selectedJob}
-        isOpen={!!selectedJob}
-        onClose={() => setSelectedJob(null)}
-      />
-
       <AddJobModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
