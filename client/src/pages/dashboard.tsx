@@ -105,6 +105,15 @@ export default function Dashboard() {
             
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-4">
+              <Button 
+                variant={sidebarOpen ? "default" : "outline"} 
+                size="sm"
+                onClick={toggleSidebar}
+                className={sidebarOpen ? "bg-primary" : ""}
+              >
+                <i className="fas fa-filter mr-2"></i>
+                {sidebarOpen ? "Hide Filters" : "Show Filters"}
+              </Button>
               <Link href="/dodge-import">
                 <Button variant="outline" size="sm">
                   <FileSpreadsheet className="h-4 w-4 mr-2" />
@@ -131,6 +140,15 @@ export default function Dashboard() {
             
             {/* Mobile Controls */}
             <div className="flex items-center gap-2 lg:hidden">
+              <Button
+                size="sm"
+                variant={sidebarOpen ? "default" : "outline"}
+                onClick={toggleSidebar}
+                className={sidebarOpen ? "bg-primary px-3" : "px-3"}
+              >
+                <i className="fas fa-filter"></i>
+                <span className="ml-2">{sidebarOpen ? "Hide" : "Filters"}</span>
+              </Button>
               <Button
                 size="sm"
                 variant="outline"
@@ -236,10 +254,10 @@ export default function Dashboard() {
           {/* Mobile Floating Action Buttons */}
           <div className="lg:hidden fixed bottom-6 right-6 z-30 flex flex-col gap-3">
             {/* Filter Toggle Button */}
-            {!sidebarOpen && !showJobDetails && (
+            {!sidebarOpen && (
               <Button
                 size="icon"
-                className="h-14 w-14 rounded-full shadow-lg bg-white hover:bg-gray-100"
+                className="h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-blue-700 text-white"
                 onClick={toggleSidebar}
                 data-testid="button-open-filter"
               >
@@ -249,15 +267,15 @@ export default function Dashboard() {
           </div>
           
           {/* Desktop Filter Toggle */}
-          {!sidebarOpen && !showJobDetails && (
+          {!sidebarOpen && (
             <Button
               variant="outline"
-              size="icon"
-              className="hidden lg:flex absolute top-4 left-4 z-30 bg-white shadow-md"
+              className="hidden lg:flex absolute top-4 left-4 z-30 bg-primary hover:bg-blue-700 text-white shadow-lg h-12 px-4 gap-2"
               onClick={toggleSidebar}
               data-testid="button-open-sidebar"
             >
-              <i className="fas fa-bars"></i>
+              <i className="fas fa-filter"></i>
+              <span>Show Filters</span>
             </Button>
           )}
         </main>

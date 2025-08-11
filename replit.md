@@ -11,6 +11,13 @@ The system features comprehensive job tracking with viewed/unviewed status, note
 Preferred communication style: Simple, everyday language.
 Layout preferences: Sidebar should not block or overlap the map area. Fixed sidebar width with responsive map area.
 
+## Recent Changes (January 14, 2025)
+
+- **Dodge Data Import Enhancement**: Updated CSV import service to handle new Dodge Excel format with columns for Owner Company Name, GC Company Name, Valuation ranges, Target Start/Completion Dates, County, Delivery System, and Tags
+- **Database Schema Update**: Added county field to jobs table for California county information from Dodge Data
+- **UI Improvements**: Enhanced JobDetailsModal to display all new Dodge fields including County, Valuation, Target Dates, and Project Team information
+- **Filter Visibility Fix**: Added prominent filter buttons in the header for both mobile and desktop views, making filters easily accessible
+
 ## System Architecture
 
 ### Frontend Architecture

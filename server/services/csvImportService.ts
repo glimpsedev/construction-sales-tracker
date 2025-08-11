@@ -301,6 +301,7 @@ export class CSVImportService {
       name: projectName,
       description: enhancedDescription,
       address: fullAddress,
+      county: this.cleanString(row['County'] || row['COUNTY'] || ''),
       latitude: coordinates?.lat?.toString() || null,
       longitude: coordinates?.lng?.toString() || null,
       type: projectType as any,
