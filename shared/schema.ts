@@ -17,6 +17,8 @@ export const jobs = pgTable("jobs", {
   latitude: decimal("latitude", { precision: 10, scale: 8 }),
   longitude: decimal("longitude", { precision: 11, scale: 8 }),
   contractor: text("contractor"),
+  owner: text("owner"),
+  architect: text("architect"),
   projectValue: decimal("project_value", { precision: 12, scale: 2 }),
   status: jobStatusEnum("status").notNull().default("active"),
   type: jobTypeEnum("type").notNull().default("commercial"),

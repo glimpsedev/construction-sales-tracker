@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,13 +37,28 @@ interface JobDetailsModalProps {
 export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) {
   const [notes, setNotes] = useState(job?.userNotes || "");
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingTeam, setIsEditingTeam] = useState(false);
+  const [teamData, setTeamData] = useState({
+    contractor: job?.contractor || "",
+    owner: job?.owner || "",
+    architect: job?.architect || "",
+    orderedBy: job?.orderedBy || "",
+    officeContact: job?.officeContact || ""
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Update notes when job changes
+  // Update notes and team data when job changes
   React.useEffect(() => {
     if (job) {
       setNotes(job.userNotes || "");
+      setTeamData({
+        contractor: job.contractor || "",
+        owner: job.owner || "",
+        architect: job.architect || "",
+        orderedBy: job.orderedBy || "",
+        officeContact: job.officeContact || ""
+      });
     }
   }, [job]);
 
@@ -72,6 +88,37 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
         variant: "destructive",
         title: "Error",
         description: "Failed to mark job as viewed"
+      });
+    }
+  });
+
+  const updateTeamMutation = useMutation({
+    mutationFn: async ({ jobId, teamData }: { jobId: string; teamData: any }) => {
+      const response = await fetch(`/api/jobs/${jobId}/team`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(teamData)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update team information');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      toast({
+        title: "Team Information Updated",
+        description: "Project team has been updated successfully"
+      });
+      setIsEditingTeam(false);
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update team information"
       });
     }
   });
@@ -120,6 +167,22 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
   const handleCancel = () => {
     setNotes(job.userNotes || "");
     setIsEditing(false);
+  };
+
+  const handleSaveTeam = () => {
+    if (!job) return;
+    updateTeamMutation.mutate({ jobId: job.id, teamData });
+  };
+
+  const handleCancelTeam = () => {
+    setTeamData({
+      contractor: job?.contractor || "",
+      owner: job?.owner || "",
+      architect: job?.architect || "",
+      orderedBy: job?.orderedBy || "",
+      officeContact: job?.officeContact || ""
+    });
+    setIsEditingTeam(false);
   };
 
   const formatCurrency = (value: string | null) => {
@@ -205,13 +268,6 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
                   </div>
                 </div>
                 <div>
-                  <label className="text-gray-500 text-xs">Contractor</label>
-                  <div className="flex items-center gap-1">
-                    <User className="h-3 w-3" />
-                    {job.contractor || "Not specified"}
-                  </div>
-                </div>
-                <div>
                   <label className="text-gray-500 text-xs">Start Date</label>
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
@@ -226,6 +282,124 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Project Team */}
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Project Team
+                </h4>
+                {!isEditingTeam && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsEditingTeam(true)}
+                    data-testid="edit-team-button"
+                  >
+                    Edit
+                  </Button>
+                )}
+              </div>
+
+              {isEditingTeam ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium">Contractor</label>
+                    <Input
+                      value={teamData.contractor}
+                      onChange={(e) => setTeamData({...teamData, contractor: e.target.value})}
+                      placeholder="Enter contractor name"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Owner</label>
+                    <Input
+                      value={teamData.owner}
+                      onChange={(e) => setTeamData({...teamData, owner: e.target.value})}
+                      placeholder="Enter owner name"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Architect</label>
+                    <Input
+                      value={teamData.architect}
+                      onChange={(e) => setTeamData({...teamData, architect: e.target.value})}
+                      placeholder="Enter architect name"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Ordered By</label>
+                    <Input
+                      value={teamData.orderedBy}
+                      onChange={(e) => setTeamData({...teamData, orderedBy: e.target.value})}
+                      placeholder="Enter who ordered the project"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Office Contact</label>
+                    <Input
+                      value={teamData.officeContact}
+                      onChange={(e) => setTeamData({...teamData, officeContact: e.target.value})}
+                      placeholder="Enter office contact name"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handleSaveTeam}
+                      disabled={updateTeamMutation.isPending}
+                      data-testid="save-team-button"
+                    >
+                      <Save className="h-3 w-3 mr-1" />
+                      {updateTeamMutation.isPending ? "Saving..." : "Save"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCancelTeam}
+                      data-testid="cancel-team-button"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <span className="text-gray-500">Contractor:</span>{" "}
+                    <span className="font-medium">{job.contractor || "Not specified"}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Owner:</span>{" "}
+                    <span className="font-medium">{job.owner || "Not specified"}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Architect:</span>{" "}
+                    <span className="font-medium">{job.architect || "Not specified"}</span>
+                  </div>
+                  {job.orderedBy && (
+                    <div>
+                      <span className="text-gray-500">Ordered By:</span>{" "}
+                      <span className="font-medium">{job.orderedBy}</span>
+                    </div>
+                  )}
+                  {job.officeContact && (
+                    <div>
+                      <span className="text-gray-500">Office Contact:</span>{" "}
+                      <span className="font-medium">{job.officeContact}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 

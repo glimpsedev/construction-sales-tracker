@@ -411,6 +411,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update job team information
+  app.put("/api/jobs/:id/team", async (req, res) => {
+    try {
+      const { contractor, owner, architect, orderedBy, officeContact } = req.body;
+      
+      await db
+        .update(jobs)
+        .set({
+          contractor,
+          owner,
+          architect,
+          orderedBy,
+          officeContact
+        })
+        .where(eq(jobs.id, req.params.id));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating job team:", error);
+      res.status(500).json({ error: "Failed to update team information" });
+    }
+  });
+
   // Update job temperature
   app.patch("/api/jobs/:id/temperature", async (req, res) => {
     try {
