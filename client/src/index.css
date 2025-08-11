@@ -1,0 +1,288 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(0 0% 26%);
+  --card: hsl(180 6.6667% 97.0588%);
+  --card-foreground: hsl(0 0% 26%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(0 0% 26%);
+  --primary: hsl(207 90% 54%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(122 39% 49%);
+  --secondary-foreground: hsl(0 0% 100%);
+  --muted: hsl(240 1.9608% 90%);
+  --muted-foreground: hsl(0 0% 26%);
+  --accent: hsl(36 100% 50%);
+  --accent-foreground: hsl(0 0% 100%);
+  --destructive: hsl(4 90% 58%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(201.4286 30.4348% 90.9804%);
+  --input: hsl(200 23.0769% 97.4510%);
+  --ring: hsl(207 90% 54%);
+  --chart-1: hsl(207 90% 54%);
+  --chart-2: hsl(159.7826 100% 36.0784%);
+  --chart-3: hsl(36 100% 50%);
+  --chart-4: hsl(147.1429 78.5047% 41.9608%);
+  --chart-5: hsl(341.4894 75.2000% 50.9804%);
+  --sidebar: hsl(180 6.6667% 97.0588%);
+  --sidebar-foreground: hsl(0 0% 26%);
+  --sidebar-primary: hsl(207 90% 54%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(211.5789 51.3514% 92.7451%);
+  --sidebar-accent-foreground: hsl(207 90% 54%);
+  --sidebar-border: hsl(205.0000 25.0000% 90.5882%);
+  --sidebar-ring: hsl(207 90% 54%);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --radius: 0.5rem;
+  
+  /* Custom design colors from reference */
+  --primary-blue: hsl(207 90% 54%);
+  --secondary-green: hsl(122 39% 49%);
+  --accent-orange: hsl(36 100% 50%);
+  --neutral-bg: hsl(0 0% 98%);
+  --dark-text: hsl(0 0% 26%);
+  --info-blue: hsl(207 77% 54%);
+}
+
+.dark {
+  --background: hsl(0 0% 0%);
+  --foreground: hsl(200 6.6667% 91.1765%);
+  --card: hsl(228 9.8039% 10%);
+  --card-foreground: hsl(0 0% 85.0980%);
+  --popover: hsl(0 0% 0%);
+  --popover-foreground: hsl(200 6.6667% 91.1765%);
+  --primary: hsl(207 90% 54%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(122 39% 49%);
+  --secondary-foreground: hsl(0 0% 100%);
+  --muted: hsl(0 0% 9.4118%);
+  --muted-foreground: hsl(210 3.3898% 46.2745%);
+  --accent: hsl(36 100% 50%);
+  --accent-foreground: hsl(0 0% 100%);
+  --destructive: hsl(4 90% 58%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(210 5.2632% 14.9020%);
+  --input: hsl(207.6923 27.6596% 18.4314%);
+  --ring: hsl(207 90% 54%);
+  --chart-1: hsl(207 90% 54%);
+  --chart-2: hsl(159.7826 100% 36.0784%);
+  --chart-3: hsl(36 100% 50%);
+  --chart-4: hsl(147.1429 78.5047% 41.9608%);
+  --chart-5: hsl(341.4894 75.2000% 50.9804%);
+  --sidebar: hsl(228 9.8039% 10%);
+  --sidebar-foreground: hsl(0 0% 85.0980%);
+  --sidebar-primary: hsl(207 90% 54%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(205.7143 70% 7.8431%);
+  --sidebar-accent-foreground: hsl(207 90% 54%);
+  --sidebar-border: hsl(205.7143 15.7895% 26.0784%);
+  --sidebar-ring: hsl(207 90% 54%);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+/* Custom styles matching the design reference */
+.map-container {
+  background: linear-gradient(45deg, #e3f2fd 25%, transparent 25%), 
+              linear-gradient(-45deg, #e3f2fd 25%, transparent 25%), 
+              linear-gradient(45deg, transparent 75%, #e3f2fd 75%), 
+              linear-gradient(-45deg, transparent 75%, #e3f2fd 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+
+.pin-drop {
+  animation: pinDrop 0.6s ease-out;
+}
+
+@keyframes pinDrop {
+  0% { 
+    transform: translateY(-20px) scale(0.8); 
+    opacity: 0; 
+  }
+  100% { 
+    transform: translateY(0) scale(1); 
+    opacity: 1; 
+  }
+}
+
+.filter-slide {
+  transition: transform 0.3s ease-in-out;
+}
+
+.job-card {
+  transition: all 0.2s ease-in-out;
+}
+
+.job-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+/* Leaflet custom marker styles */
+.custom-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Design system colors as utility classes */
+.text-primary {
+  color: var(--primary-blue);
+}
+
+.bg-primary {
+  background-color: var(--primary-blue);
+}
+
+.text-secondary {
+  color: var(--secondary-green);
+}
+
+.bg-secondary {
+  background-color: var(--secondary-green);
+}
+
+.text-accent {
+  color: var(--accent-orange);
+}
+
+.bg-accent {
+  background-color: var(--accent-orange);
+}
+
+.text-darktext {
+  color: var(--dark-text);
+}
+
+.bg-neutral {
+  background-color: var(--neutral-bg);
+}
+
+.text-info {
+  color: var(--info-blue);
+}
+
+.bg-info {
+  background-color: var(--info-blue);
+}
+
+/* Status-specific colors */
+.bg-status-active {
+  background-color: var(--primary-blue);
+}
+
+.bg-status-completed {
+  background-color: var(--secondary-green);
+}
+
+.bg-status-planning {
+  background-color: var(--accent-orange);
+}
+
+.bg-status-pending {
+  background-color: hsl(271 91% 65%);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .map-container {
+    background-size: 15px 15px;
+  }
+}
+
+/* Loading states */
+.animate-pulse-custom {
+  animation: pulse-custom 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-custom {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+/* Custom scrollbar for sidebar */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Focus states for accessibility */
+.focus\:ring-primary:focus {
+  --tw-ring-color: var(--primary-blue);
+}
+
+.focus\:ring-secondary:focus {
+  --tw-ring-color: var(--secondary-green);
+}
+
+.focus\:ring-accent:focus {
+  --tw-ring-color: var(--accent-orange);
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border: hsl(0 0% 40%);
+    --ring: hsl(0 0% 30%);
+  }
+  
+  .dark {
+    --border: hsl(0 0% 60%);
+    --ring: hsl(0 0% 70%);
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .pin-drop {
+    animation: none;
+  }
+  
+  .job-card {
+    transition: none;
+  }
+  
+  .filter-slide {
+    transition: none;
+  }
+}
