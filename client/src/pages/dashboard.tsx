@@ -223,7 +223,7 @@ export default function Dashboard() {
         )}
 
         {/* Main Map Area - Always Visible */}
-        <main className="flex-1 min-w-0 relative">
+        <main className="flex-1 min-w-0 relative z-0">
           <MapContainer className="h-full w-full">
             <InteractiveMap
               jobs={jobs}

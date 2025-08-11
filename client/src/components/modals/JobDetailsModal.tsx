@@ -203,7 +203,11 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onPointerDownOutside={(e) => e.preventDefault()}>
+      <DialogContent 
+        className="max-w-2xl max-h-[90vh] overflow-y-auto z-[9999]" 
+        onPointerDownOutside={(e) => e.preventDefault()}
+        style={{ zIndex: 9999 }}
+        aria-describedby="job-details-description">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -221,6 +225,10 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
             </Button>
           </DialogTitle>
         </DialogHeader>
+        
+        <div id="job-details-description" className="sr-only">
+          Job details and project team information
+        </div>
 
         <div className="space-y-6">
           {/* Status Badge */}

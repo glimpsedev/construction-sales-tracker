@@ -3,6 +3,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fix for modal z-index issues */
+[role="dialog"] {
+  z-index: 9999 !important;
+}
+
+.radix-dialog-overlay {
+  z-index: 9998 !important;
+}
+
+.radix-dialog-content {
+  z-index: 9999 !important;
+}
+
 :root {
   --background: hsl(0 0% 100%);
   --foreground: hsl(0 0% 26%);
