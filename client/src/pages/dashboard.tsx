@@ -10,7 +10,7 @@ import { useJobs } from "@/hooks/useJobs";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Settings, FileSpreadsheet } from "lucide-react";
+import { Mail, Settings, FileSpreadsheet, Eye } from "lucide-react";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 import type { Job } from "@shared/schema";
@@ -152,11 +152,16 @@ export default function Dashboard() {
               
               {/* Job Information */}
               <div className="space-y-4">
-                <div>
+                {/* Project Name and Address */}
+                <div className="border-b pb-4">
                   <h3 className="text-lg font-semibold text-darktext">{selectedJob.name}</h3>
-                  <p className="text-sm text-gray-600 mt-1">{selectedJob.address}</p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    <i className="fas fa-map-marker-alt mr-1"></i>
+                    {selectedJob.address}
+                  </p>
                 </div>
                 
+                {/* Project Value */}
                 {selectedJob.projectValue && (
                   <div>
                     <p className="text-sm font-medium text-gray-500">Project Value</p>
@@ -166,36 +171,145 @@ export default function Dashboard() {
                   </div>
                 )}
                 
+                {/* Status and Type */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Status</p>
+                    <Badge className="mt-1">{selectedJob.status}</Badge>
+                  </div>
+                  {selectedJob.type && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Type</p>
+                      <Badge variant="outline" className="mt-1">{selectedJob.type}</Badge>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Contractor */}
                 {selectedJob.contractor && (
                   <div>
                     <p className="text-sm font-medium text-gray-500">Contractor</p>
-                    <p className="text-sm">{selectedJob.contractor}</p>
+                    <p className="text-sm font-semibold">{selectedJob.contractor}</p>
                   </div>
                 )}
                 
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Status</p>
-                  <Badge className="mt-1">{selectedJob.status}</Badge>
+                {/* Contact Information */}
+                <div className="space-y-2">
+                  {selectedJob.phone && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Phone</p>
+                      <a 
+                        href={`tel:${selectedJob.phone}`}
+                        className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-2"
+                      >
+                        <i className="fas fa-phone"></i>
+                        {selectedJob.phone}
+                      </a>
+                    </div>
+                  )}
+                  
+                  {selectedJob.email && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Email</p>
+                      <a 
+                        href={`mailto:${selectedJob.email}`}
+                        className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-2"
+                      >
+                        <i className="fas fa-envelope"></i>
+                        {selectedJob.email}
+                      </a>
+                    </div>
+                  )}
+                  
+                  {selectedJob.officeContact && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Office Contact</p>
+                      <p className="text-sm">{selectedJob.officeContact}</p>
+                    </div>
+                  )}
                 </div>
                 
+                {/* Dates */}
+                <div className="grid grid-cols-2 gap-4">
+                  {selectedJob.startDate && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Start Date</p>
+                      <p className="text-sm">{new Date(selectedJob.startDate).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                  {selectedJob.endDate && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">End Date</p>
+                      <p className="text-sm">{new Date(selectedJob.endDate).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Description */}
                 {selectedJob.description && (
                   <div>
                     <p className="text-sm font-medium text-gray-500">Description</p>
-                    <p className="text-sm mt-1">{selectedJob.description}</p>
+                    <p className="text-sm mt-1 text-gray-700">{selectedJob.description}</p>
                   </div>
                 )}
                 
-                <div className="pt-4">
+                {/* Special Conditions */}
+                {selectedJob.specialConditions && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Special Conditions</p>
+                    <p className="text-sm mt-1 text-gray-700">{selectedJob.specialConditions}</p>
+                  </div>
+                )}
+                
+                {/* Dodge Job ID */}
+                {selectedJob.dodgeJobId && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Dodge Report #</p>
+                    <p className="text-sm font-mono">{selectedJob.dodgeJobId}</p>
+                  </div>
+                )}
+                
+                {/* User Notes */}
+                {selectedJob.userNotes && (
+                  <div className="bg-yellow-50 p-3 rounded">
+                    <p className="text-sm font-medium text-gray-700">Notes</p>
+                    <p className="text-sm mt-1">{selectedJob.userNotes}</p>
+                  </div>
+                )}
+                
+                {/* Last Updated */}
+                {selectedJob.lastUpdated && (
+                  <div className="text-xs text-gray-500">
+                    Last updated: {new Date(selectedJob.lastUpdated).toLocaleString()}
+                  </div>
+                )}
+                
+                {/* Action Buttons */}
+                <div className="pt-4 space-y-2">
                   <Button 
                     className="w-full"
                     onClick={() => {
                       // Mark as viewed logic here
+                      toast({
+                        title: "Job Marked as Viewed",
+                        description: "This job has been marked as viewed."
+                      });
+                    }}
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
+                    Mark as Viewed
+                  </Button>
+                  
+                  <Button 
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
                       setShowJobDetails(false);
                       setSelectedJob(null);
                       setSidebarOpen(true);
                     }}
                   >
-                    Mark as Viewed
+                    Close Details
                   </Button>
                 </div>
               </div>

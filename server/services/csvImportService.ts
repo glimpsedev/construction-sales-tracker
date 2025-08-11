@@ -262,21 +262,50 @@ export class CSVImportService {
       coordinates = await geocodeAddress(fullAddress);
     }
 
+    // Extract additional info from various fields
+    const ownerName = this.cleanString(row['Owner Name (Link)'] || row['Owner'] || '');
+    const architectName = this.cleanString(row['Architect Name (Link)'] || row['Architect'] || '');
+    const status = this.cleanString(row['Status'] || '');
+    const actionStages = this.cleanString(row['Action Stage(s)'] || '');
+    const tags = this.cleanString(row['Tags'] || '');
+    const bidDate = row['Bid Date'];
+    
+    // Try to extract phone number from various fields
+    const allText = `${status} ${ownerName} ${architectName} ${description}`;
+    const phoneMatch = allText.match(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/);
+    const phone = phoneMatch ? phoneMatch[0] : this.cleanString(row['Phone'] || '');
+    
+    // Try to extract email from various fields
+    const emailMatch = allText.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
+    const email = emailMatch ? emailMatch[0] : this.cleanString(row['Email'] || '');
+    
+    // Enhance description with all available info
+    const enhancedDescription = [
+      description,
+      ownerName ? `Owner: ${ownerName}` : '',
+      architectName ? `Architect: ${architectName}` : '',
+      actionStages ? `Action Stages: ${actionStages}` : '',
+      tags ? `Tags: ${tags}` : '',
+      bidDate ? `Bid Date: ${bidDate}` : ''
+    ].filter(Boolean).join('\n');
+
     const newJob: InsertJob = {
       name: projectName,
-      description,
+      description: enhancedDescription,
       address: fullAddress,
       latitude: coordinates?.lat?.toString() || null,
       longitude: coordinates?.lng?.toString() || null,
       type: projectType as any,
-      status: (this.normalizeStatus(row['Status']) || 'planning') as any,
+      status: (this.normalizeStatus(actionStages || status) || 'planning') as any,
       projectValue: projectValue?.toString() || null,
-      startDate: this.parseDate(row['Start Date']) ? new Date(this.parseDate(row['Start Date'])!) : null,
+      startDate: this.parseDate(bidDate || row['Start Date']) ? new Date(this.parseDate(bidDate || row['Start Date'])!) : null,
       endDate: this.parseDate(row['End Date']) ? new Date(this.parseDate(row['End Date'])!) : null,
-      contractor: this.cleanString(row['Contractor'] || ''),
-      phone: this.cleanString(row['Phone'] || ''),
-      email: this.cleanString(row['Email'] || ''),
-      notes: '', // Empty notes - user can add their own
+      contractor: this.cleanString(row['Contractor'] || row['GC'] || ownerName || ''),
+      phone: phone,
+      email: email,
+      notes: tags || '', // Use tags as notes
+      officeContact: architectName || '',
+      specialConditions: this.cleanString(row['Special Conditions'] || ''),
       isCustom: false,
       dodgeJobId: dodgeProjectId,
       // Track viewing status
