@@ -1,4 +1,4 @@
-import { jobs, equipment, documents, type Job, type InsertJob, type Equipment, type InsertEquipment, type Document, type InsertDocument, type User, type InsertUser } from "@shared/schema";
+import { jobs, equipment, documents, users, type Job, type InsertJob, type Equipment, type InsertEquipment, type Document, type InsertDocument, type User, type InsertUser } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, ilike, gte, lte, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
