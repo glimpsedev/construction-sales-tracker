@@ -1,24 +1,48 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useEffect, useState } from "react";
+import { isAuthenticated } from "./lib/auth";
 import Dashboard from "@/pages/dashboard";
 import Equipment from "@/pages/equipment";
 import { EmailSetupPage } from "@/pages/email-setup";
 import { DodgeImportPage } from "@/pages/dodge-import";
 import DatabaseManagement from "@/pages/database-management";
+import Login from "@/pages/login";
 import NotFound from "@/pages/not-found";
 
 function Router() {
+  const [authChecked, setAuthChecked] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+
+  useEffect(() => {
+    setAuthenticated(isAuthenticated());
+    setAuthChecked(true);
+  }, []);
+
+  if (!authChecked) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/equipment" component={Equipment} />
-      <Route path="/email-setup" component={EmailSetupPage} />
-      <Route path="/dodge-import" component={DodgeImportPage} />
-      <Route path="/database" component={DatabaseManagement} />
-      <Route component={NotFound} />
+      <Route path="/login" component={Login} />
+      {authenticated ? (
+        <>
+          <Route path="/" component={Dashboard} />
+          <Route path="/equipment" component={Equipment} />
+          <Route path="/email-setup" component={EmailSetupPage} />
+          <Route path="/dodge-import" component={DodgeImportPage} />
+          <Route path="/database" component={DatabaseManagement} />
+          <Route component={NotFound} />
+        </>
+      ) : (
+        <Route>
+          <Redirect to="/login" />
+        </Route>
+      )}
     </Switch>
   );
 }

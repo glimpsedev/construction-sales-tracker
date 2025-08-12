@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertJobSchema, insertEquipmentSchema, insertDocumentSchema, jobs, type Job } from "@shared/schema";
 import { eq, desc, and, or, gte, lte, sql, count, asc, isNotNull } from "drizzle-orm";
 import { db } from "./db";
+import { authenticate, AuthRequest, hashPassword, verifyPassword, generateToken, createInitialUser } from "./auth";
 
 import { documentProcessor } from "./services/documentProcessor";
 import { emailProcessor } from "./services/emailProcessor";
@@ -61,8 +62,81 @@ const uploadExcel = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Job routes
-  app.get("/api/jobs", async (req, res) => {
+  // Create initial user on startup
+  await createInitialUser();
+  
+  // Auth routes
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+      }
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+      
+      const isValid = await verifyPassword(password, user.password);
+      if (!isValid) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+      
+      const token = generateToken(user.id);
+      res.json({ 
+        token, 
+        user: { 
+          id: user.id, 
+          email: user.email 
+        } 
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ error: 'Login failed' });
+    }
+  });
+  
+  app.get("/api/auth/me", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const user = await storage.getUser(req.userId!);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      res.json({ 
+        id: user.id, 
+        email: user.email 
+      });
+    } catch (error) {
+      console.error('Get user error:', error);
+      res.status(500).json({ error: 'Failed to get user' });
+    }
+  });
+  
+  // Migrate existing jobs to the initial user
+  app.post("/api/auth/migrate", async (req, res) => {
+    try {
+      const user = await storage.getUserByEmail('hgrady@jscole.com');
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      // Update all jobs without a userId to belong to this user
+      const result = await db.update(jobs)
+        .set({ userId: user.id })
+        .where(eq(jobs.userId, null));
+        
+      res.json({ message: 'Migration completed', jobsUpdated: result.rowCount });
+    } catch (error) {
+      console.error('Migration error:', error);
+      res.status(500).json({ error: 'Migration failed' });
+    }
+  });
+  
+  // Job routes (protected)
+  app.get("/api/jobs", authenticate, async (req: AuthRequest, res) => {
     try {
       const {
         search,
@@ -84,6 +158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate: endDate ? new Date(endDate as string) : undefined,
         minValue: minValue ? parseFloat(minValue as string) : undefined,
         maxValue: maxValue ? parseFloat(maxValue as string) : undefined,
+        userId: req.userId,
       };
 
       const jobs = await storage.searchJobs(filters);
@@ -94,15 +169,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/jobs/:id", async (req, res) => {
+  app.get("/api/jobs/:id", authenticate, async (req: AuthRequest, res) => {
     try {
-      const job = await storage.getJobById(req.params.id);
+      const job = await storage.getJobById(req.params.id, req.userId);
       if (!job) {
         return res.status(404).json({ error: 'Job not found' });
       }
       
       // Get equipment for this job
-      const equipment = await storage.getEquipmentByJobId(job.id);
+      const equipment = await storage.getEquipmentByJobId(job.id, req.userId);
       res.json({ ...job, equipment });
     } catch (error) {
       console.error('Error fetching job:', error);
@@ -110,9 +185,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/jobs", async (req, res) => {
+  app.post("/api/jobs", authenticate, async (req: AuthRequest, res) => {
     try {
       const jobData = insertJobSchema.parse(req.body);
+      jobData.userId = req.userId;
       
       // Geocode address if provided
       if (jobData.address && !jobData.latitude && !jobData.longitude) {
@@ -135,7 +211,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/jobs/:id", async (req, res) => {
+  app.put("/api/jobs/:id", authenticate, async (req: AuthRequest, res) => {
     try {
       const updates = insertJobSchema.partial().parse(req.body);
       
@@ -148,7 +224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const job = await storage.updateJob(req.params.id, updates);
+      const job = await storage.updateJob(req.params.id, updates, req.userId);
       if (!job) {
         return res.status(404).json({ error: 'Job not found' });
       }
@@ -159,9 +235,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/jobs/:id", async (req, res) => {
+  app.delete("/api/jobs/:id", authenticate, async (req: AuthRequest, res) => {
     try {
-      const deleted = await storage.deleteJob(req.params.id);
+      const deleted = await storage.deleteJob(req.params.id, req.userId);
       if (!deleted) {
         return res.status(404).json({ error: 'Job not found' });
       }
@@ -173,9 +249,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Equipment routes
-  app.get("/api/jobs/:jobId/equipment", async (req, res) => {
+  app.get("/api/jobs/:jobId/equipment", authenticate, async (req: AuthRequest, res) => {
     try {
-      const equipment = await storage.getEquipmentByJobId(req.params.jobId);
+      const equipment = await storage.getEquipmentByJobId(req.params.jobId, req.userId);
       res.json(equipment);
     } catch (error) {
       console.error('Error fetching equipment:', error);
@@ -183,9 +259,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/equipment", async (req, res) => {
+  app.post("/api/equipment", authenticate, async (req: AuthRequest, res) => {
     try {
       const equipmentData = insertEquipmentSchema.parse(req.body);
+      equipmentData.userId = req.userId;
       const equipment = await storage.createEquipment(equipmentData);
       res.status(201).json(equipment);
     } catch (error) {
@@ -233,7 +310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/documents", async (req, res) => {
+  app.get("/api/documents", authenticate, async (req: AuthRequest, res) => {
     try {
       const documents = await storage.getAllDocuments();
       res.json(documents);
@@ -246,9 +323,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // Statistics route
-  app.get("/api/stats", async (req, res) => {
+  app.get("/api/stats", authenticate, async (req: AuthRequest, res) => {
     try {
-      const allJobs = await storage.getAllJobs();
+      const allJobs = await storage.getAllJobs(req.userId);
       
       const stats = {
         totalJobs: allJobs.length,
@@ -275,7 +352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Geocoding utility route
-  app.post("/api/geocode", async (req, res) => {
+  app.post("/api/geocode", authenticate, async (req: AuthRequest, res) => {
     try {
       const { address } = req.body;
       if (!address) {
@@ -350,13 +427,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // CSV import routes for Dodge Data
-  app.post("/api/import-dodge-csv", uploadExcel.single('file'), async (req, res) => {
+  app.post("/api/import-dodge-csv", authenticate, uploadExcel.single('file'), async (req: AuthRequest, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No CSV file uploaded" });
       }
 
-      const results = await csvImportService.importDodgeCSV(req.file.buffer);
+      const results = await csvImportService.importDodgeCSV(req.file.buffer, req.userId);
       res.json({ 
         success: true, 
         message: `Import completed: ${results.imported} new jobs, ${results.updated} updated, ${results.skipped} skipped`,

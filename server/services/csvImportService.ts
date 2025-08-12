@@ -33,7 +33,7 @@ export class CSVImportService {
    * Import jobs from Dodge Data CSV file
    * Handles duplicates by checking project name, address, and value
    */
-  async importDodgeCSV(fileBuffer: Buffer): Promise<{
+  async importDodgeCSV(fileBuffer: Buffer, userId?: string): Promise<{
     imported: number;
     updated: number;
     skipped: number;
@@ -93,7 +93,7 @@ export class CSVImportService {
           const dodgeProjectId = this.cleanString(row['Project ID'] || row['Dodge Report Number'] || '');
 
           // Create new job (duplicates temporarily disabled)
-          await this.createNewJobFromCSV(row, projectName, description, fullAddress, projectValue, projectType, dodgeProjectId);
+          await this.createNewJobFromCSV(row, projectName, description, fullAddress, projectValue, projectType, dodgeProjectId, userId);
           results.imported++;
           if (i < 5) {
             console.log(`Imported: ${projectName} at ${fullAddress}`);
@@ -258,7 +258,8 @@ export class CSVImportService {
     fullAddress: string,
     projectValue: number | null,
     projectType: string,
-    dodgeProjectId: string
+    dodgeProjectId: string,
+    userId?: string
   ): Promise<void> {
     
     // Attempt to geocode the address
@@ -349,7 +350,8 @@ export class CSVImportService {
       // Track viewing status
       isViewed: false,
       viewedAt: null,
-      userNotes: userNotes || ''
+      userNotes: userNotes || '',
+      userId: userId
     };
 
     await db.insert(jobs).values(newJob);

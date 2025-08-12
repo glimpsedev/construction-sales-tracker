@@ -6,15 +6,15 @@ import { randomUUID } from "crypto";
 export interface IStorage {
   // User methods
   getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
 
   // Job methods
-  getAllJobs(): Promise<Job[]>;
-  getJobById(id: string): Promise<Job | undefined>;
+  getAllJobs(userId?: string): Promise<Job[]>;
+  getJobById(id: string, userId?: string): Promise<Job | undefined>;
   createJob(job: InsertJob): Promise<Job>;
-  updateJob(id: string, updates: Partial<InsertJob>): Promise<Job | undefined>;
-  deleteJob(id: string): Promise<boolean>;
+  updateJob(id: string, updates: Partial<InsertJob>, userId?: string): Promise<Job | undefined>;
+  deleteJob(id: string, userId?: string): Promise<boolean>;
   searchJobs(filters: {
     search?: string;
     status?: string[];
@@ -24,13 +24,14 @@ export interface IStorage {
     endDate?: Date;
     minValue?: number;
     maxValue?: number;
+    userId?: string;
   }): Promise<Job[]>;
-  getJobByDodgeId(dodgeId: string): Promise<Job | undefined>;
+  getJobByDodgeId(dodgeId: string, userId?: string): Promise<Job | undefined>;
 
   // Equipment methods
-  getEquipmentByJobId(jobId: string): Promise<Equipment[]>;
+  getEquipmentByJobId(jobId: string, userId?: string): Promise<Equipment[]>;
   createEquipment(equipment: InsertEquipment): Promise<Equipment>;
-  updateEquipment(id: string, updates: Partial<InsertEquipment>): Promise<Equipment | undefined>;
+  updateEquipment(id: string, updates: Partial<InsertEquipment>, userId?: string): Promise<Equipment | undefined>;
 
   // Document methods
   getAllDocuments(): Promise<Document[]>;
@@ -55,27 +56,33 @@ export class MemStorage implements IStorage {
     return this.users.get(id);
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
+  async getUserByEmail(email: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
-      (user) => user.username === username,
+      (user) => user.email === email,
     );
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
+    const user: User = { ...insertUser, id, createdAt: new Date() };
     this.users.set(id, user);
     return user;
   }
 
-  async getAllJobs(): Promise<Job[]> {
-    return Array.from(this.jobsMap.values()).sort(
+  async getAllJobs(userId?: string): Promise<Job[]> {
+    const allJobs = Array.from(this.jobsMap.values());
+    const filtered = userId ? allJobs.filter(job => job.userId === userId) : allJobs;
+    return filtered.sort(
       (a, b) => new Date(b.lastUpdated || b.createdAt!).getTime() - new Date(a.lastUpdated || a.createdAt!).getTime()
     );
   }
 
-  async getJobById(id: string): Promise<Job | undefined> {
-    return this.jobsMap.get(id);
+  async getJobById(id: string, userId?: string): Promise<Job | undefined> {
+    const job = this.jobsMap.get(id);
+    if (job && userId && job.userId !== userId) {
+      return undefined;
+    }
+    return job;
   }
 
   async createJob(job: InsertJob): Promise<Job> {
@@ -91,16 +98,19 @@ export class MemStorage implements IStorage {
     return newJob;
   }
 
-  async updateJob(id: string, updates: Partial<InsertJob>): Promise<Job | undefined> {
+  async updateJob(id: string, updates: Partial<InsertJob>, userId?: string): Promise<Job | undefined> {
     const job = this.jobsMap.get(id);
     if (!job) return undefined;
+    if (userId && job.userId !== userId) return undefined;
     
     const updatedJob = { ...job, ...updates, lastUpdated: new Date() };
     this.jobsMap.set(id, updatedJob);
     return updatedJob;
   }
 
-  async deleteJob(id: string): Promise<boolean> {
+  async deleteJob(id: string, userId?: string): Promise<boolean> {
+    const job = this.jobsMap.get(id);
+    if (job && userId && job.userId !== userId) return false;
     return this.jobsMap.delete(id);
   }
 
@@ -108,12 +118,18 @@ export class MemStorage implements IStorage {
     search?: string;
     status?: string[];
     type?: string[];
+    temperature?: string[];
     startDate?: Date;
     endDate?: Date;
     minValue?: number;
     maxValue?: number;
+    userId?: string;
   }): Promise<Job[]> {
     let result = Array.from(this.jobsMap.values());
+    
+    if (filters.userId) {
+      result = result.filter(job => job.userId === filters.userId);
+    }
 
     if (filters.search) {
       const search = filters.search.toLowerCase();
@@ -165,12 +181,18 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async getJobByDodgeId(dodgeId: string): Promise<Job | undefined> {
-    return Array.from(this.jobsMap.values()).find(job => job.dodgeJobId === dodgeId);
+  async getJobByDodgeId(dodgeId: string, userId?: string): Promise<Job | undefined> {
+    const job = Array.from(this.jobsMap.values()).find(job => job.dodgeJobId === dodgeId);
+    if (job && userId && job.userId !== userId) return undefined;
+    return job;
   }
 
-  async getEquipmentByJobId(jobId: string): Promise<Equipment[]> {
-    return Array.from(this.equipmentMap.values()).filter(eq => eq.jobId === jobId);
+  async getEquipmentByJobId(jobId: string, userId?: string): Promise<Equipment[]> {
+    const equipment = Array.from(this.equipmentMap.values()).filter(eq => eq.jobId === jobId);
+    if (userId) {
+      return equipment.filter(eq => eq.userId === userId);
+    }
+    return equipment;
   }
 
   async createEquipment(equipment: InsertEquipment): Promise<Equipment> {
@@ -180,9 +202,10 @@ export class MemStorage implements IStorage {
     return newEquipment;
   }
 
-  async updateEquipment(id: string, updates: Partial<InsertEquipment>): Promise<Equipment | undefined> {
+  async updateEquipment(id: string, updates: Partial<InsertEquipment>, userId?: string): Promise<Equipment | undefined> {
     const equipment = this.equipmentMap.get(id);
     if (!equipment) return undefined;
+    if (userId && equipment.userId !== userId) return undefined;
     
     const updatedEquipment = { ...equipment, ...updates };
     this.equipmentMap.set(id, updatedEquipment);
@@ -219,8 +242,8 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
     return user || undefined;
   }
 
@@ -232,12 +255,19 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getAllJobs(): Promise<Job[]> {
+  async getAllJobs(userId?: string): Promise<Job[]> {
+    if (userId) {
+      return await db.select().from(jobs).where(eq(jobs.userId, userId)).orderBy(desc(jobs.lastUpdated));
+    }
     return await db.select().from(jobs).orderBy(desc(jobs.lastUpdated));
   }
 
-  async getJobById(id: string): Promise<Job | undefined> {
-    const [job] = await db.select().from(jobs).where(eq(jobs.id, id));
+  async getJobById(id: string, userId?: string): Promise<Job | undefined> {
+    const conditions = [eq(jobs.id, id)];
+    if (userId) {
+      conditions.push(eq(jobs.userId, userId));
+    }
+    const [job] = await db.select().from(jobs).where(and(...conditions));
     return job || undefined;
   }
 
@@ -249,17 +279,25 @@ export class DatabaseStorage implements IStorage {
     return createdJob;
   }
 
-  async updateJob(id: string, updates: Partial<InsertJob>): Promise<Job | undefined> {
+  async updateJob(id: string, updates: Partial<InsertJob>, userId?: string): Promise<Job | undefined> {
+    const conditions = [eq(jobs.id, id)];
+    if (userId) {
+      conditions.push(eq(jobs.userId, userId));
+    }
     const [updatedJob] = await db
       .update(jobs)
       .set({ ...updates, lastUpdated: new Date() })
-      .where(eq(jobs.id, id))
+      .where(and(...conditions))
       .returning();
     return updatedJob || undefined;
   }
 
-  async deleteJob(id: string): Promise<boolean> {
-    const result = await db.delete(jobs).where(eq(jobs.id, id));
+  async deleteJob(id: string, userId?: string): Promise<boolean> {
+    const conditions = [eq(jobs.id, id)];
+    if (userId) {
+      conditions.push(eq(jobs.userId, userId));
+    }
+    const result = await db.delete(jobs).where(and(...conditions));
     return result.rowCount > 0;
   }
 
@@ -272,9 +310,14 @@ export class DatabaseStorage implements IStorage {
     endDate?: Date;
     minValue?: number;
     maxValue?: number;
+    userId?: string;
   }): Promise<Job[]> {
     let query = db.select().from(jobs);
     const conditions = [];
+    
+    if (filters.userId) {
+      conditions.push(eq(jobs.userId, filters.userId));
+    }
 
     if (filters.search) {
       conditions.push(
@@ -312,13 +355,21 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async getJobByDodgeId(dodgeId: string): Promise<Job | undefined> {
-    const [job] = await db.select().from(jobs).where(eq(jobs.dodgeJobId, dodgeId));
+  async getJobByDodgeId(dodgeId: string, userId?: string): Promise<Job | undefined> {
+    const conditions = [eq(jobs.dodgeJobId, dodgeId)];
+    if (userId) {
+      conditions.push(eq(jobs.userId, userId));
+    }
+    const [job] = await db.select().from(jobs).where(and(...conditions));
     return job || undefined;
   }
 
-  async getEquipmentByJobId(jobId: string): Promise<Equipment[]> {
-    return await db.select().from(equipment).where(eq(equipment.jobId, jobId));
+  async getEquipmentByJobId(jobId: string, userId?: string): Promise<Equipment[]> {
+    const conditions = [eq(equipment.jobId, jobId)];
+    if (userId) {
+      conditions.push(eq(equipment.userId, userId));
+    }
+    return await db.select().from(equipment).where(and(...conditions));
   }
 
   async createEquipment(equipmentData: InsertEquipment): Promise<Equipment> {
@@ -329,11 +380,15 @@ export class DatabaseStorage implements IStorage {
     return createdEquipment;
   }
 
-  async updateEquipment(id: string, updates: Partial<InsertEquipment>): Promise<Equipment | undefined> {
+  async updateEquipment(id: string, updates: Partial<InsertEquipment>, userId?: string): Promise<Equipment | undefined> {
+    const conditions = [eq(equipment.id, id)];
+    if (userId) {
+      conditions.push(eq(equipment.userId, userId));
+    }
     const [updatedEquipment] = await db
       .update(equipment)
       .set(updates)
-      .where(eq(equipment.id, id))
+      .where(and(...conditions))
       .returning();
     return updatedEquipment || undefined;
   }

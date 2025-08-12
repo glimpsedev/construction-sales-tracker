@@ -12,6 +12,7 @@ export const jobTemperatureEnum = pgEnum("job_temperature", ["hot", "warm", "col
 
 export const jobs = pgTable("jobs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }), // User who owns this job
   name: text("name").notNull(),
   address: text("address").notNull(),
   county: text("county"), // County information from Dodge Data
@@ -46,6 +47,7 @@ export const jobs = pgTable("jobs", {
 
 export const equipment = pgTable("equipment", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }), // User who owns this equipment
   jobId: varchar("job_id").references(() => jobs.id, { onDelete: "cascade" }),
   equipmentNumber: text("equipment_number").notNull(),
   attachmentType: text("attachment_type"),
@@ -68,8 +70,9 @@ export const documents = pgTable("documents", {
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Equipment rental tracking table for daily email processing
@@ -117,7 +120,7 @@ export const insertDocumentSchema = createInsertSchema(documents).omit({
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
+  email: true,
   password: true,
 });
 
