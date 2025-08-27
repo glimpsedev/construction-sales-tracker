@@ -72,6 +72,15 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  verified: boolean("verified").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const emailVerifications = pgTable("email_verifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -124,6 +133,11 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
 });
 
+export const insertEmailVerificationSchema = createInsertSchema(emailVerifications).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertRentalEquipmentSchema = createInsertSchema(rentalEquipment).omit({
   id: true,
   emailProcessedAt: true,
@@ -138,5 +152,7 @@ export type Document = typeof documents.$inferSelect;
 export type InsertDocument = z.infer<typeof insertDocumentSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type EmailVerification = typeof emailVerifications.$inferSelect;
+export type InsertEmailVerification = z.infer<typeof insertEmailVerificationSchema>;
 export type RentalEquipment = typeof rentalEquipment.$inferSelect;
 export type InsertRentalEquipment = z.infer<typeof insertRentalEquipmentSchema>;

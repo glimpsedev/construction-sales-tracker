@@ -5,6 +5,7 @@ import { insertJobSchema, insertEquipmentSchema, insertDocumentSchema, jobs, typ
 import { eq, desc, and, or, gte, lte, sql, count, asc, isNotNull } from "drizzle-orm";
 import { db } from "./db";
 import { authenticate, AuthRequest, hashPassword, verifyPassword, generateToken, createInitialUser } from "./auth";
+import authRoutes from "./authRoutes";
 
 import { documentProcessor } from "./services/documentProcessor";
 import { emailProcessor } from "./services/emailProcessor";
@@ -64,6 +65,9 @@ const uploadExcel = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Create initial user on startup
   await createInitialUser();
+  
+  // Use auth routes for registration, verification, etc
+  app.use("/api/auth", authRoutes);
   
   // Auth routes
   app.post("/api/auth/login", async (req, res) => {

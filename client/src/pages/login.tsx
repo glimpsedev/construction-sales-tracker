@@ -16,6 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AlertCircle, MapPin } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { login } from "@/lib/auth";
+import { Link } from "wouter";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -132,6 +133,13 @@ export default function Login() {
           <div className="mt-6 text-center text-sm text-gray-600">
             <p>California Construction Job Intelligence Platform</p>
             <p className="mt-1">Powered by Dodge Data & Analytics</p>
+          </div>
+          
+          <div className="mt-4 text-center text-sm">
+            Don't have an account?{" "}
+            <Link href="/register" className="underline text-blue-600 hover:text-blue-800">
+              Create Account
+            </Link>
           </div>
         </CardContent>
       </Card>

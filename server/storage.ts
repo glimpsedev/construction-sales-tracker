@@ -1,4 +1,4 @@
-import { jobs, equipment, documents, users, type Job, type InsertJob, type Equipment, type InsertEquipment, type Document, type InsertDocument, type User, type InsertUser } from "@shared/schema";
+import { jobs, equipment, documents, users, emailVerifications, type Job, type InsertJob, type Equipment, type InsertEquipment, type Document, type InsertDocument, type User, type InsertUser, type EmailVerification, type InsertEmailVerification } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, ilike, gte, lte, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -7,7 +7,14 @@ export interface IStorage {
   // User methods
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  createUser(user: InsertUser & { verified?: boolean }): Promise<User>;
+  updateUserVerificationStatus(userId: string, verified: boolean): Promise<void>;
+  
+  // Email verification methods
+  createEmailVerification(verification: InsertEmailVerification): Promise<EmailVerification>;
+  getEmailVerification(token: string): Promise<EmailVerification | undefined>;
+  deleteEmailVerification(token: string): Promise<void>;
+  deleteExpiredVerifications(): Promise<void>;
 
   // Job methods
   getAllJobs(userId?: string): Promise<Job[]>;
@@ -44,12 +51,14 @@ export class MemStorage implements IStorage {
   private jobsMap: Map<string, Job>;
   private equipmentMap: Map<string, Equipment>;
   private documentsMap: Map<string, Document>;
+  private emailVerificationsMap: Map<string, EmailVerification>;
 
   constructor() {
     this.users = new Map();
     this.jobsMap = new Map();
     this.equipmentMap = new Map();
     this.documentsMap = new Map();
+    this.emailVerificationsMap = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -62,11 +71,51 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createUser(insertUser: InsertUser & { verified?: boolean }): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id, createdAt: new Date() };
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      verified: insertUser.verified ?? false,
+      createdAt: new Date() 
+    };
     this.users.set(id, user);
     return user;
+  }
+  
+  async updateUserVerificationStatus(userId: string, verified: boolean): Promise<void> {
+    const user = this.users.get(userId);
+    if (user) {
+      user.verified = verified;
+    }
+  }
+
+  async createEmailVerification(verification: InsertEmailVerification): Promise<EmailVerification> {
+    const id = randomUUID();
+    const emailVerification: EmailVerification = {
+      ...verification,
+      id,
+      createdAt: new Date(),
+    };
+    this.emailVerificationsMap.set(verification.token, emailVerification);
+    return emailVerification;
+  }
+
+  async getEmailVerification(token: string): Promise<EmailVerification | undefined> {
+    return this.emailVerificationsMap.get(token);
+  }
+
+  async deleteEmailVerification(token: string): Promise<void> {
+    this.emailVerificationsMap.delete(token);
+  }
+
+  async deleteExpiredVerifications(): Promise<void> {
+    const now = new Date();
+    for (const [token, verification] of this.emailVerificationsMap.entries()) {
+      if (verification.expiresAt < now) {
+        this.emailVerificationsMap.delete(token);
+      }
+    }
   }
 
   async getAllJobs(userId?: string): Promise<Job[]> {
@@ -247,12 +296,41 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createUser(insertUser: InsertUser & { verified?: boolean }): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values(insertUser)
+      .values({
+        ...insertUser,
+        verified: insertUser.verified ?? false
+      })
       .returning();
     return user;
+  }
+
+  async updateUserVerificationStatus(userId: string, verified: boolean): Promise<void> {
+    await db.update(users).set({ verified }).where(eq(users.id, userId));
+  }
+
+  async createEmailVerification(verification: InsertEmailVerification): Promise<EmailVerification> {
+    const [newVerification] = await db.insert(emailVerifications).values(verification).returning();
+    return newVerification;
+  }
+
+  async getEmailVerification(token: string): Promise<EmailVerification | undefined> {
+    const [verification] = await db
+      .select()
+      .from(emailVerifications)
+      .where(eq(emailVerifications.token, token))
+      .limit(1);
+    return verification;
+  }
+
+  async deleteEmailVerification(token: string): Promise<void> {
+    await db.delete(emailVerifications).where(eq(emailVerifications.token, token));
+  }
+
+  async deleteExpiredVerifications(): Promise<void> {
+    await db.delete(emailVerifications).where(lte(emailVerifications.expiresAt, new Date()));
   }
 
   async getAllJobs(userId?: string): Promise<Job[]> {

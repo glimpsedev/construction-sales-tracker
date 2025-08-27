@@ -11,6 +11,8 @@ import { EmailSetupPage } from "@/pages/email-setup";
 import { DodgeImportPage } from "@/pages/dodge-import";
 import DatabaseManagement from "@/pages/database-management";
 import Login from "@/pages/login";
+import Register from "@/pages/register";
+import Verify from "@/pages/verify";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -29,6 +31,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
+      <Route path="/verify" component={Verify} />
       {authenticated ? (
         <>
           <Route path="/" component={Dashboard} />

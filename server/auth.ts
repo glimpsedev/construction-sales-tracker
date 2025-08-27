@@ -86,7 +86,8 @@ export async function createInitialUser() {
       const hashedPassword = await hashPassword(password);
       const [newUser] = await db.insert(users).values({
         email,
-        password: hashedPassword
+        password: hashedPassword,
+        verified: true // Mark initial user as verified
       }).returning();
       
       console.log('Initial user created:', email);
