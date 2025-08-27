@@ -94,11 +94,11 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
           return;
         }
 
-        // Create custom icon based on temperature or viewed status
-        const iconColor = job.temperature === 'hot' ? 'bg-red-500' :
+        // Create custom icon based on cold status or temperature
+        const iconColor = job.isCold ? 'bg-gray-500' :
+                         job.temperature === 'hot' ? 'bg-red-500' :
                          job.temperature === 'warm' ? 'bg-orange-500' :
-                         job.temperature === 'cold' ? 'bg-gray-500' :
-                         job.isViewed ? getViewedStatusColor() : getUnviewedStatusColor();
+                         'bg-blue-600';
         const iconHtml = getStatusIcon(job.status, job.type);
         
         const customIcon = L.divIcon({
@@ -287,11 +287,19 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
         <div className="space-y-2">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-blue-600 rounded-full"></div>
-            <span className="text-xs">New/Unviewed Jobs</span>
+            <span className="text-xs">Active Jobs</span>
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-gray-500 rounded-full"></div>
-            <span className="text-xs">Viewed Jobs</span>
+            <span className="text-xs">Cold Jobs</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+            <span className="text-xs">Hot Jobs</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-4 h-4 bg-orange-500 rounded-full"></div>
+            <span className="text-xs">Warm Jobs</span>
           </div>
         </div>
       </div>
@@ -309,11 +317,7 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
   );
 }
 
-// Color functions for viewed vs unviewed jobs
-function getViewedStatusColor(): string {
-  return "bg-gray-500"; // Gray for viewed jobs
-}
-
-function getUnviewedStatusColor(): string {
-  return "bg-blue-600"; // Blue for unviewed jobs
+// Color functions for job status
+function getDefaultStatusColor(): string {
+  return "bg-blue-600"; // Default blue for jobs
 }

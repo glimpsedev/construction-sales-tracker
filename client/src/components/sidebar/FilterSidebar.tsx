@@ -21,7 +21,7 @@ interface FilterSidebarProps {
     minValue: string;
     maxValue: string;
     temperature?: string[];
-    viewStatus?: string;
+    hideCold?: boolean;
   };
   onFilterChange: (filters: any) => void;
   onJobSelect: (job: Job) => void;
@@ -49,8 +49,7 @@ export default function FilterSidebar({
     const residential = jobs.filter(job => job.type === 'residential').length;
     const industrial = jobs.filter(job => job.type === 'industrial').length;
     const equipment = jobs.filter(job => job.type === 'equipment').length;
-    const viewed = jobs.filter(job => job.isViewed).length;
-    const unviewed = jobs.filter(job => !job.isViewed).length;
+    const cold = jobs.filter(job => job.isCold).length;
 
     return {
       total,
@@ -62,8 +61,7 @@ export default function FilterSidebar({
       residential,
       industrial,
       equipment,
-      viewed,
-      unviewed
+      cold
     };
   }, [jobs]);
 
@@ -349,21 +347,21 @@ export default function FilterSidebar({
             </div>
           </div>
 
-          {/* Unviewed Jobs Filter */}
+          {/* Hide Cold Jobs Filter */}
           <div>
-            <h3 className="text-sm font-medium text-darktext mb-3">Show Unviewed Only</h3>
+            <h3 className="text-sm font-medium text-darktext mb-3">Hide Cold Jobs</h3>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="show-unviewed"
-                  checked={filters.viewStatus === 'unviewed'}
+                  id="hide-cold"
+                  checked={filters.hideCold === true}
                   onCheckedChange={(checked) => {
-                    handleFilterChange('viewStatus', checked ? 'unviewed' : 'all');
+                    handleFilterChange('hideCold', checked);
                   }}
                 />
-                <label htmlFor="show-unviewed" className="text-sm cursor-pointer">🔨 Show Blue Hammers Only</label>
+                <label htmlFor="hide-cold" className="text-sm cursor-pointer">Hide Cold (grey) jobs</label>
               </div>
-              <span className="text-xs text-gray-500">{stats.unviewed} jobs</span>
+              <span className="text-xs text-gray-500">{stats.cold} cold jobs</span>
             </div>
           </div>
 

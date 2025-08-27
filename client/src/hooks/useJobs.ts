@@ -11,7 +11,7 @@ interface JobFilters {
   minValue?: string;
   maxValue?: string;
   temperature?: string[];
-  viewStatus?: string;
+  hideCold?: boolean;
 }
 
 export function useJobs(filters: JobFilters = {}) {
@@ -28,7 +28,7 @@ export function useJobs(filters: JobFilters = {}) {
       if (filters.minValue) params.append('minValue', filters.minValue);
       if (filters.maxValue) params.append('maxValue', filters.maxValue);
       if (filters.temperature?.length) params.append('temperature', filters.temperature.join(','));
-      if (filters.viewStatus) params.append('viewStatus', filters.viewStatus);
+      if (filters.hideCold === true) params.append('cold', 'false');
 
       const url = `/api/jobs${params.toString() ? `?${params.toString()}` : ''}`;
       const response = await fetch(url, {

@@ -151,7 +151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate,
         minValue,
         maxValue,
-        viewStatus
+        cold
       } = req.query;
 
       const filters = {
@@ -163,7 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate: endDate ? new Date(endDate as string) : undefined,
         minValue: minValue ? parseFloat(minValue as string) : undefined,
         maxValue: maxValue ? parseFloat(maxValue as string) : undefined,
-        viewStatus: viewStatus as string,
+        cold: cold === 'false' ? false : cold === 'true' ? true : undefined,
         userId: req.userId,
       };
 
@@ -514,6 +514,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating job team:", error);
       res.status(500).json({ error: "Failed to update team information" });
+    }
+  });
+
+  // Mark job as cold
+  app.post("/api/jobs/:id/cold", authenticate, async (req: AuthRequest, res) => {
+    try {
+      await db
+        .update(jobs)
+        .set({
+          isCold: true
+        })
+        .where(and(eq(jobs.id, req.params.id), eq(jobs.userId, req.userId!)));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking job as cold:", error);
+      res.status(500).json({ error: "Failed to mark job as cold" });
+    }
+  });
+
+  // Unmark job as cold
+  app.delete("/api/jobs/:id/cold", authenticate, async (req: AuthRequest, res) => {
+    try {
+      await db
+        .update(jobs)
+        .set({
+          isCold: false
+        })
+        .where(and(eq(jobs.id, req.params.id), eq(jobs.userId, req.userId!)));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error unmarking job as cold:", error);
+      res.status(500).json({ error: "Failed to unmark job as cold" });
     }
   });
 

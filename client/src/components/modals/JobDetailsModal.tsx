@@ -183,6 +183,34 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
     }
   });
 
+  const markColdMutation = useMutation({
+    mutationFn: async ({ jobId, isCold }: { jobId: string; isCold: boolean }) => {
+      const response = await fetch(`/api/jobs/${jobId}/cold`, {
+        method: isCold ? 'POST' : 'DELETE',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to update cold status');
+      return response.json();
+    },
+    onSuccess: (_, { isCold }) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      toast({
+        title: "Success",
+        description: isCold ? "Job marked as cold" : "Job unmarked as cold"
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update cold status",
+        variant: "destructive"
+      });
+    }
+  });
+
   if (!job) return null;
 
   const handleMarkViewed = () => {
@@ -326,6 +354,27 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
                 >
                   <Snowflake className="h-4 w-4 mr-1" />
                   Cold
+                </Button>
+              </div>
+              <div className="mt-3 pt-3 border-t">
+                <Button
+                  size="sm"
+                  variant={job.isCold ? 'destructive' : 'outline'}
+                  onClick={() => markColdMutation.mutate({ jobId: job.id, isCold: !job.isCold })}
+                  disabled={markColdMutation.isPending}
+                  className="w-full"
+                >
+                  {job.isCold ? (
+                    <>
+                      <Flame className="h-4 w-4 mr-1" />
+                      Unmark Cold (Restore Original Color)
+                    </>
+                  ) : (
+                    <>
+                      <Snowflake className="h-4 w-4 mr-1" />
+                      Mark Cold (Grey Pin)
+                    </>
+                  )}
                 </Button>
               </div>
             </CardContent>

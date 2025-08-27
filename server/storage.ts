@@ -31,7 +31,7 @@ export interface IStorage {
     endDate?: Date;
     minValue?: number;
     maxValue?: number;
-    viewStatus?: string;
+    cold?: boolean;
     userId?: string;
   }): Promise<Job[]>;
   getJobByDodgeId(dodgeId: string, userId?: string): Promise<Job | undefined>;
@@ -203,12 +203,8 @@ export class MemStorage implements IStorage {
       result = result.filter(job => job.temperature && filters.temperature!.includes(job.temperature));
     }
     
-    if (filters.viewStatus) {
-      if (filters.viewStatus === 'viewed') {
-        result = result.filter(job => job.isViewed === true);
-      } else if (filters.viewStatus === 'unviewed') {
-        result = result.filter(job => job.isViewed !== true);
-      }
+    if (filters.cold !== undefined) {
+      result = result.filter(job => job.isCold === filters.cold);
     }
 
     if (filters.startDate) {
@@ -430,12 +426,8 @@ export class DatabaseStorage implements IStorage {
       conditions.push(inArray(jobs.temperature, filters.temperature as any));
     }
     
-    if (filters.viewStatus) {
-      if (filters.viewStatus === 'viewed') {
-        conditions.push(eq(jobs.isViewed, true));
-      } else if (filters.viewStatus === 'unviewed') {
-        conditions.push(or(eq(jobs.isViewed, false), eq(jobs.isViewed, null)));
-      }
+    if (filters.cold !== undefined) {
+      conditions.push(eq(jobs.isCold, filters.cold));
     }
 
     if (filters.startDate) {

@@ -1,0 +1,101 @@
+Context
+
+Map, CSV import, and value/temperature filters work.
+
+We added a “Show Blue Hammers Only” checkbox.
+
+Grey hammers currently mean “viewed/cold.” We want: grey = cold only (manually set), no “viewed” concept in filters.
+
+Rules
+
+Minimal changes; reuse existing store, endpoints, and marker icon logic.
+
+Keep UI layout and styling consistent.
+
+Add DB changes via one migration; keep existing data safe.
+
+Tasks
+
+DB + Model
+
+Add boolean is_cold to jobs (default false). Migration also sets is_cold = (temperature='cold') OR (viewed=true AND temperature IS NULL) to preserve intent.
+
+Deprecate viewed in code paths (do not drop column yet).
+
+API
+
+Extend jobs read endpoints to accept cold=true|false filter mapped to is_cold.
+
+Add POST /api/jobs/:id/cold and DELETE /api/jobs/:id/cold to toggle is_cold with auth and rate-limit.
+
+Client
+
+Marker logic: render grey hammer only when is_cold=true. Blue/orange/red remain unchanged.
+
+Filters panel: replace “Show Blue Hammers Only” with:
+
+Checkbox “Hide Cold (grey) jobs”. When checked, exclude is_cold=true.
+
+Job card and marker popup: add “Mark Cold” / “Unmark Cold” action; optimistic update + toast.
+
+Counts + Lists
+
+All counts and “Recent Jobs” derive from the filtered dataset and respect is_cold.
+
+Remove any “Viewed/Undiscovered” counters.
+
+Backfill + Cleanup
+
+On first load after migration, run a one-time server script to sync icons by is_cold.
+
+Mark viewed as unused in types and DTOs; keep for rollback.
+
+Tests
+
+API tests: filter cold=true|false; toggle endpoints set/unset is_cold.
+
+UI tests: clicking “Mark Cold” greys the pin and hides it when “Hide Cold” is checked.
+
+Deliverables
+
+SQL/Drizzle migration adding is_cold with safe backfill.
+
+Updated server routes and query handling for cold filter and toggle endpoints.
+
+Updated client marker rendering, filter checkbox, and card/popup actions.
+
+Change log listing files touched.
+
+Acceptance Criteria
+
+Grey pins only appear when is_cold=true. No other state renders grey.
+
+Checking “Hide Cold (grey) jobs” removes all grey pins and updates counts/lists.
+
+Clicking “Mark Cold” on any job switches its pin to grey immediately and persists via API; “Unmark Cold” reverts to previous color.
+
+Existing temperature filters and value slider continue to work with is_cold applied.
+
+No references to “Viewed” or “Undiscovered” remain in UI or filters.
+
+All new tests pass; no regressions to login, CSV import, or map performance.
+
+Verification
+
+Load map: note totals. Check “Hide Cold” → grey pins disappear; totals drop accordingly.
+
+Open a blue/orange/red job → click “Mark Cold” → pin turns grey; if “Hide Cold” is checked it disappears; counts update.
+
+Uncheck “Hide Cold” → grey pins return. Click “Unmark Cold” → pin reverts to original color.
+
+Use API to query ?cold=true and ?cold=false and confirm counts match UI.
+
+Run test suite; confirm API and UI tests pass.
+
+Hidden dependencies / blockers
+
+Migration permissions and zero-downtime apply.
+
+Marker icon for grey must be available; reuse current grey asset.
+
+ENV/auth headers must allow new endpoints; update client API wrapper if needed.

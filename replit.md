@@ -13,6 +13,14 @@ Layout preferences: Sidebar should not block or overlap the map area. Fixed side
 
 ## Recent Changes (January 27, 2025)
 
+- **Cold Job Marking System**: Replaced viewed/unviewed concept with manual cold marking
+  - Added `is_cold` field to jobs table for manually marking jobs as cold
+  - Grey pins now only appear for jobs marked as cold (previously meant viewed)
+  - Added "Hide Cold (grey) jobs" checkbox filter that removes cold jobs from map
+  - Added "Mark Cold" / "Unmark Cold" button in job details modal
+  - Removed all references to "Viewed" or "Undiscovered" from UI
+  - Backfilled 62 existing jobs as cold based on temperature='cold' or viewed status
+  
 - **Email Verification Made Optional**: Users can now login immediately after registration
   - Removed email verification requirement for login
   - Registration creates immediately active accounts

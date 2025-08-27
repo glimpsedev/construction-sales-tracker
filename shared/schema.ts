@@ -39,10 +39,11 @@ export const jobs = pgTable("jobs", {
   phone: text("phone"),
   email: text("email"),
   // User interaction tracking
-  isViewed: boolean("is_viewed").default(false),
-  viewedAt: timestamp("viewed_at"),
+  isViewed: boolean("is_viewed").default(false), // Deprecated - use is_cold instead
+  viewedAt: timestamp("viewed_at"), // Deprecated
   userNotes: text("user_notes").default(""),
-  temperature: jobTemperatureEnum("temperature")
+  temperature: jobTemperatureEnum("temperature"),
+  isCold: boolean("is_cold").default(false).notNull() // Manually marked as cold
 });
 
 export const equipment = pgTable("equipment", {

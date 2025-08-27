@@ -34,7 +34,7 @@ export default function Dashboard() {
     minValue: '',
     maxValue: '',
     temperature: [] as string[],
-    viewStatus: 'all'
+    hideCold: false
   });
 
   const { data: jobs = [], isLoading, refetch } = useJobs(filters);
