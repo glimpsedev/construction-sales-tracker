@@ -31,6 +31,7 @@ export interface IStorage {
     endDate?: Date;
     minValue?: number;
     maxValue?: number;
+    viewStatus?: string;
     userId?: string;
   }): Promise<Job[]>;
   getJobByDodgeId(dodgeId: string, userId?: string): Promise<Job | undefined>;
@@ -172,6 +173,7 @@ export class MemStorage implements IStorage {
     endDate?: Date;
     minValue?: number;
     maxValue?: number;
+    viewStatus?: string;
     userId?: string;
   }): Promise<Job[]> {
     let result = Array.from(this.jobsMap.values());
@@ -199,6 +201,14 @@ export class MemStorage implements IStorage {
 
     if (filters.temperature && filters.temperature.length > 0) {
       result = result.filter(job => job.temperature && filters.temperature!.includes(job.temperature));
+    }
+    
+    if (filters.viewStatus) {
+      if (filters.viewStatus === 'viewed') {
+        result = result.filter(job => job.isViewed === true);
+      } else if (filters.viewStatus === 'unviewed') {
+        result = result.filter(job => job.isViewed !== true);
+      }
     }
 
     if (filters.startDate) {
@@ -388,6 +398,7 @@ export class DatabaseStorage implements IStorage {
     endDate?: Date;
     minValue?: number;
     maxValue?: number;
+    viewStatus?: string;
     userId?: string;
   }): Promise<Job[]> {
     let query = db.select().from(jobs);
@@ -417,6 +428,14 @@ export class DatabaseStorage implements IStorage {
 
     if (filters.temperature && filters.temperature.length > 0) {
       conditions.push(inArray(jobs.temperature, filters.temperature as any));
+    }
+    
+    if (filters.viewStatus) {
+      if (filters.viewStatus === 'viewed') {
+        conditions.push(eq(jobs.isViewed, true));
+      } else if (filters.viewStatus === 'unviewed') {
+        conditions.push(or(eq(jobs.isViewed, false), eq(jobs.isViewed, null)));
+      }
     }
 
     if (filters.startDate) {

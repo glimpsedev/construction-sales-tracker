@@ -150,7 +150,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startDate,
         endDate,
         minValue,
-        maxValue
+        maxValue,
+        viewStatus
       } = req.query;
 
       const filters = {
@@ -162,6 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate: endDate ? new Date(endDate as string) : undefined,
         minValue: minValue ? parseFloat(minValue as string) : undefined,
         maxValue: maxValue ? parseFloat(maxValue as string) : undefined,
+        viewStatus: viewStatus as string,
         userId: req.userId,
       };
 

@@ -49,6 +49,8 @@ export default function FilterSidebar({
     const residential = jobs.filter(job => job.type === 'residential').length;
     const industrial = jobs.filter(job => job.type === 'industrial').length;
     const equipment = jobs.filter(job => job.type === 'equipment').length;
+    const viewed = jobs.filter(job => job.isViewed).length;
+    const unviewed = jobs.filter(job => !job.isViewed).length;
 
     return {
       total,
@@ -59,7 +61,9 @@ export default function FilterSidebar({
       commercial,
       residential,
       industrial,
-      equipment
+      equipment,
+      viewed,
+      unviewed
     };
   }, [jobs]);
 
@@ -341,6 +345,40 @@ export default function FilterSidebar({
                   />
                   <label htmlFor="temp-cold" className="text-sm cursor-pointer">❄️ Cold</label>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* View Status Filter */}
+          <div>
+            <h3 className="text-sm font-medium text-darktext mb-3">Discovery Status</h3>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="view-unviewed"
+                    checked={filters.viewStatus === 'unviewed'}
+                    onCheckedChange={(checked) => {
+                      handleFilterChange('viewStatus', checked ? 'unviewed' : 'all');
+                    }}
+                  />
+                  <label htmlFor="view-unviewed" className="text-sm cursor-pointer">🆕 Undiscovered</label>
+                </div>
+                <span className="text-xs text-gray-500">{stats.unviewed}</span>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="view-viewed"
+                    checked={filters.viewStatus === 'viewed'}
+                    onCheckedChange={(checked) => {
+                      handleFilterChange('viewStatus', checked ? 'viewed' : 'all');
+                    }}
+                  />
+                  <label htmlFor="view-viewed" className="text-sm cursor-pointer">👁️ Viewed</label>
+                </div>
+                <span className="text-xs text-gray-500">{stats.viewed}</span>
               </div>
             </div>
           </div>
