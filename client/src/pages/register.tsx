@@ -29,14 +29,21 @@ export default function Register() {
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState(false);
   
-  const {
-    register,
-    handleSubmit,
+  const form = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      confirmPassword: "",
+      acceptTerms: false
+    }
+  });
+  
+  const { 
+    register, 
     formState: { errors },
     setError: setFieldError
-  } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
-  });
+  } = form;
 
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
@@ -126,7 +133,7 @@ export default function Register() {
             Sign up for Construction Sales Tracker
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="space-y-4">
             {error && (
               <Alert variant="destructive">
@@ -184,7 +191,8 @@ export default function Register() {
               <Checkbox
                 id="acceptTerms"
                 data-testid="checkbox-terms"
-                {...register("acceptTerms")}
+                checked={!!form.watch("acceptTerms")}
+                onCheckedChange={(checked) => form.setValue("acceptTerms", !!checked)}
                 disabled={isLoading}
               />
               <label
