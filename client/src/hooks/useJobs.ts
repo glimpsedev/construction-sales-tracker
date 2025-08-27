@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Job } from "@shared/schema";
+import { getAuthHeaders } from "@/lib/auth";
 
 interface JobFilters {
   search?: string;
@@ -26,9 +27,16 @@ export function useJobs(filters: JobFilters = {}) {
       if (filters.maxValue) params.append('maxValue', filters.maxValue);
 
       const url = `/api/jobs${params.toString() ? `?${params.toString()}` : ''}`;
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
       
       if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+          throw new Error('Authentication required');
+        }
         throw new Error(`Failed to fetch jobs: ${response.status} ${response.statusText}`);
       }
       
@@ -43,8 +51,15 @@ export function useJobStats() {
   return useQuery({
     queryKey: ['/api/stats'],
     queryFn: async () => {
-      const response = await fetch('/api/stats');
+      const response = await fetch('/api/stats', {
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
       if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+          throw new Error('Authentication required');
+        }
         throw new Error('Failed to fetch stats');
       }
       return response.json();

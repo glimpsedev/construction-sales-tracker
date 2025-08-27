@@ -1,0 +1,67 @@
+Context
+
+Dodge Import page loads and accepts file selection.
+
+Clicking “Import Jobs” returns toast “Import Failed: No authentication token provided” and DevTools shows 401 on POST /api/import-dodge-csv and GET /api/jobs?status=active=1.
+
+Rules
+
+Minimal changes; match existing auth/session patterns.
+
+Reuse existing fetch wrapper and auth middleware.
+
+Keep current UI and upload flow.
+
+Tasks
+
+Server: confirm auth on POST /api/import-dodge-csv uses the same session/JWT guard as other protected routes; ensure it returns 401 only when no valid cookie/JWT.
+
+CORS/session: enable credentials on server and allowed origin for the current preview domain; verify cookie-based session is readable by the import endpoint.
+
+Client: update the import API call to use the shared API client with credentials: 'include' and attach Authorization: Bearer <token> if app uses header tokens; if no session found, redirect to /login.
+
+Client: ensure upload uses FormData with the exact field name the server expects (e.g., file), and Content-Type is not manually set.
+
+Add “Not signed in” UX: if 401 from import, show actionable banner “Please sign in to import” with link to login; include “retry after login.”
+
+Tests: add an API test for import-dodge-csv that passes with a valid session and fails with 401 without it.
+
+Deliverables
+
+Updated server auth guard or route registration for /api/import-dodge-csv.
+
+Updated API client call in the Dodge Import component to include credentials and token.
+
+CORS/session config updated for preview domain.
+
+Small UX handling for 401.
+
+Brief change log listing touched files.
+
+Acceptance Criteria
+
+While logged in, importing a valid file succeeds and does not log 401 in console.
+
+While logged out, importing returns 401, shows “Please sign in to import,” and does not crash.
+
+Network tab shows POST /api/import-dodge-csv with cookies and/or Bearer token attached.
+
+Server receives the file under the expected field name and size limits; responds 200 with parsed counts.
+
+Existing login and other protected endpoints remain unaffected.
+
+Verification
+
+Log out and attempt import → expect 401 and sign-in prompt.
+
+Log in, reload page, import same file → expect 200 and success toast with job counts; no 401s in console.
+
+Inspect request: cookies present and/or Authorization: Bearer ....
+
+Run API test suite; confirm new tests pass and no regressions.
+
+Hidden dependencies / blockers
+
+Correct ENV for session/JWT secret, cookie domain, and CORS ALLOWED_ORIGIN for preview.
+
+If using header tokens, confirm storage key and refresh flow; provide a test token if needed.

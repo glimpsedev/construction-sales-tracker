@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Info, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getAuthHeaders } from "@/lib/auth";
 
 interface ImportResults {
   imported: number;
@@ -20,6 +22,7 @@ export function DodgeImportPage() {
   const [results, setResults] = useState<ImportResults | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   const importMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -28,11 +31,20 @@ export function DodgeImportPage() {
       
       const response = await fetch('/api/import-dodge-csv', {
         method: 'POST',
+        headers: {
+          ...getAuthHeaders()
+        },
         body: formData,
       });
       
       if (!response.ok) {
         const error = await response.json();
+        
+        // Handle authentication errors
+        if (response.status === 401) {
+          throw new Error('Please sign in to import jobs');
+        }
+        
         throw new Error(error.details || error.error || 'Import failed');
       }
       
@@ -47,11 +59,24 @@ export function DodgeImportPage() {
       });
     },
     onError: (error) => {
-      toast({
-        variant: "destructive",
-        title: "Import Failed",
-        description: error instanceof Error ? error.message : "Unknown error occurred",
-      });
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      
+      // Check if it's an authentication error
+      if (errorMessage.includes('sign in')) {
+        toast({
+          variant: "destructive",
+          title: "Authentication Required",
+          description: `${errorMessage}. Redirecting to login...`,
+        });
+        // Redirect to login after 2 seconds
+        setTimeout(() => setLocation('/login'), 2000);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Import Failed",
+          description: errorMessage,
+        });
+      }
     }
   });
 
