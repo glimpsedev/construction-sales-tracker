@@ -349,37 +349,21 @@ export default function FilterSidebar({
             </div>
           </div>
 
-          {/* View Status Filter */}
+          {/* Unviewed Jobs Filter */}
           <div>
-            <h3 className="text-sm font-medium text-darktext mb-3">Discovery Status</h3>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="view-unviewed"
-                    checked={filters.viewStatus === 'unviewed'}
-                    onCheckedChange={(checked) => {
-                      handleFilterChange('viewStatus', checked ? 'unviewed' : 'all');
-                    }}
-                  />
-                  <label htmlFor="view-unviewed" className="text-sm cursor-pointer">🆕 Undiscovered</label>
-                </div>
-                <span className="text-xs text-gray-500">{stats.unviewed}</span>
+            <h3 className="text-sm font-medium text-darktext mb-3">Show Unviewed Only</h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-unviewed"
+                  checked={filters.viewStatus === 'unviewed'}
+                  onCheckedChange={(checked) => {
+                    handleFilterChange('viewStatus', checked ? 'unviewed' : 'all');
+                  }}
+                />
+                <label htmlFor="show-unviewed" className="text-sm cursor-pointer">🔨 Show Blue Hammers Only</label>
               </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="view-viewed"
-                    checked={filters.viewStatus === 'viewed'}
-                    onCheckedChange={(checked) => {
-                      handleFilterChange('viewStatus', checked ? 'viewed' : 'all');
-                    }}
-                  />
-                  <label htmlFor="view-viewed" className="text-sm cursor-pointer">👁️ Viewed</label>
-                </div>
-                <span className="text-xs text-gray-500">{stats.viewed}</span>
-              </div>
+              <span className="text-xs text-gray-500">{stats.unviewed} jobs</span>
             </div>
           </div>
 
