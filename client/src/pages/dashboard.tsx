@@ -12,7 +12,7 @@ import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Settings, FileSpreadsheet, Eye } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import type { Job } from "@shared/schema";
 
@@ -23,6 +23,7 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false); // Start closed on mobile
   const [showJobDetails, setShowJobDetails] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [, setLocation] = useLocation();
   const [filters, setFilters] = useState({
     search: '',
     status: ['active'] as string[],
@@ -70,6 +71,17 @@ export default function Dashboard() {
       updateTemperatureMutation.mutate({ jobId: selectedJob.id, temperature });
       setSelectedJob({ ...selectedJob, temperature } as Job);
     }
+  };
+
+  const handleLogout = () => {
+    // Clear the JWT token from localStorage
+    localStorage.removeItem('authToken');
+    // Redirect to login page
+    setLocation('/login');
+    toast({
+      title: "Logged Out",
+      description: "You have been successfully logged out"
+    });
   };
 
   const handleJobSelect = (job: Job) => {
@@ -135,6 +147,14 @@ export default function Dashboard() {
               >
                 <i className="fas fa-plus mr-2"></i>
                 Add Job
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleLogout}
+              >
+                <i className="fas fa-sign-out-alt mr-2"></i>
+                Log Out
               </Button>
             </div>
             
@@ -209,6 +229,17 @@ export default function Dashboard() {
                   Email Setup
                 </button>
               </Link>
+              <div className="border-t my-2"></div>
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setShowMobileMenu(false);
+                }}
+                className="w-full text-left px-3 py-2 hover:bg-red-50 text-red-600 rounded flex items-center gap-2"
+              >
+                <i className="fas fa-sign-out-alt"></i>
+                Log Out
+              </button>
             </div>
           </div>
         )}
