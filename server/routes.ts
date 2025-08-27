@@ -432,17 +432,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // CSV import routes for Dodge Data
+  // CSV import routes for Dodge Data with dry-run support
   app.post("/api/import-dodge-csv", authenticate, uploadExcel.single('file'), async (req: AuthRequest, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No CSV file uploaded" });
       }
 
-      const results = await csvImportService.importDodgeCSV(req.file.buffer, req.userId);
+      const dryRun = req.query.dryRun === 'true';
+      const results = await csvImportService.importDodgeCSV(req.file.buffer, req.userId, dryRun);
+      
+      const message = dryRun 
+        ? `Dry-run completed: ${results.imported} would be imported, ${results.updated} would be updated, ${results.unchanged} unchanged, ${results.skipped} skipped`
+        : `Import completed: ${results.imported} new jobs, ${results.updated} updated, ${results.unchanged} unchanged, ${results.skipped} skipped`;
+      
       res.json({ 
-        success: true, 
-        message: `Import completed: ${results.imported} new jobs, ${results.updated} updated, ${results.skipped} skipped`,
+        success: true,
+        dryRun,
+        message,
         results 
       });
     } catch (error) {
@@ -475,17 +482,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update job notes
-  app.put("/api/jobs/:id/notes", async (req, res) => {
+  // Update job notes with locked field tracking
+  app.put("/api/jobs/:id/notes", authenticate, async (req: AuthRequest, res) => {
     try {
       const { notes } = req.body;
+      
+      // Get current job to update locked fields
+      const [currentJob] = await db
+        .select()
+        .from(jobs)
+        .where(and(eq(jobs.id, req.params.id), eq(jobs.userId, req.userId!)));
+      
+      if (!currentJob) {
+        return res.status(404).json({ error: 'Job not found' });
+      }
+      
+      const lockedFields = currentJob.lockedFields || [];
+      if (!lockedFields.includes('userNotes')) {
+        lockedFields.push('userNotes');
+      }
       
       await db
         .update(jobs)
         .set({
-          userNotes: notes || ''
+          userNotes: notes || '',
+          lockedFields: lockedFields
         })
-        .where(eq(jobs.id, req.params.id));
+        .where(and(eq(jobs.id, req.params.id), eq(jobs.userId, req.userId!)));
       
       res.json({ success: true });
     } catch (error) {
@@ -494,10 +517,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update job team information
-  app.put("/api/jobs/:id/team", async (req, res) => {
+  // Update job team information with locked field tracking  
+  app.put("/api/jobs/:id/team", authenticate, async (req: AuthRequest, res) => {
     try {
       const { contractor, owner, architect, orderedBy, officeContact } = req.body;
+      
+      // Get current job to update locked fields
+      const [currentJob] = await db
+        .select()
+        .from(jobs)
+        .where(and(eq(jobs.id, req.params.id), eq(jobs.userId, req.userId!)));
+      
+      if (!currentJob) {
+        return res.status(404).json({ error: 'Job not found' });
+      }
+      
+      const lockedFields = currentJob.lockedFields || [];
+      const fieldsToLock = ['contractor', 'owner', 'architect', 'orderedBy', 'officeContact'];
+      
+      fieldsToLock.forEach(field => {
+        if ((req.body as any)[field] !== undefined && !lockedFields.includes(field)) {
+          lockedFields.push(field);
+        }
+      });
       
       await db
         .update(jobs)
@@ -506,9 +548,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           owner,
           architect,
           orderedBy,
-          officeContact
+          officeContact,
+          lockedFields
         })
-        .where(eq(jobs.id, req.params.id));
+        .where(and(eq(jobs.id, req.params.id), eq(jobs.userId, req.userId!)));
       
       res.json({ success: true });
     } catch (error) {
@@ -517,6 +560,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Unlock fields for job - allows CSV imports to update them again
+  app.post("/api/jobs/:id/unlock-fields", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const { fields } = req.body;
+      
+      const [currentJob] = await db
+        .select()
+        .from(jobs)
+        .where(and(eq(jobs.id, req.params.id), eq(jobs.userId, req.userId!)));
+      
+      if (!currentJob) {
+        return res.status(404).json({ error: 'Job not found' });
+      }
+      
+      let lockedFields = currentJob.lockedFields || [];
+      
+      if (fields && Array.isArray(fields)) {
+        // Remove specific fields from locked list
+        lockedFields = lockedFields.filter(f => !fields.includes(f));
+      } else {
+        // Unlock all fields
+        lockedFields = [];
+      }
+      
+      await db
+        .update(jobs)
+        .set({ lockedFields })
+        .where(and(eq(jobs.id, req.params.id), eq(jobs.userId, req.userId!)));
+      
+      res.json({ success: true, lockedFields });
+    } catch (error) {
+      console.error("Error unlocking fields:", error);
+      res.status(500).json({ error: "Failed to unlock fields" });
+    }
+  });
+  
   // Mark job as cold
   app.post("/api/jobs/:id/cold", authenticate, async (req: AuthRequest, res) => {
     try {

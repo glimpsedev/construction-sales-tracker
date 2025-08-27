@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Info, Eye } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Info, Eye, AlertTriangle, XCircle, FileCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getAuthHeaders } from "@/lib/auth";
 
@@ -14,22 +17,36 @@ interface ImportResults {
   imported: number;
   updated: number;
   skipped: number;
+  unchanged?: number;
   errors: string[];
+  dryRun?: boolean;
+  details?: {
+    inserted?: any[];
+    updated_unlocked?: any[];
+    skipped_locked?: any[];
+    unchanged?: any[];
+    conflicts?: any[];
+  };
 }
 
 export function DodgeImportPage() {
   const [file, setFile] = useState<File | null>(null);
+  const [dryRun, setDryRun] = useState(true); // Default to dry-run for safety
   const [results, setResults] = useState<ImportResults | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
   const importMutation = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async ({ file, dryRun }: { file: File; dryRun: boolean }) => {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch('/api/import-dodge-csv', {
+      const url = dryRun 
+        ? '/api/import-dodge-csv?dryRun=true'
+        : '/api/import-dodge-csv';
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           ...getAuthHeaders()
@@ -90,7 +107,7 @@ export function DodgeImportPage() {
 
   const handleImport = () => {
     if (file) {
-      importMutation.mutate(file);
+      importMutation.mutate({ file, dryRun });
     }
   };
 
@@ -168,12 +185,25 @@ export function DodgeImportPage() {
               className="max-w-md"
               data-testid="file-input"
             />
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="dry-run" 
+                checked={dryRun}
+                onCheckedChange={(checked) => setDryRun(checked as boolean)}
+              />
+              <Label htmlFor="dry-run" className="text-sm font-medium">
+                Preview Only (Dry Run)
+              </Label>
+            </div>
             <Button
               onClick={handleImport}
               disabled={!file || importMutation.isPending}
+              variant={dryRun ? "secondary" : "default"}
               data-testid="import-button"
             >
-              {importMutation.isPending ? "Importing..." : "Import Jobs"}
+              {importMutation.isPending 
+                ? (dryRun ? "Previewing..." : "Importing...") 
+                : (dryRun ? "Preview Import" : "Import Jobs")}
             </Button>
           </div>
 
@@ -202,24 +232,59 @@ export function DodgeImportPage() {
       {results && (
         <Card>
           <CardHeader>
-            <CardTitle>Import Results</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              {results.dryRun ? (
+                <>
+                  <FileCheck className="h-5 w-5" />
+                  Preview Results
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-5 w-5" />
+                  Import Results
+                </>
+              )}
+            </CardTitle>
             <CardDescription>
-              Summary of the last CSV import operation
+              {results.dryRun 
+                ? "Preview of changes that would be made (no data was modified)"
+                : "Summary of the completed CSV import operation"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {results.dryRun && (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Dry Run Mode</AlertTitle>
+                <AlertDescription>
+                  This is a preview. No jobs have been imported or modified. 
+                  Uncheck "Preview Only" and click Import to apply these changes.
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="text-center p-4 bg-green-50 rounded-lg">
                 <div className="text-2xl font-bold text-green-600">{results.imported}</div>
-                <div className="text-sm text-gray-600">New Jobs Added</div>
+                <div className="text-sm text-gray-600">
+                  {results.dryRun ? "Would Be Added" : "New Jobs Added"}
+                </div>
               </div>
               <div className="text-center p-4 bg-blue-50 rounded-lg">
                 <div className="text-2xl font-bold text-blue-600">{results.updated}</div>
-                <div className="text-sm text-gray-600">Jobs Updated</div>
+                <div className="text-sm text-gray-600">
+                  {results.dryRun ? "Would Be Updated" : "Jobs Updated"}
+                </div>
+              </div>
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <div className="text-2xl font-bold text-gray-600">{results.unchanged || 0}</div>
+                <div className="text-sm text-gray-600">Unchanged</div>
               </div>
               <div className="text-center p-4 bg-yellow-50 rounded-lg">
                 <div className="text-2xl font-bold text-yellow-600">{results.skipped}</div>
-                <div className="text-sm text-gray-600">Duplicates Skipped</div>
+                <div className="text-sm text-gray-600">
+                  {results.dryRun ? "Would Be Skipped" : "Skipped"}
+                </div>
               </div>
             </div>
 

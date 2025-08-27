@@ -43,7 +43,12 @@ export const jobs = pgTable("jobs", {
   viewedAt: timestamp("viewed_at"), // Deprecated
   userNotes: text("user_notes").default(""),
   temperature: jobTemperatureEnum("temperature"),
-  isCold: boolean("is_cold").default(false).notNull() // Manually marked as cold
+  isCold: boolean("is_cold").default(false).notNull(), // Manually marked as cold
+  // Import tracking fields
+  externalId: text("external_id"), // External ID from CSV
+  dedupeKey: text("dedupe_key"), // Normalized key for deduplication
+  lockedFields: json("locked_fields").$type<string[]>().default([]).notNull(), // Fields edited by user
+  lastImportedAt: timestamp("last_imported_at") // Last time this job was imported/updated
 });
 
 export const equipment = pgTable("equipment", {

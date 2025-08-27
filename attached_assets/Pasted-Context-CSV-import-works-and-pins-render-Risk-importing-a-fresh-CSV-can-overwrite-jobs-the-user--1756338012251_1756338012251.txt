@@ -1,0 +1,103 @@
+Context
+
+CSV import works and pins render.
+
+Risk: importing a fresh CSV can overwrite jobs the user has edited in-app.
+
+Rules
+
+Minimal changes; reuse current import service, DB, and UI.
+
+Prefer additive behavior; never lose user edits.
+
+Keep performance acceptable for 1k+ rows.
+
+Tasks
+
+Schema + Keys
+
+Add columns: external_id TEXT NULL, dedupe_key TEXT NOT NULL, locked_fields JSONB NOT NULL DEFAULT '[]', last_imported_at TIMESTAMP.
+
+Create unique index on COALESCE(external_id, dedupe_key).
+
+Compute dedupe_key = lower(trim(name)) + '|' + lower(trim(address)) + '|' + city + '|' + state (normalized) on write.
+
+Track User Edits
+
+In all job update endpoints, append edited field names to locked_fields (idempotent).
+
+Never auto-clear locked_fields. Add optional PATCH /api/jobs/:id/unlock to remove specific fields.
+
+Import Merge Policy
+
+Match existing job by external_id if present else dedupe_key.
+
+On conflict, update only fields not in locked_fields. Always skip updates to: is_cold, notes, tags, attachments, assigned_to.
+
+Insert new rows when no match. Set last_imported_at for all processed rows.
+
+Dry-Run + Report
+
+Add ?dryRun=true to import endpoint.
+
+Return counts and examples: inserted, updated_unlocked, skipped_locked, unchanged, conflicts.
+
+Show results in the existing red/green toast with a “Proceed Import” button.
+
+Backfill + Guard
+
+On deploy, backfill dedupe_key for existing jobs and set external_id from CSV column if available.
+
+Add DB constraint test to prevent duplicate (external_id or dedupe_key).
+
+Tests
+
+Unit: merge function respects locked_fields.
+
+API: dry-run and real import with mixed cases.
+
+E2E: mark a job cold + add note → reimport same row → verify those fields unchanged and no duplicate created.
+
+Deliverables
+
+DB migration adding columns + indexes.
+
+Updated job update handlers to maintain locked_fields.
+
+Updated import service with merge + dry-run + summary.
+
+Optional unlock endpoint.
+
+Brief change log listing files touched and new envs (none expected).
+
+Acceptance Criteria
+
+A job with user-edited fields is never overwritten by CSV for those fields.
+
+New CSV rows create new jobs; matched rows only update unlocked fields.
+
+Dry-run shows accurate counts; final import matches dry-run.
+
+No duplicate jobs after repeated imports of the same file.
+
+Existing features (login, filters, cold toggle, map) unchanged.
+
+Verification
+
+Edit an existing job: set is_cold=true, add a note, change project value.
+
+Import a CSV with the same job but different values.
+
+Expect: cold + note remain; only unlocked fields update; counts show one updated_unlocked and zero skipped_locked for unchanged fields.
+
+Re-import the same file → zero changes; no duplicates.
+
+Run automated tests; all pass.
+
+Hidden dependencies / blockers
+
+Need a stable CSV Project ID column; if missing, rely on dedupe_key normalization.
+
+Ensure project_value stored as numeric for reliable matching and comparisons.
+
+Migration requires drizzle-orm update and deploy with zero downtime.

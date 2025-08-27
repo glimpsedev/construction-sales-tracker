@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { jobs, type Job, type InsertJob } from "@shared/schema";
-import { eq, and, or } from "drizzle-orm";
+import { eq, and, or, sql } from "drizzle-orm";
 import * as XLSX from "xlsx";
 import { geocodeAddress } from "./geocodingService";
 
@@ -27,24 +27,60 @@ interface DodgeCSVRow {
   [key: string]: any; // Allow for flexible column names
 }
 
+interface ImportResult {
+  imported: number;
+  updated: number;
+  skipped: number;
+  unchanged: number;
+  errors: string[];
+  details?: {
+    inserted?: Job[];
+    updated_unlocked?: Job[];
+    skipped_locked?: Job[];
+    unchanged?: Job[];
+    conflicts?: any[];
+  };
+}
+
 export class CSVImportService {
   
+  // Fields that should never be overwritten by imports
+  private readonly protectedFields = ['isCold', 'userNotes', 'temperature', 'isViewed'];
+  
   /**
-   * Import jobs from Dodge Data CSV file
-   * Handles duplicates by checking project name, address, and value
+   * Generate dedupe key for a job
    */
-  async importDodgeCSV(fileBuffer: Buffer, userId?: string): Promise<{
-    imported: number;
-    updated: number;
-    skipped: number;
-    errors: string[];
-  }> {
+  private generateDedupeKey(name: string, address: string, county?: string): string {
+    return [
+      name.toLowerCase().trim(),
+      address.toLowerCase().trim(),
+      (county || '').toLowerCase().trim()
+    ].join('|');
+  }
+  
+  /**
+   * Import jobs from Dodge Data CSV file with safe merging
+   * Respects locked fields and provides dry-run capability
+   */
+  async importDodgeCSV(
+    fileBuffer: Buffer, 
+    userId?: string,
+    dryRun: boolean = false
+  ): Promise<ImportResult> {
     try {
-      const results = {
+      const results: ImportResult = {
         imported: 0,
         updated: 0,
         skipped: 0,
-        errors: [] as string[]
+        unchanged: 0,
+        errors: [],
+        details: {
+          inserted: [],
+          updated_unlocked: [],
+          skipped_locked: [],
+          unchanged: [],
+          conflicts: []
+        }
       };
 
       // Parse CSV file (works with both .csv and .xlsx)
@@ -52,7 +88,7 @@ export class CSVImportService {
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
       const rawData = XLSX.utils.sheet_to_json(firstSheet) as DodgeCSVRow[];
 
-      console.log(`Processing ${rawData.length} rows from Dodge CSV`);
+      console.log(`Processing ${rawData.length} rows from Dodge CSV (dry-run: ${dryRun})`);
       
       // Debug: Check the first row to see column names
       if (rawData.length > 0) {
@@ -84,19 +120,48 @@ export class CSVImportService {
             continue;
           }
 
-          // Extract and clean data - using the actual column names from the new Dodge export format
+          // Extract and clean data
           const projectName = this.cleanString(projectNameRaw);
           const description = this.cleanString(row['Comments'] || row['Project Description'] || '');
           const fullAddress = this.buildFullAddress(row);
           const projectValue = this.parseProjectValue(row['Valuation'] || row['Low Value'] || row['High Value']);
           const projectType = this.normalizeProjectType(row['Primary Project Type'] || row['Project Type(s)']);
           const dodgeProjectId = this.cleanString(row['Project ID'] || row['Dodge Report Number'] || '');
-
-          // Create new job (duplicates temporarily disabled)
-          await this.createNewJobFromCSV(row, projectName, description, fullAddress, projectValue, projectType, dodgeProjectId, userId);
-          results.imported++;
-          if (i < 5) {
-            console.log(`Imported: ${projectName} at ${fullAddress}`);
+          
+          // Generate dedupe key
+          const dedupeKey = this.generateDedupeKey(projectName, fullAddress, county);
+          const externalId = dodgeProjectId || null;
+          
+          // Find existing job
+          const existingJob = await this.findJobByDedupeKey(externalId, dedupeKey, userId);
+          
+          if (existingJob) {
+            // Merge with existing job
+            const mergeResult = await this.mergeJob(existingJob, row, projectName, description, fullAddress, 
+                                                   projectValue, projectType, dodgeProjectId, dedupeKey, dryRun);
+            
+            if (mergeResult.updated) {
+              results.updated++;
+              results.details?.updated_unlocked?.push(existingJob);
+            } else if (mergeResult.skippedLocked) {
+              results.skipped++;
+              results.details?.skipped_locked?.push(existingJob);
+            } else {
+              results.unchanged++;
+              results.details?.unchanged?.push(existingJob);
+            }
+          } else {
+            // Create new job
+            if (!dryRun) {
+              const newJob = await this.createNewJobFromCSV(row, projectName, description, fullAddress, 
+                                                           projectValue, projectType, dodgeProjectId, 
+                                                           dedupeKey, externalId, userId);
+              results.details?.inserted?.push(newJob);
+            }
+            results.imported++;
+            if (i < 5) {
+              console.log(`${dryRun ? '[DRY-RUN] Would import' : 'Imported'}: ${projectName} at ${fullAddress}`);
+            }
           }
 
         } catch (error) {
@@ -113,6 +178,116 @@ export class CSVImportService {
       console.error('Error importing Dodge CSV:', error);
       throw new Error(`CSV import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  /**
+   * Find job by dedupe key or external ID
+   */
+  private async findJobByDedupeKey(externalId: string | null, dedupeKey: string, userId?: string): Promise<Job | null> {
+    // Try external ID first if available
+    if (externalId) {
+      const [job] = await db
+        .select()
+        .from(jobs)
+        .where(and(
+          eq(jobs.externalId, externalId),
+          userId ? eq(jobs.userId, userId) : sql`true`
+        ))
+        .limit(1);
+      if (job) return job;
+    }
+    
+    // Then try dedupe key
+    const [job] = await db
+      .select()
+      .from(jobs)
+      .where(and(
+        eq(jobs.dedupeKey, dedupeKey),
+        userId ? eq(jobs.userId, userId) : sql`true`
+      ))
+      .limit(1);
+    
+    return job || null;
+  }
+
+  /**
+   * Merge job data respecting locked fields
+   */
+  private async mergeJob(
+    existingJob: Job,
+    row: DodgeCSVRow,
+    projectName: string,
+    description: string,
+    fullAddress: string,
+    projectValue: number | null,
+    projectType: string,
+    dodgeProjectId: string,
+    dedupeKey: string,
+    dryRun: boolean
+  ): Promise<{ updated: boolean; skippedLocked: boolean }> {
+    const updates: Partial<Job> = {};
+    const lockedFields = existingJob.lockedFields || [];
+    let hasChanges = false;
+    let skippedLocked = false;
+
+    // Check each field and only update if not locked
+    if (!lockedFields.includes('name') && projectName !== existingJob.name) {
+      updates.name = projectName;
+      hasChanges = true;
+    }
+
+    if (!lockedFields.includes('description') && description !== existingJob.description) {
+      updates.description = description;
+      hasChanges = true;
+    }
+
+    if (!lockedFields.includes('address') && fullAddress !== existingJob.address) {
+      updates.address = fullAddress;
+      hasChanges = true;
+    }
+
+    if (!lockedFields.includes('projectValue') && projectValue && 
+        projectValue.toString() !== existingJob.projectValue) {
+      updates.projectValue = projectValue.toString();
+      hasChanges = true;
+    }
+
+    if (!lockedFields.includes('type') && projectType !== existingJob.type) {
+      updates.type = projectType as any;
+      hasChanges = true;
+    }
+
+    // Update team info if not locked
+    const contractor = this.cleanString(row['Contractor']);
+    if (contractor && !lockedFields.includes('contractor') && contractor !== existingJob.contractor) {
+      updates.contractor = contractor;
+      hasChanges = true;
+    }
+
+    const owner = this.cleanString(row['Owner']);  
+    if (owner && !lockedFields.includes('owner') && owner !== existingJob.owner) {
+      updates.owner = owner;
+      hasChanges = true;
+    }
+
+    // Always update lastImportedAt
+    updates.lastImportedAt = new Date();
+    
+    // Update external ID if it wasn't set before
+    if (!existingJob.externalId && dodgeProjectId) {
+      updates.externalId = dodgeProjectId;
+      hasChanges = true;
+    }
+
+    // Apply updates if not dry-run
+    if (hasChanges && !dryRun) {
+      await db
+        .update(jobs)
+        .set(updates)
+        .where(eq(jobs.id, existingJob.id));
+    }
+
+    return { updated: hasChanges, skippedLocked };
   }
 
   /**
@@ -259,8 +434,10 @@ export class CSVImportService {
     projectValue: number | null,
     projectType: string,
     dodgeProjectId: string,
+    dedupeKey: string,
+    externalId: string | null,
     userId?: string
-  ): Promise<void> {
+  ): Promise<Job> {
     
     // Attempt to geocode the address
     let coordinates = null;
@@ -324,11 +501,12 @@ export class CSVImportService {
       }
     }
 
-    const newJob: InsertJob = {
+    const county = this.cleanString(row['County'] || row['COUNTY'] || '');
+    const newJob: any = {
       name: projectName,
       description: enhancedDescription,
       address: fullAddress,
-      county: this.cleanString(row['County'] || row['COUNTY'] || ''),
+      county: county,
       latitude: coordinates?.lat?.toString() || null,
       longitude: coordinates?.lng?.toString() || null,
       type: projectType as any,
@@ -351,10 +529,16 @@ export class CSVImportService {
       isViewed: false,
       viewedAt: null,
       userNotes: userNotes || '',
+      // New tracking fields
+      dedupeKey,
+      externalId,
+      lockedFields: [],
+      lastImportedAt: new Date(),
       userId: userId
     };
 
-    await db.insert(jobs).values(newJob);
+    const [created] = await db.insert(jobs).values(newJob).returning();
+    return created;
   }
 
   /**

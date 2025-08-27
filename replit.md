@@ -13,6 +13,19 @@ Layout preferences: Sidebar should not block or overlap the map area. Fixed side
 
 ## Recent Changes (January 27, 2025)
 
+- **Safer CSV Import System**: Implemented intelligent CSV re-import protection
+  - Added dedupe_key for consistent duplicate detection across imports
+  - Tracks locked_fields when user manually edits data (notes, temperature, cold status, team info)
+  - CSV re-imports preserve user edits while updating only untouched fields
+  - Added dry-run preview mode - defaults to preview for safety
+  - Import UI shows "Preview Only" checkbox for safe testing
+  - Results display shows what would be added/updated/unchanged/skipped
+  - Database migration completed: Added external_id, dedupe_key, locked_fields, last_imported_at
+  - Protected fields never overwritten: isCold, userNotes, temperature, isViewed
+  - User can unlock fields via API endpoint if needed
+
+## Previous Updates (January 27, 2025)
+
 - **Cold Job Marking System**: Replaced viewed/unviewed concept with manual cold marking
   - Added `is_cold` field to jobs table for manually marking jobs as cold
   - Grey pins now only appear for jobs marked as cold (previously meant viewed)
