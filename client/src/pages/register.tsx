@@ -92,20 +92,19 @@ export default function Register() {
             <div className="flex items-center justify-center mb-2">
               <CheckCircle className="h-12 w-12 text-green-500" />
             </div>
-            <CardTitle className="text-2xl text-center">Check Your Email</CardTitle>
+            <CardTitle className="text-2xl text-center">Registration Successful!</CardTitle>
             <CardDescription className="text-center">
-              We've sent a verification email to your inbox
+              Your account has been created successfully
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
             <p className="text-sm text-muted-foreground mb-4">
-              Please click the verification link in the email to activate your account.
-              The link will expire in 24 hours.
+              You can now sign in with your email and password.
             </p>
             <Alert>
-              <AlertCircle className="h-4 w-4" />
+              <CheckCircle className="h-4 w-4" />
               <AlertDescription>
-                If you don't see the email, check your spam folder or <Link href="/resend-verification" className="underline">request a new verification email</Link>.
+                Your account is ready to use. Click below to sign in.
               </AlertDescription>
             </Alert>
           </CardContent>

@@ -55,11 +55,11 @@ router.post('/register', registrationLimiter, async (req, res) => {
     // Hash password
     const hashedPassword = await hashPassword(validatedData.password);
     
-    // Create user (unverified by default)
+    // Create user (set as verified so they can login immediately)
     const user = await storage.createUser({
       email: validatedData.email,
       password: hashedPassword,
-      verified: false
+      verified: true  // Allow immediate login
     });
     
     // Generate verification token
@@ -78,7 +78,7 @@ router.post('/register', registrationLimiter, async (req, res) => {
     
     res.json({
       success: true,
-      message: 'Registration successful. Please check your email to verify your account.',
+      message: 'Registration successful. You can now login.',
       email: user.email
     });
   } catch (error) {
@@ -208,15 +208,8 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     
-    // Check if user is verified
-    if (!user.verified) {
-      return res.status(403).json({
-        error: 'Email not verified',
-        message: 'Please verify your email before logging in.',
-        needsVerification: true,
-        email: user.email
-      });
-    }
+    // Email verification is optional - users can login immediately
+    // Users will still get verification emails but can login without verifying
     
     // Generate JWT token
     const token = generateToken(user.id);

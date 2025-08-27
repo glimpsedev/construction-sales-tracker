@@ -11,7 +11,15 @@ The system features comprehensive job tracking with viewed/unviewed status, note
 Preferred communication style: Simple, everyday language.
 Layout preferences: Sidebar should not block or overlap the map area. Fixed sidebar width with responsive map area.
 
-## Recent Changes (January 15, 2025)
+## Recent Changes (January 27, 2025)
+
+- **Email Verification Made Optional**: Users can now login immediately after registration
+  - Removed email verification requirement for login
+  - Registration creates immediately active accounts
+  - Verification emails still sent but are optional
+  - Existing user hgrady@jscole.com can login without verification
+
+## Previous Changes (January 15, 2025)
 
 - **Authentication System Implementation**: Complete email/password authentication system with JWT tokens
   - User credentials: hgrady@jscole.com / Duke1234
