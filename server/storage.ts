@@ -219,16 +219,19 @@ export class MemStorage implements IStorage {
       );
     }
 
-    if (filters.minValue !== undefined) {
-      result = result.filter(job => 
-        job.projectValue && parseFloat(job.projectValue) >= filters.minValue!
-      );
-    }
-
-    if (filters.maxValue !== undefined) {
-      result = result.filter(job => 
-        job.projectValue && parseFloat(job.projectValue) <= filters.maxValue!
-      );
+    if (filters.minValue !== undefined || filters.maxValue !== undefined) {
+      result = result.filter(job => {
+        // Handle null/undefined projectValue
+        if (!job.projectValue) return false;
+        
+        const value = parseFloat(job.projectValue);
+        if (isNaN(value)) return false;
+        
+        const minCheck = filters.minValue === undefined || value >= filters.minValue;
+        const maxCheck = filters.maxValue === undefined || value <= filters.maxValue;
+        
+        return minCheck && maxCheck;
+      });
     }
 
     return result.sort(
@@ -445,19 +448,20 @@ export class DatabaseStorage implements IStorage {
     let result = await query.orderBy(desc(jobs.lastUpdated));
     
     // Apply value filtering on the result set since projectValue is a string
-    if (filters.minValue !== undefined) {
+    if (filters.minValue !== undefined || filters.maxValue !== undefined) {
       result = result.filter(job => {
+        // Handle null/undefined projectValue
         if (!job.projectValue) return false;
-        const value = parseFloat(job.projectValue.replace(/[^0-9.]/g, ''));
-        return !isNaN(value) && value >= filters.minValue!;
-      });
-    }
-
-    if (filters.maxValue !== undefined) {
-      result = result.filter(job => {
-        if (!job.projectValue) return false;
-        const value = parseFloat(job.projectValue.replace(/[^0-9.]/g, ''));
-        return !isNaN(value) && value <= filters.maxValue!;
+        
+        // Remove non-numeric characters and parse value
+        const cleanValue = job.projectValue.replace(/[^0-9.]/g, '');
+        const value = parseFloat(cleanValue);
+        if (isNaN(value)) return false;
+        
+        const minCheck = filters.minValue === undefined || value >= filters.minValue;
+        const maxCheck = filters.maxValue === undefined || value <= filters.maxValue;
+        
+        return minCheck && maxCheck;
       });
     }
     return result;

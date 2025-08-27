@@ -1,0 +1,97 @@
+Context
+
+Map and other filters work.
+
+Project Value slider changes UI but does not filter jobs.
+
+Max needs to increase from $10M to $1B.
+
+Rules
+
+Minimal changes; reuse existing API client and filter store.
+
+Keep current UI style and slider component.
+
+Preserve performance on 500+ markers.
+
+Tasks
+
+Trace and fix filter plumbing
+
+Inspect client filter state → ensure valueMin/valueMax propagate to the jobs fetch or local filter function.
+
+If server-side: include minValue and maxValue query params; if client-side: apply numeric compare in applyFilters(jobs, filters).
+
+Normalize value field
+
+Confirm DB column used for value (e.g., project_value). Ensure numeric type is used in queries (cast if stored as text like "$5.2M").
+
+Add parser on import that stores value in USD integer (cents) or whole dollars consistently.
+
+Expand range to $1B
+
+Update slider config to min=0, max=1_000_000_000, step smart (e.g., $50k or adaptive).
+
+Ensure label formatter abbreviates (K/M/B).
+
+Backend query
+
+Update repository/ORM filter to WHERE project_value BETWEEN :min AND :max. Add index on project_value if missing.
+
+Edge cases
+
+Treat null/0 values: include only when within range if 0<=min; otherwise exclude.
+
+Debounce filter changes (200–300ms) to avoid thrash.
+
+Tests
+
+Unit test value parser with inputs like "$950k", "1.2M", "780000000", "—".
+
+API test ?minValue=5_000_000&maxValue=20_000_000 returns only jobs in range.
+
+UI test: move slider to $50M–$200M → fewer markers and updated counts.
+
+Deliverables
+
+Updated slider config and value label formatter.
+
+Fixed filter wiring (client and/or API).
+
+Import/value parser normalization if needed.
+
+DB index on project_value (if not present).
+
+Brief change log listing touched files.
+
+Acceptance Criteria
+
+Slider range is $0–$1B with readable labels.
+
+Moving the slider updates markers and counts immediately.
+
+Network requests (if server-side) include minValue/maxValue; server responds with filtered set.
+
+Jobs with values outside the range never appear.
+
+No regressions to other filters or map performance.
+
+Verification
+
+Load dataset. Note total jobs.
+
+Set range to $50M–$200M: pins and counts decrease; recent list reflects range.
+
+Set to $0–$1B: totals return to original.
+
+Spot-check a job at ~$300M: appears when max ≥ $300M and disappears when max < $300M.
+
+Run tests; all new and existing tests pass.
+
+Hidden dependencies / blockers
+
+If project_value stored as text, migration or cast is required.
+
+Ensure ORM type is BIGINT (or NUMERIC) to support up to $1B without overflow.
+
+Import pipeline must populate normalized numeric value for new rows.

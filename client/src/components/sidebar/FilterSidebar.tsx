@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,11 @@ export default function FilterSidebar({
   onJobSelect, 
   isLoading 
 }: FilterSidebarProps) {
-  const [valueRange, setValueRange] = useState([0]);
+  const [valueRange, setValueRange] = useState([
+    filters.minValue ? parseFloat(filters.minValue) : 0,
+    filters.maxValue ? parseFloat(filters.maxValue) : 1000000000
+  ]);
+  const debounceTimer = useRef<NodeJS.Timeout>();
 
   const stats = useMemo(() => {
     const total = jobs.length;
@@ -94,11 +98,32 @@ export default function FilterSidebar({
 
   const handleValueRangeChange = (value: number[]) => {
     setValueRange(value);
-    handleFilterChange('maxValue', value[0].toString());
+    // Clear existing timer
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    // Set new timer for debounced update
+    debounceTimer.current = setTimeout(() => {
+      onFilterChange({
+        ...filters,
+        minValue: value[0].toString(),
+        maxValue: value[1].toString()
+      });
+    }, 300);
   };
 
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, []);
+
   const formatValue = (value: number) => {
-    if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000000000) return `$${(value / 1000000000).toFixed(1)}B`;
+    if (value >= 1000000) return `$${(value / 1000000).toFixed(0)}M`;
     if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`;
     return `$${value.toLocaleString()}`;
   };
@@ -372,15 +397,16 @@ export default function FilterSidebar({
               <Slider
                 value={valueRange}
                 onValueChange={handleValueRangeChange}
-                max={10000000}
-                step={50000}
+                min={0}
+                max={1000000000}
+                step={100000}
                 className="w-full"
                 data-testid="slider-value-range"
               />
               <div className="flex justify-between text-xs text-gray-500">
-                <span>$0</span>
-                <span data-testid="text-value-display">{formatValue(valueRange[0])}</span>
-                <span>$10M+</span>
+                <span>{formatValue(valueRange[0])}</span>
+                <span>—</span>
+                <span data-testid="text-value-display">{formatValue(valueRange[1])}</span>
               </div>
             </div>
           </div>
