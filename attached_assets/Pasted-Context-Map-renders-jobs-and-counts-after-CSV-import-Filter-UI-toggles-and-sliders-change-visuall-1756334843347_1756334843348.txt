@@ -1,0 +1,77 @@
+Context
+
+Map renders jobs and counts after CSV import.
+
+Filter UI toggles and sliders change visually but do not change visible pins or counts.
+
+Rules
+
+Minimal changes; reuse existing API client, store, and map layer utilities.
+
+Keep current styling and filter layout.
+
+Do not alter CSV import logic.
+
+Tasks
+
+Trace data flow: confirm each filter control updates a single source of truth (store or React state). Fix any uncontrolled inputs and ensure a consolidated filters object is produced.
+
+Wire filtering to data:
+
+If server-side filtering exists, update the jobs fetch to include query params from filters and refetch on change with debounce.
+
+If client-side filtering only, apply a pure function applyFilters(jobs, filters) before rendering and before computing counts.
+
+Ensure map layer refresh:
+
+After filtered dataset computed, update marker layer source and cluster, and recalc left-panel counts from the filtered set.
+
+Fix badges/counters: bind “Active/Completed/Type” counts to the filtered set, not raw totals.
+
+Add empty-state UX when filters hide all jobs and a “Clear filters” action.
+
+Tests: unit test applyFilters and an integration test that toggles a filter and asserts fewer markers and updated counts.
+
+Deliverables
+
+Updated filter state management and binding to fetch/render.
+
+Updated map layer refresh hook.
+
+Updated counters to derive from filtered set.
+
+Debounced refetch or client-side filter function.
+
+Brief change log listing touched files and data flow.
+
+Acceptance Criteria
+
+Toggling Status, Project Type, Temperature, and Value range immediately updates visible markers and left-panel counts.
+
+URL or store reflects current filters; full page reload preserves filters if persisted.
+
+Performance remains smooth with 500+ jobs (no noticeable lag).
+
+Clearing filters restores original totals and pins.
+
+No regressions to CSV import or login.
+
+Verification
+
+Load page with 500+ jobs. Note initial totals.
+
+Enable only “Industrial” → pins drop to match industrial count; left counters update; recent jobs list shows only industrial.
+
+Slide Project Value min to $5M → pins and counts decrease accordingly.
+
+Toggle “Completed” on/off → results change and counts match.
+
+Refresh page → filters persist if designed, or reset if not; both cases consistent with spec.
+
+Run test suite; new unit and integration tests pass.
+
+Hidden dependencies / blockers
+
+Confirm whether filters are intended server-side or client-side; backend endpoints must support query params if server-side.
+
+Map layer utility must expose a method to replace data source without re-mounting.

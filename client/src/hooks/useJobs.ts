@@ -10,6 +10,8 @@ interface JobFilters {
   endDate?: string;
   minValue?: string;
   maxValue?: string;
+  temperature?: string[];
+  viewStatus?: string;
 }
 
 export function useJobs(filters: JobFilters = {}) {
@@ -25,6 +27,8 @@ export function useJobs(filters: JobFilters = {}) {
       if (filters.endDate) params.append('endDate', filters.endDate);
       if (filters.minValue) params.append('minValue', filters.minValue);
       if (filters.maxValue) params.append('maxValue', filters.maxValue);
+      if (filters.temperature?.length) params.append('temperature', filters.temperature.join(','));
+      if (filters.viewStatus) params.append('viewStatus', filters.viewStatus);
 
       const url = `/api/jobs${params.toString() ? `?${params.toString()}` : ''}`;
       const response = await fetch(url, {

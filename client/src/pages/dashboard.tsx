@@ -15,6 +15,7 @@ import { Mail, Settings, FileSpreadsheet, Eye } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import type { Job } from "@shared/schema";
+import { getAuthHeaders } from "@/lib/auth";
 
 export default function Dashboard() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -44,7 +45,10 @@ export default function Dashboard() {
     mutationFn: async ({ jobId, temperature }: { jobId: string; temperature: string }) => {
       const response = await fetch(`/api/jobs/${jobId}/temperature`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
         body: JSON.stringify({ temperature })
       });
       if (!response.ok) throw new Error('Failed to update temperature');

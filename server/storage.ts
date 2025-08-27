@@ -1,6 +1,6 @@
 import { jobs, equipment, documents, users, emailVerifications, type Job, type InsertJob, type Equipment, type InsertEquipment, type Document, type InsertDocument, type User, type InsertUser, type EmailVerification, type InsertEmailVerification } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, ilike, gte, lte, inArray } from "drizzle-orm";
+import { eq, and, or, desc, ilike, gte, lte, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -399,9 +399,11 @@ export class DatabaseStorage implements IStorage {
 
     if (filters.search) {
       conditions.push(
-        ilike(jobs.name, `%${filters.search}%`),
-        ilike(jobs.address, `%${filters.search}%`),
-        ilike(jobs.contractor, `%${filters.search}%`)
+        or(
+          ilike(jobs.name, `%${filters.search}%`),
+          ilike(jobs.address, `%${filters.search}%`),
+          ilike(jobs.contractor, `%${filters.search}%`)
+        )
       );
     }
 
@@ -429,7 +431,24 @@ export class DatabaseStorage implements IStorage {
       query = query.where(and(...conditions));
     }
 
-    const result = await query.orderBy(desc(jobs.lastUpdated));
+    let result = await query.orderBy(desc(jobs.lastUpdated));
+    
+    // Apply value filtering on the result set since projectValue is a string
+    if (filters.minValue !== undefined) {
+      result = result.filter(job => {
+        if (!job.projectValue) return false;
+        const value = parseFloat(job.projectValue.replace(/[^0-9.]/g, ''));
+        return !isNaN(value) && value >= filters.minValue!;
+      });
+    }
+
+    if (filters.maxValue !== undefined) {
+      result = result.filter(job => {
+        if (!job.projectValue) return false;
+        const value = parseFloat(job.projectValue.replace(/[^0-9.]/g, ''));
+        return !isNaN(value) && value <= filters.maxValue!;
+      });
+    }
     return result;
   }
 
