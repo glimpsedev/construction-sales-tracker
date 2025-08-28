@@ -173,7 +173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         temperature: temperature ? (temperature as string).split(',') : undefined,
         startDate: startDate ? new Date(startDate as string) : getDefaultStartDate(),
         endDate: endDate ? new Date(endDate as string) : getDefaultEndDate(),
-        minValue: minValue ? parseFloat(minValue as string) : 500000, // Default to $500K minimum
+        minValue: minValue ? parseFloat(minValue as string) : 1000000, // Default to $1M minimum
         maxValue: maxValue ? parseFloat(maxValue as string) : 100000000, // Default to $100M+ (unbounded)
         cold: cold === 'false' ? false : cold === 'true' ? true : undefined,
         userId: req.userId,

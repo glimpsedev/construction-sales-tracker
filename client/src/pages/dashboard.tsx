@@ -45,7 +45,7 @@ export default function Dashboard() {
     status: ['active'] as string[],
     startDate: defaultDates.startDate,
     endDate: defaultDates.endDate,
-    minValue: '500000', // Default to $500K minimum to show more results
+    minValue: '1000000', // Default to $1M minimum
     maxValue: '100000000', // Default to $100M+ (unbounded)
     temperature: [] as string[],
     hideCold: false
