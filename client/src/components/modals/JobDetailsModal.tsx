@@ -320,57 +320,6 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
             )}
           </div>
 
-          {/* Temperature Rating */}
-          <Card>
-            <CardContent className="pt-4">
-              <h4 className="font-medium mb-3 text-sm">Job Temperature</h4>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant={job.temperature === 'hot' ? 'default' : 'outline'}
-                  className={job.temperature === 'hot' ? 'bg-red-500 hover:bg-red-600 text-white' : ''}
-                  onClick={() => updateTemperatureMutation.mutate({ jobId: job.id, temperature: 'hot' })}
-                  disabled={updateTemperatureMutation.isPending}
-                >
-                  <Flame className="h-4 w-4 mr-1" />
-                  Hot
-                </Button>
-                <Button
-                  size="sm"
-                  variant={job.temperature === 'warm' ? 'default' : 'outline'}
-                  className={job.temperature === 'warm' ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}
-                  onClick={() => updateTemperatureMutation.mutate({ jobId: job.id, temperature: 'warm' })}
-                  disabled={updateTemperatureMutation.isPending}
-                >
-                  <Thermometer className="h-4 w-4 mr-1" />
-                  Warm
-                </Button>
-                <Button
-                  size="sm"
-                  variant={job.temperature === 'cold' ? 'default' : 'outline'}
-                  className={job.temperature === 'cold' ? 'bg-blue-500 hover:bg-blue-600 text-white' : ''}
-                  onClick={() => updateTemperatureMutation.mutate({ jobId: job.id, temperature: 'cold' })}
-                  disabled={updateTemperatureMutation.isPending}
-                >
-                  <Snowflake className="h-4 w-4 mr-1" />
-                  Cold
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Description / Additional Features */}
-          {(job.description || job.additionalFeatures) && (
-            <Card>
-              <CardContent className="pt-4">
-                <h4 className="font-medium mb-2">Description</h4>
-                <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                  {job.additionalFeatures || job.description}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Location Info */}
           <Card>
             <CardContent className="pt-4">
@@ -440,6 +389,57 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
               </div>
             </CardContent>
           </Card>
+
+          {/* Temperature Rating */}
+          <Card>
+            <CardContent className="pt-4">
+              <h4 className="font-medium mb-3 text-sm">Job Temperature</h4>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant={job.temperature === 'hot' ? 'default' : 'outline'}
+                  className={job.temperature === 'hot' ? 'bg-red-500 hover:bg-red-600 text-white' : ''}
+                  onClick={() => updateTemperatureMutation.mutate({ jobId: job.id, temperature: 'hot' })}
+                  disabled={updateTemperatureMutation.isPending}
+                >
+                  <Flame className="h-4 w-4 mr-1" />
+                  Hot
+                </Button>
+                <Button
+                  size="sm"
+                  variant={job.temperature === 'warm' ? 'default' : 'outline'}
+                  className={job.temperature === 'warm' ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}
+                  onClick={() => updateTemperatureMutation.mutate({ jobId: job.id, temperature: 'warm' })}
+                  disabled={updateTemperatureMutation.isPending}
+                >
+                  <Thermometer className="h-4 w-4 mr-1" />
+                  Warm
+                </Button>
+                <Button
+                  size="sm"
+                  variant={job.temperature === 'cold' ? 'default' : 'outline'}
+                  className={job.temperature === 'cold' ? 'bg-blue-500 hover:bg-blue-600 text-white' : ''}
+                  onClick={() => updateTemperatureMutation.mutate({ jobId: job.id, temperature: 'cold' })}
+                  disabled={updateTemperatureMutation.isPending}
+                >
+                  <Snowflake className="h-4 w-4 mr-1" />
+                  Cold
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Description / Additional Features */}
+          {(job.description || job.additionalFeatures) && (
+            <Card>
+              <CardContent className="pt-4">
+                <h4 className="font-medium mb-2">Description</h4>
+                <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                  {job.additionalFeatures || job.description}
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Project Team */}
           <Card>
