@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Job } from "@shared/schema";
+import { getAuthHeaders } from "@/lib/auth";
 
 interface JobDetailsModalProps {
   job: Job | null;
@@ -99,11 +100,18 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
     mutationFn: async ({ jobId, teamData }: { jobId: string; teamData: any }) => {
       const response = await fetch(`/api/jobs/${jobId}/team`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        credentials: 'include',
         body: JSON.stringify(teamData)
       });
       
       if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+        }
         throw new Error('Failed to update team information');
       }
       
@@ -125,11 +133,18 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
     mutationFn: async ({ jobId, notes }: { jobId: string; notes: string }) => {
       const response = await fetch(`/api/jobs/${jobId}/notes`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        credentials: 'include',
         body: JSON.stringify({ notes })
       });
       
       if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+        }
         throw new Error('Failed to update notes');
       }
       
@@ -151,10 +166,19 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
     mutationFn: async ({ jobId, temperature }: { jobId: string; temperature: string }) => {
       const response = await fetch(`/api/jobs/${jobId}/temperature`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        credentials: 'include',
         body: JSON.stringify({ temperature })
       });
-      if (!response.ok) throw new Error('Failed to update temperature');
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+        }
+        throw new Error('Failed to update temperature');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -179,10 +203,16 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
         method: isCold ? 'POST' : 'DELETE',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
+          ...getAuthHeaders()
+        },
+        credentials: 'include'
       });
-      if (!response.ok) throw new Error('Failed to update cold status');
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+        }
+        throw new Error('Failed to update cold status');
+      }
       return response.json();
     },
     onSuccess: (_, { isCold }) => {
