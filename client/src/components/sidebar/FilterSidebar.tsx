@@ -36,7 +36,7 @@ export default function FilterSidebar({
   isLoading 
 }: FilterSidebarProps) {
   const [valueRange, setValueRange] = useState([
-    filters.minValue ? parseFloat(filters.minValue) : 0,
+    filters.minValue ? parseFloat(filters.minValue) : 500000, // Default to $500K minimum
     filters.maxValue ? parseFloat(filters.maxValue) : 100000000
   ]);
   const debounceTimer = useRef<NodeJS.Timeout>();
@@ -175,6 +175,7 @@ export default function FilterSidebar({
                 <span className="text-gray-400">—</span>
                 <span>{formatValue(valueRange[1])}</span>
               </div>
+              <p className="text-xs text-gray-500 mt-1">Showing last 3 months, ≥ $500K</p>
             </div>
           </div>
 

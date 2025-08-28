@@ -435,25 +435,24 @@ export class DatabaseStorage implements IStorage {
     let result = await query.orderBy(desc(jobs.lastUpdated));
     
     // Apply value filtering on the result set since projectValue is a string
-    if (filters.minValue !== undefined || filters.maxValue !== undefined) {
-      result = result.filter(job => {
-        // Handle null/undefined projectValue
-        if (!job.projectValue) return false;
-        
-        // Remove non-numeric characters and parse value
-        const cleanValue = job.projectValue.replace(/[^0-9.]/g, '');
-        const value = parseFloat(cleanValue);
-        if (isNaN(value)) return false;
-        
-        const minCheck = filters.minValue === undefined || value >= filters.minValue;
-        // If maxValue is 100M, treat as unbounded (no upper limit)
-        const maxCheck = filters.maxValue === undefined || 
-                        filters.maxValue === 100000000 || 
-                        value <= filters.maxValue;
-        
-        return minCheck && maxCheck;
-      });
-    }
+    // Always apply minValue filtering (default is $1M)
+    result = result.filter(job => {
+      // Handle null/undefined projectValue
+      if (!job.projectValue) return false;
+      
+      // Remove non-numeric characters and parse value
+      const cleanValue = job.projectValue.replace(/[^0-9.]/g, '');
+      const value = parseFloat(cleanValue);
+      if (isNaN(value)) return false;
+      
+      const minCheck = filters.minValue === undefined || value >= filters.minValue;
+      // If maxValue is 100M, treat as unbounded (no upper limit)
+      const maxCheck = filters.maxValue === undefined || 
+                      filters.maxValue === 100000000 || 
+                      value <= filters.maxValue;
+      
+      return minCheck && maxCheck;
+    });
     return result;
   }
 

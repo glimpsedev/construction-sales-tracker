@@ -25,12 +25,28 @@ export default function Dashboard() {
   const [showJobDetails, setShowJobDetails] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [, setLocation] = useLocation();
+  // Calculate default date range (last 3 months)
+  const getDefaultDates = () => {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // End of today
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    threeMonthsAgo.setHours(0, 0, 0, 0); // Start of day 3 months ago
+    
+    return {
+      startDate: threeMonthsAgo.toISOString().split('T')[0],
+      endDate: today.toISOString().split('T')[0]
+    };
+  };
+  
+  const defaultDates = getDefaultDates();
+  
   const [filters, setFilters] = useState({
     status: ['active'] as string[],
-    startDate: '',
-    endDate: '',
-    minValue: '',
-    maxValue: '',
+    startDate: defaultDates.startDate,
+    endDate: defaultDates.endDate,
+    minValue: '500000', // Default to $500K minimum to show more results
+    maxValue: '100000000', // Default to $100M+ (unbounded)
     temperature: [] as string[],
     hideCold: false
   });
