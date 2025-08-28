@@ -1,0 +1,81 @@
+Context
+
+Current slider shows 0 → $1.0B.
+
+Requirement: 0 → $100M+. If user selects the max, include all jobs ≥ $100M.
+
+Rules
+
+Minimal changes; reuse existing slider and formatter.
+
+Keep existing filter state shape and URL sync if possible.
+
+Do not change other sidebar filters.
+
+Tasks
+
+UI constants
+
+In the filter sidebar component or config, set min=0, max=100_000_000.
+
+Update right-end label to display "$100M+" when thumb at max; otherwise show formatted dollar value.
+
+Formatting
+
+Reuse existing compact money formatter; add case: when value === max, render "${short(max)}+" (e.g., $100M+).
+
+Filter state + URL
+
+Ensure stored maxValue can equal 100_000_000. Preserve query param behavior. No schema changes.
+
+Backend query clamp
+
+In jobs fetch/filter logic, apply:
+
+valuation >= minValue
+
+If maxValue === 100_000_000, do not apply an upper bound; else valuation <= maxValue.
+
+Counts/preview
+
+If counts depend on the same range, ensure the unbounded case is respected when at max.
+
+Edge cases
+
+Handle null/undefined valuation gracefully so the filter does not crash.
+
+Deliverables
+
+Updated sidebar slider config and label logic.
+
+Updated server filter condition to treat 100M as unbounded upper cap.
+
+Brief change log listing files touched.
+
+Acceptance Criteria
+
+Slider displays 0 on left and $100M+ on right.
+
+Dragging to midpoint shows e.g. $50M.
+
+Setting to max returns jobs with valuation ≥ $100M, including >$100M (e.g., $250M, $1B).
+
+URL/state restore reproduces the same range after refresh.
+
+No regressions to other filters or map results.
+
+Verification
+
+With unfiltered view, note total job count.
+
+Set range to $0–$50M; results decrease.
+
+Set range to $0–$100M+; results include high-value projects. Confirm with at least one known >$100M job.
+
+Reload page with URL carrying the range; confirm persistence.
+
+Hidden dependencies / blockers
+
+If the server currently hard-caps at $1B, remove that cap.
+
+If formatter lacks compact millions, ensure it already exists or add minimal utility without new deps.

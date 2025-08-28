@@ -13,6 +13,11 @@ Layout preferences: Sidebar should not block or overlap the map area. Fixed side
 
 ## Recent Changes (January 28, 2025)
 
+- **Visited Jobs Tracking Overhaul**: Changed from start-date logic to temperature-based tracking
+  - Jobs are now marked as "Visited" only when temperature is set to Hot/Warm/Cold
+  - Added `visited` boolean and `temperatureSetAt` timestamp fields to database
+  - Backfilled 104 existing jobs with temperatures as visited
+  - Sidebar "Visited" count now accurately reflects jobs with assigned temperatures
 - **Auto-Save Implementation**: Removed all Save/Cancel buttons from Job Details Modal
   - Project Team fields now auto-save on blur when user clicks out of input fields
   - Notes textarea auto-saves on blur when user clicks elsewhere

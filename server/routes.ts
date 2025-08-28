@@ -630,8 +630,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update job temperature
-  app.patch("/api/jobs/:id/temperature", async (req, res) => {
+  // Update job temperature and mark as visited
+  app.patch("/api/jobs/:id/temperature", authenticate, async (req: AuthRequest, res) => {
     try {
       const { temperature } = req.body;
       
@@ -639,12 +639,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Invalid temperature value' });
       }
       
+      // Get current job to check if temperature is being set for first time
+      const [currentJob] = await db
+        .select()
+        .from(jobs)
+        .where(and(eq(jobs.id, req.params.id), eq(jobs.userId, req.userId!)));
+      
+      if (!currentJob) {
+        return res.status(404).json({ error: 'Job not found' });
+      }
+      
+      const updateData: any = {
+        temperature: temperature as any
+      };
+      
+      // If temperature is being set for the first time (from null/undefined), mark as visited
+      if (!currentJob.temperature || !currentJob.visited) {
+        updateData.visited = true;
+        updateData.temperatureSetAt = new Date();
+      }
+      
       await db
         .update(jobs)
-        .set({
-          temperature: temperature as any
-        })
-        .where(eq(jobs.id, req.params.id));
+        .set(updateData)
+        .where(and(eq(jobs.id, req.params.id), eq(jobs.userId, req.userId!)));
       
       res.json({ success: true });
     } catch (error) {

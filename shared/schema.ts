@@ -61,6 +61,9 @@ export const jobs = pgTable("jobs", {
   userNotes: text("user_notes").default(""),
   temperature: jobTemperatureEnum("temperature"),
   isCold: boolean("is_cold").default(false).notNull(), // Manually marked as cold
+  // Temperature-based visited tracking
+  visited: boolean("visited").default(false).notNull(),
+  temperatureSetAt: timestamp("temperature_set_at"),
   // Import tracking fields
   externalId: text("external_id"), // External ID from CSV
   dedupeKey: text("dedupe_key"), // Normalized key for deduplication

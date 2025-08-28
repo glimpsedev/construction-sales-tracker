@@ -55,13 +55,8 @@ export default function FilterSidebar({
     const equipment = jobs.filter(job => job.type === 'equipment').length;
     const cold = jobs.filter(job => job.isCold).length;
     
-    // Count jobs as visited if they have started (startDate is in the past)
-    const now = new Date();
-    const visited = jobs.filter(job => {
-      if (!job.startDate) return false;
-      const startDate = new Date(job.startDate);
-      return startDate <= now;
-    }).length;
+    // Count jobs as visited if their temperature has been set (Hot/Warm/Cold)
+    const visited = jobs.filter(job => job.visited).length;
 
     return {
       total,
