@@ -94,8 +94,8 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
           return;
         }
 
-        // Create custom icon based on cold status or temperature
-        const iconColor = job.isCold ? 'bg-gray-500' :
+        // Create custom icon based on temperature or cold status
+        const iconColor = job.temperature === 'cold' || job.isCold ? 'bg-gray-500' :
                          job.temperature === 'hot' ? 'bg-red-500' :
                          job.temperature === 'warm' ? 'bg-orange-500' :
                          'bg-blue-600';
