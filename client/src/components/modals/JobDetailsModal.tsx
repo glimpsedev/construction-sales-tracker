@@ -111,11 +111,6 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-      toast({
-        title: "Team Information Updated",
-        description: "Project team has been updated successfully"
-      });
-      setIsEditingTeam(false);
     },
     onError: () => {
       toast({
@@ -142,11 +137,6 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-      setIsEditing(false);
-      toast({
-        title: "Notes Updated",
-        description: "Job notes saved successfully"
-      });
     },
     onError: () => {
       toast({
@@ -468,6 +458,7 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
                     <Input
                       value={teamData.contractor}
                       onChange={(e) => setTeamData({...teamData, contractor: e.target.value})}
+                      onBlur={() => handleSaveTeam()}
                       placeholder="Enter contractor name"
                       className="mt-1"
                     />
@@ -477,6 +468,7 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
                     <Input
                       value={teamData.owner}
                       onChange={(e) => setTeamData({...teamData, owner: e.target.value})}
+                      onBlur={() => handleSaveTeam()}
                       placeholder="Enter owner name"
                       className="mt-1"
                     />
@@ -486,6 +478,7 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
                     <Input
                       value={teamData.architect}
                       onChange={(e) => setTeamData({...teamData, architect: e.target.value})}
+                      onBlur={() => handleSaveTeam()}
                       placeholder="Enter architect name"
                       className="mt-1"
                     />
@@ -495,6 +488,7 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
                     <Input
                       value={teamData.officeContact}
                       onChange={(e) => setTeamData({...teamData, officeContact: e.target.value})}
+                      onBlur={() => handleSaveTeam()}
                       placeholder="Enter GC contact name"
                       className="mt-1"
                     />
@@ -504,28 +498,10 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
                     <Input
                       value={teamData.orderedBy}
                       onChange={(e) => setTeamData({...teamData, orderedBy: e.target.value})}
+                      onBlur={() => handleSaveTeam()}
                       placeholder="Enter who ordered the project"
                       className="mt-1"
                     />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={handleSaveTeam}
-                      disabled={updateTeamMutation.isPending}
-                      data-testid="save-team-button"
-                    >
-                      <Save className="h-3 w-3 mr-1" />
-                      {updateTeamMutation.isPending ? "Saving..." : "Save"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleCancelTeam}
-                      data-testid="cancel-team-button"
-                    >
-                      Cancel
-                    </Button>
                   </div>
                 </div>
               ) : (
@@ -740,29 +716,11 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
                   <Textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
+                    onBlur={() => handleSaveNotes()}
                     placeholder="Add your notes about this job..."
                     className="min-h-[100px]"
                     data-testid="notes-textarea"
                   />
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={handleSaveNotes}
-                      disabled={updateNotesMutation.isPending}
-                      data-testid="save-notes-button"
-                    >
-                      <Save className="h-3 w-3 mr-1" />
-                      {updateNotesMutation.isPending ? "Saving..." : "Save"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleCancel}
-                      data-testid="cancel-notes-button"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
                 </div>
               ) : (
                 <div className="text-sm text-gray-600">
@@ -772,23 +730,11 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
             </CardContent>
           </Card>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
-            {!job.isViewed && (
-              <Button
-                onClick={handleMarkViewed}
-                disabled={markViewedMutation.isPending}
-                className="flex-1"
-                data-testid="mark-viewed-button"
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                {markViewedMutation.isPending ? "Marking..." : "Mark as Viewed"}
-              </Button>
-            )}
+          {/* Close Button */}
+          <div className="flex justify-end pt-4">
             <Button
               variant="outline"
               onClick={onClose}
-              className={job.isViewed ? "flex-1" : ""}
               data-testid="close-button"
             >
               Close

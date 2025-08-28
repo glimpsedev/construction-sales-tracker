@@ -1,0 +1,77 @@
+Context
+
+Sidebar shows “Visited” but uses start-date logic.
+
+Requirement: a job is “Visited” only if its color was changed to Hot/Warm/Cold.
+
+Rules
+
+Minimal changes; match existing patterns.
+
+Reuse existing temperature toggle logic and APIs.
+
+No changes to filtering or map markers aside from the count source.
+
+Tasks
+
+Backend model
+
+Add fields to jobs: temperature_set_at TIMESTAMP NULL, temperature_set_by VARCHAR NULL (or boolean visited), default NULL/false.
+
+Temperature update path
+
+In the API that handles temperature changes, set temperature_set_at=NOW() and visited=true the first time the color changes from unset/default.
+
+Migration + backfill
+
+Write a migration for the new fields.
+
+Backfill: for jobs already colored, set visited=true and temperature_set_at=updated_at where temperature IN ('hot','warm','cold').
+
+Sidebar query/selector
+
+Replace start-date logic with visited === true (or temperature_set_at IS NOT NULL).
+
+Ensure client types include visited/temperature_set_at.
+
+UI label
+
+Keep “Visited” label. Tooltip/help: “Count of jobs where color has been set to Hot/Warm/Cold.”
+
+Deliverables
+
+Migration file adding visited or temperature_set_at.
+
+Updated API handler for color changes.
+
+Selector/query change for sidebar count.
+
+Brief changelog of files touched.
+
+Acceptance Criteria
+
+Changing a job color increments “Visited” by 1 on refresh and after real-time update if supported.
+
+Clearing a color sets visited=false only if requirement is to unvisit; otherwise remains true. Confirm with product setting; default: remain true once visited.
+
+Backfilled jobs with existing colors appear in the count.
+
+Start-date no longer affects the “Visited” number.
+
+Verification
+
+Before change: note current “Visited” count.
+
+Change color on two unvisited jobs. Confirm count increases by 2.
+
+Refresh page. Count persists.
+
+API GET for a visited job returns visited=true or non-null temperature_set_at.
+
+Spot-check a non-colored job remains unvisited.
+
+Hidden dependencies / blockers
+
+DB migration must run in the current environment.
+
+If temperature is set client-only, ensure server endpoint exists to persist it; otherwise create/patch it.

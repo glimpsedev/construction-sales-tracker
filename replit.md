@@ -13,6 +13,12 @@ Layout preferences: Sidebar should not block or overlap the map area. Fixed side
 
 ## Recent Changes (January 28, 2025)
 
+- **Auto-Save Implementation**: Removed all Save/Cancel buttons from Job Details Modal
+  - Project Team fields now auto-save on blur when user clicks out of input fields
+  - Notes textarea auto-saves on blur when user clicks elsewhere
+  - Silent auto-save without toast notifications to reduce UI interruptions
+  - Removed "Mark as Viewed" button for streamlined interface
+- **UI Improvements**: Modal sections reorganized with Location and Project Details at top for immediate visibility
 - **Filter UI Cleanup**: Removed Equipment checkbox from Project Type filter since it shows 0 jobs and isn't necessary for construction tracking
 
 ## Previous Changes (January 27, 2025)
