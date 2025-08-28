@@ -125,8 +125,8 @@ export default function FilterSidebar({
       className="w-full h-full bg-white overflow-y-auto"
       data-testid="filter-sidebar"
     >
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-darktext">Filters & Jobs</h2>
           <Button
             variant="ghost"
@@ -140,7 +140,7 @@ export default function FilterSidebar({
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="bg-blue-50 p-3 rounded-lg">
             <div className="text-2xl font-bold text-primary" data-testid="stat-total-jobs">
               {isLoading ? <Skeleton className="h-6 w-12" /> : stats.total}
@@ -156,7 +156,7 @@ export default function FilterSidebar({
         </div>
 
         {/* Filter Sections */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Project Value Filter - moved to top */}
           <div>
             <h3 className="text-sm font-medium text-darktext mb-3">Project Value</h3>
