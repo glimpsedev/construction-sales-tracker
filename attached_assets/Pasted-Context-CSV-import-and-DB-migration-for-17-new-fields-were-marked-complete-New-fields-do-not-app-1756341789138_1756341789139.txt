@@ -1,0 +1,95 @@
+Context
+
+CSV import and DB migration for ~17 new fields were marked complete.
+
+New fields do not appear when opening an existing job modal.
+
+Rules
+
+Minimal changes; match existing patterns and naming.
+
+Reuse existing Job model, DTOs, and UI components.
+
+Do not change working filters, map markers, or CSV parsing logic beyond field mapping.
+
+Tasks
+
+Backend schema + model check
+
+Inspect DB schema to verify new columns exist on jobs table with correct types and nullable settings.
+
+Ensure ORM/model (server/models/Job.ts or equivalent) includes these properties.
+
+API response wiring
+
+Open job read endpoints (e.g., server/routes/jobs.ts / server/controllers/jobs.ts).
+
+Include new fields in SELECT, serialization, and DTOs used by the client.
+
+Add a quick endpoint test to confirm fields return for a known job id.
+
+Client data contract
+
+Update client types/interfaces for Job to include the new fields.
+
+Verify the data-fetch hook/query includes the new fields.
+
+JobDetailsModal render
+
+Add non-empty conditional sections for: GC contacts, Owner phone, Construction Manager, Work Type, Specs Available, Additional Features, Project URL, Version/Project Number.
+
+Reuse existing label/value components. Keep accessibility and layout consistent.
+
+CSV import mapping validation
+
+Confirm server/services/csvImportService.ts maps each new Excel column to the correct DB column.
+
+Run a preview import with the provided Excel file and verify a sample job row persists new fields.
+
+Backfill and cache
+
+For existing rows, ensure fields default to NULL or sensible defaults. Clear client cache/reload to avoid stale modal data.
+
+Deliverables
+
+Updated backend: model, controller/route, DTOs.
+
+Updated client: job type, fetch/query, JobDetailsModal render blocks.
+
+Brief changelog summarizing files touched and fields added to API payload.
+
+One test fixture or sample API response for a job including new fields.
+
+Acceptance Criteria
+
+Fetching a job by id returns all new fields in JSON.
+
+Opening a job modal displays non-empty new fields with correct labels and formatting:
+
+Clickable mailto/tel/http links where applicable.
+
+“Specs Available” shown as Yes/No per source data.
+
+“Additional Features” shows multi-line truncated with full tooltip or expandable view per existing style.
+
+No regressions to filters, map markers, or existing job fields.
+
+CSV import preview shows mappings, and a test import persists values for at least one job.
+
+Verification
+
+Curl or browser the job GET endpoint for a known job id and confirm JSON includes the 17 new fields with expected values.
+
+In the UI, open the same job modal and visually confirm each field renders correctly.
+
+Run a preview CSV import, then re-open the job to confirm values persisted and are visible.
+
+Reload the app and re-open to ensure values are not cache-dependent.
+
+Hidden dependencies / blockers
+
+DB migration may not have applied in the current environment. Confirm migration status.
+
+Stale build or client cache may hide fields. Hard reload after wiring.
+
+If types are generated, regenerate client types from API before UI changes.
