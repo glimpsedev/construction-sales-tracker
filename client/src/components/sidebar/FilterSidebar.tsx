@@ -325,7 +325,7 @@ export default function FilterSidebar({
                     handleFilterChange('hideCold', checked);
                   }}
                 />
-                <label htmlFor="hide-cold" className="text-sm cursor-pointer">Hide Cold (grey) jobs</label>
+                <label htmlFor="hide-cold" className="text-sm cursor-pointer">Hide ❄️ Cold</label>
               </div>
               <span className="text-xs text-gray-500">{stats.cold} cold jobs</span>
             </div>
