@@ -54,6 +54,14 @@ export default function FilterSidebar({
     const industrial = jobs.filter(job => job.type === 'industrial').length;
     const equipment = jobs.filter(job => job.type === 'equipment').length;
     const cold = jobs.filter(job => job.isCold).length;
+    
+    // Count jobs as visited if they have started (startDate is in the past)
+    const now = new Date();
+    const visited = jobs.filter(job => {
+      if (!job.startDate) return false;
+      const startDate = new Date(job.startDate);
+      return startDate <= now;
+    }).length;
 
     return {
       total,
@@ -65,7 +73,8 @@ export default function FilterSidebar({
       residential,
       industrial,
       equipment,
-      cold
+      cold,
+      visited
     };
   }, [jobs]);
 
@@ -156,10 +165,10 @@ export default function FilterSidebar({
             <div className="text-sm text-blue-600">Total Jobs</div>
           </div>
           <div className="bg-green-50 p-3 rounded-lg">
-            <div className="text-2xl font-bold text-secondary" data-testid="stat-completed-jobs">
-              {isLoading ? <Skeleton className="h-6 w-12" /> : stats.completed}
+            <div className="text-2xl font-bold text-secondary" data-testid="stat-visited-jobs">
+              {isLoading ? <Skeleton className="h-6 w-12" /> : stats.visited}
             </div>
-            <div className="text-sm text-green-600">Completed</div>
+            <div className="text-sm text-green-600">Visited</div>
           </div>
         </div>
 
