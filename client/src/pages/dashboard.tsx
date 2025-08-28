@@ -26,7 +26,6 @@ export default function Dashboard() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [, setLocation] = useLocation();
   const [filters, setFilters] = useState({
-    search: '',
     status: ['active'] as string[],
     startDate: '',
     endDate: '',

@@ -389,7 +389,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async searchJobs(filters: {
-    search?: string;
     status?: string[];
     type?: string[];
     temperature?: string[];
@@ -405,16 +404,6 @@ export class DatabaseStorage implements IStorage {
     
     if (filters.userId) {
       conditions.push(eq(jobs.userId, filters.userId));
-    }
-
-    if (filters.search) {
-      conditions.push(
-        or(
-          ilike(jobs.name, `%${filters.search}%`),
-          ilike(jobs.address, `%${filters.search}%`),
-          ilike(jobs.contractor, `%${filters.search}%`)
-        )
-      );
     }
 
     if (filters.status && filters.status.length > 0) {

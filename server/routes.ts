@@ -143,7 +143,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/jobs", authenticate, async (req: AuthRequest, res) => {
     try {
       const {
-        search,
         status,
         type,
         temperature,
@@ -155,7 +154,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } = req.query;
 
       const filters = {
-        search: search as string,
         status: status ? (status as string).split(',') : undefined,
         type: type ? (type as string).split(',') : undefined,
         temperature: temperature ? (temperature as string).split(',') : undefined,

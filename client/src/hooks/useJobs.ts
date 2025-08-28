@@ -3,7 +3,6 @@ import type { Job } from "@shared/schema";
 import { getAuthHeaders } from "@/lib/auth";
 
 interface JobFilters {
-  search?: string;
   status?: string[];
   startDate?: string;
   endDate?: string;
@@ -19,7 +18,6 @@ export function useJobs(filters: JobFilters = {}) {
     queryFn: async () => {
       const params = new URLSearchParams();
       
-      if (filters.search) params.append('search', filters.search);
       if (filters.status?.length) params.append('status', filters.status.join(','));
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);

@@ -13,7 +13,6 @@ interface FilterSidebarProps {
   onToggle: () => void;
   jobs: Job[];
   filters: {
-    search: string;
     status: string[];
     startDate: string;
     endDate: string;
@@ -156,23 +155,29 @@ export default function FilterSidebar({
           </div>
         </div>
 
-        {/* Search */}
-        <div className="mb-6">
-          <div className="relative">
-            <Input
-              type="text"
-              placeholder="Search jobs, addresses..."
-              value={filters.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
-              className="pl-10"
-              data-testid="input-search"
-            />
-            <i className="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-          </div>
-        </div>
-
         {/* Filter Sections */}
         <div className="space-y-6">
+          {/* Project Value Filter - moved to top */}
+          <div>
+            <h3 className="text-sm font-medium text-darktext mb-3">Project Value</h3>
+            <div className="space-y-3">
+              <Slider
+                value={valueRange}
+                onValueChange={handleValueRangeChange}
+                min={0}
+                max={100000000}
+                step={100000}
+                className="w-full"
+                data-testid="slider-value-range"
+              />
+              <div className="flex justify-between text-sm text-gray-600">
+                <span>{formatValue(valueRange[0])}</span>
+                <span className="text-gray-400">—</span>
+                <span>{formatValue(valueRange[1])}</span>
+              </div>
+            </div>
+          </div>
+
           {/* Status Filter */}
           <div>
             <h3 className="text-sm font-medium text-darktext mb-3">Status</h3>
@@ -325,26 +330,7 @@ export default function FilterSidebar({
             </div>
           </div>
 
-          {/* Value Range */}
-          <div>
-            <h3 className="text-sm font-medium text-darktext mb-3">Project Value</h3>
-            <div className="space-y-3">
-              <Slider
-                value={valueRange}
-                onValueChange={handleValueRangeChange}
-                min={0}
-                max={100000000}
-                step={100000}
-                className="w-full"
-                data-testid="slider-value-range"
-              />
-              <div className="flex justify-between text-xs text-gray-500">
-                <span>{formatValue(valueRange[0])}</span>
-                <span>—</span>
-                <span data-testid="text-value-display">{formatValue(valueRange[1])}</span>
-              </div>
-            </div>
-          </div>
+
         </div>
 
         {/* Recent Jobs List */}
