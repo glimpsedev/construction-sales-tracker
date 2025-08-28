@@ -153,28 +153,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cold
       } = req.query;
 
-      // Apply default date range if not provided (last 3 months)
-      const getDefaultStartDate = () => {
-        const date = new Date();
-        date.setMonth(date.getMonth() - 3);
-        date.setHours(0, 0, 0, 0);
-        return date;
-      };
-
-      const getDefaultEndDate = () => {
-        const date = new Date();
-        date.setHours(23, 59, 59, 999);
-        return date;
-      };
-
       const filters = {
         status: status ? (status as string).split(',') : undefined,
         type: type ? (type as string).split(',') : undefined,
         temperature: temperature ? (temperature as string).split(',') : undefined,
-        startDate: startDate ? new Date(startDate as string) : getDefaultStartDate(),
-        endDate: endDate ? new Date(endDate as string) : getDefaultEndDate(),
-        minValue: minValue ? parseFloat(minValue as string) : 1000000, // Default to $1M minimum
-        maxValue: maxValue ? parseFloat(maxValue as string) : 100000000, // Default to $100M+ (unbounded)
+        startDate: startDate ? new Date(startDate as string) : undefined,
+        endDate: endDate ? new Date(endDate as string) : undefined,
+        minValue: minValue ? parseFloat(minValue as string) : undefined,
+        maxValue: maxValue ? parseFloat(maxValue as string) : undefined,
         cold: cold === 'false' ? false : cold === 'true' ? true : undefined,
         userId: req.userId,
       };
