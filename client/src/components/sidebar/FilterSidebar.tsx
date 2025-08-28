@@ -280,19 +280,6 @@ export default function FilterSidebar({
                 </div>
                 <span className="text-xs text-gray-500">{stats.industrial}</span>
               </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-equipment"
-                    checked={filters.type.includes('equipment')}
-                    onCheckedChange={(checked) => handleTypeChange('equipment', !!checked)}
-                    data-testid="checkbox-type-equipment"
-                  />
-                  <label htmlFor="type-equipment" className="text-sm cursor-pointer">Equipment</label>
-                </div>
-                <span className="text-xs text-gray-500">{stats.equipment}</span>
-              </div>
             </div>
           </div>
 

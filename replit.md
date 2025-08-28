@@ -11,7 +11,11 @@ The system features comprehensive job tracking with viewed/unviewed status, note
 Preferred communication style: Simple, everyday language.
 Layout preferences: Sidebar should not block or overlap the map area. Fixed sidebar width with responsive map area.
 
-## Recent Changes (January 27, 2025)
+## Recent Changes (January 28, 2025)
+
+- **Filter UI Cleanup**: Removed Equipment checkbox from Project Type filter since it shows 0 jobs and isn't necessary for construction tracking
+
+## Previous Changes (January 27, 2025)
 
 - **Safer CSV Import System**: Implemented intelligent CSV re-import protection
   - Added dedupe_key for consistent duplicate detection across imports
