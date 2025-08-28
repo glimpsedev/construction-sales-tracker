@@ -356,27 +356,6 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
                   Cold
                 </Button>
               </div>
-              <div className="mt-3 pt-3 border-t">
-                <Button
-                  size="sm"
-                  variant={job.isCold ? 'destructive' : 'outline'}
-                  onClick={() => markColdMutation.mutate({ jobId: job.id, isCold: !job.isCold })}
-                  disabled={markColdMutation.isPending}
-                  className="w-full"
-                >
-                  {job.isCold ? (
-                    <>
-                      <Flame className="h-4 w-4 mr-1" />
-                      Unmark Cold (Restore Original Color)
-                    </>
-                  ) : (
-                    <>
-                      <Snowflake className="h-4 w-4 mr-1" />
-                      Mark Cold (Grey Pin)
-                    </>
-                  )}
-                </Button>
-              </div>
             </CardContent>
           </Card>
 
