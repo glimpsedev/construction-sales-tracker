@@ -425,7 +425,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     if (filters.endDate) {
-      conditions.push(lte(jobs.endDate, filters.endDate));
+      conditions.push(lte(jobs.startDate, filters.endDate));
     }
 
     if (conditions.length > 0) {

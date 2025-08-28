@@ -27,6 +27,7 @@ export function useJobs(filters: JobFilters = {}) {
       if (filters.hideCold === true) params.append('cold', 'false');
 
       const url = `/api/jobs${params.toString() ? `?${params.toString()}` : ''}`;
+      console.info('Fetching jobs with URL:', url);
       const response = await fetch(url, {
         headers: getAuthHeaders(),
         credentials: 'include',
@@ -40,7 +41,9 @@ export function useJobs(filters: JobFilters = {}) {
         throw new Error(`Failed to fetch jobs: ${response.status} ${response.statusText}`);
       }
       
-      return response.json();
+      const data = await response.json();
+      console.info('Jobs fetched:', data.length, { status: filters.status, minValue: filters.minValue, startDate: filters.startDate, endDate: filters.endDate });
+      return data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 10 * 60 * 1000, // 10 minutes

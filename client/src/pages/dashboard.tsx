@@ -42,7 +42,7 @@ export default function Dashboard() {
   const defaultDates = getDefaultDates();
   
   const [filters, setFilters] = useState({
-    status: ['active'] as string[],
+    status: ['active', 'completed'] as string[], // Default to both active and completed
     startDate: defaultDates.startDate,
     endDate: defaultDates.endDate,
     minValue: '1000000', // Default to $1M minimum
