@@ -1,0 +1,93 @@
+Replit Agent Prompt
+
+-No code unless I explicitly request it
+-Exact next steps only; no theory, no fluff
+-Always flag hidden dependencies or blockers
+-Default to testing-first to avoid breaking working features
+
+Context
+
+After adding preload defaults, the map shows 0 jobs.
+
+Requirement: default to last 3 months AND valuation ≥ $1,000,000 while still returning jobs.
+
+Rules
+
+Minimal changes; match existing API/util styles.
+
+Keep slider 0–$100M+ but initialize to $1M–$100M+.
+
+Do not change other filters.
+
+Tasks
+
+Network reproduce
+
+In the browser Network tab, copy the first /api/jobs?... URL.
+
+Confirm params are present and correct: dateFrom, dateTo, minValue=1000000, maxValue omitted or 100000000, status=active only if the UI checkbox is on.
+
+Fix client param builder
+
+In the jobs fetch util/hook, build the URL with new URLSearchParams({...}).
+
+Use ISO dates YYYY-MM-DD for dateFrom/dateTo. Ensure dateTo is inclusive by adding 23:59:59 server-side.
+
+Server filter guards
+
+In jobs list controller:
+
+Parse numbers safely; ignore NaN.
+
+Apply valuation >= :minValue only if provided.
+
+For dates: filter on COALESCE(start_date, created_at) with >= :dateFrom and <= :dateTo + 1 day.
+
+Do not require start_date to be non-null to appear.
+
+Apply status filter only if explicitly passed.
+
+Quick SQL sanity check
+
+Run a direct query in the repo’s DB console with the same constraints to verify non-zero rows:
+
+SELECT count(*) FROM jobs
+WHERE COALESCE(start_date, created_at) >= CURRENT_DATE - INTERVAL '90 days'
+  AND valuation >= 1000000;
+
+
+Initialize defaults
+
+Client filter store: set default minValue=1_000_000, maxValue=100_000_000, dateFrom=today-90d, dateTo=today. URL params override these.
+
+Counts and UI
+
+Ensure the sidebar “Total Jobs” and status counts use the same filtered dataset, not an empty cache.
+
+Deliverables
+
+Updated fetch util/hook to send correct params.
+
+Updated server controller to handle null dates and inclusive ranges.
+
+Default filter initialization set to last 3 months + ≥ $1M.
+
+Brief change log.
+
+Acceptance Criteria
+
+Initial load shows non-zero jobs that meet last-3-months and ≥ $1M.
+
+Network shows /api/jobs?...dateFrom=YYYY-MM-DD&dateTo=YYYY-MM-DD&minValue=1000000.
+
+Changing slider/date updates results; no 500s.
+
+Sidebar totals and map markers agree.
+
+Verification
+
+Hard reload with no query params: jobs render quickly with visible markers.
+
+Copy Network URL, paste in a new tab, see JSON array length > 0.
+
+Toggle Active/Completed filters and confirm changes reflect on the map.

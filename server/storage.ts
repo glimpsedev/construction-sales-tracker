@@ -434,15 +434,14 @@ export class DatabaseStorage implements IStorage {
 
     let result = await query.orderBy(desc(jobs.lastUpdated));
     
-    // Apply value filtering on the result set since projectValue is a string
-    // Always apply minValue filtering (default is $1M)
+    // Apply value filtering on the result set
+    // projectValue is stored as decimal type
     result = result.filter(job => {
       // Handle null/undefined projectValue
-      if (!job.projectValue) return false;
+      if (job.projectValue === null || job.projectValue === undefined) return false;
       
-      // Remove non-numeric characters and parse value
-      const cleanValue = job.projectValue.replace(/[^0-9.]/g, '');
-      const value = parseFloat(cleanValue);
+      // Convert decimal to number
+      const value = parseFloat(job.projectValue.toString());
       if (isNaN(value)) return false;
       
       const minCheck = filters.minValue === undefined || value >= filters.minValue;
