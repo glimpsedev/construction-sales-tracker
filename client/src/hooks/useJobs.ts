@@ -5,7 +5,6 @@ import { getAuthHeaders } from "@/lib/auth";
 interface JobFilters {
   search?: string;
   status?: string[];
-  type?: string[];
   startDate?: string;
   endDate?: string;
   minValue?: string;
@@ -22,7 +21,6 @@ export function useJobs(filters: JobFilters = {}) {
       
       if (filters.search) params.append('search', filters.search);
       if (filters.status?.length) params.append('status', filters.status.join(','));
-      if (filters.type?.length) params.append('type', filters.type.join(','));
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
       if (filters.minValue) params.append('minValue', filters.minValue);

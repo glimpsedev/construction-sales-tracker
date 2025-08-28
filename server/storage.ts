@@ -421,9 +421,7 @@ export class DatabaseStorage implements IStorage {
       conditions.push(inArray(jobs.status, filters.status as any));
     }
 
-    if (filters.type && filters.type.length > 0) {
-      conditions.push(inArray(jobs.type, filters.type as any));
-    }
+    // Legacy type filter - ignored for backward compatibility with old URLs
 
     if (filters.temperature && filters.temperature.length > 0) {
       conditions.push(inArray(jobs.temperature, filters.temperature as any));

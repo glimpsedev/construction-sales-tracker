@@ -28,7 +28,6 @@ export default function Dashboard() {
   const [filters, setFilters] = useState({
     search: '',
     status: ['active'] as string[],
-    type: [] as string[],
     startDate: '',
     endDate: '',
     minValue: '',

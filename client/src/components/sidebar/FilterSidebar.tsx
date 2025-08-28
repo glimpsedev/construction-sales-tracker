@@ -15,7 +15,6 @@ interface FilterSidebarProps {
   filters: {
     search: string;
     status: string[];
-    type: string[];
     startDate: string;
     endDate: string;
     minValue: string;
@@ -49,10 +48,7 @@ export default function FilterSidebar({
     const completed = jobs.filter(job => job.status === 'completed').length;
     const planning = jobs.filter(job => job.status === 'planning').length;
     const pending = jobs.filter(job => job.status === 'pending').length;
-    const commercial = jobs.filter(job => job.type === 'commercial').length;
-    const residential = jobs.filter(job => job.type === 'residential').length;
-    const industrial = jobs.filter(job => job.type === 'industrial').length;
-    const equipment = jobs.filter(job => job.type === 'equipment').length;
+
     const cold = jobs.filter(job => job.isCold).length;
     
     // Count jobs as visited if their temperature has been set (Hot/Warm/Cold)
@@ -64,10 +60,7 @@ export default function FilterSidebar({
       completed,
       planning,
       pending,
-      commercial,
-      residential,
-      industrial,
-      equipment,
+
       cold,
       visited
     };
@@ -93,12 +86,7 @@ export default function FilterSidebar({
     handleFilterChange('status', newStatus);
   };
 
-  const handleTypeChange = (type: string, checked: boolean) => {
-    const newTypes = checked 
-      ? [...filters.type, type]
-      : filters.type.filter(t => t !== type);
-    handleFilterChange('type', newTypes);
-  };
+
 
   const handleValueRangeChange = (value: number[]) => {
     setValueRange(value);
@@ -239,51 +227,6 @@ export default function FilterSidebar({
                   <label htmlFor="status-planning" className="text-sm cursor-pointer">Planning</label>
                 </div>
                 <span className="text-xs text-gray-500" data-testid="count-planning">{stats.planning}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Project Type Filter */}
-          <div>
-            <h3 className="text-sm font-medium text-darktext mb-3">Project Type</h3>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-commercial"
-                    checked={filters.type.includes('commercial')}
-                    onCheckedChange={(checked) => handleTypeChange('commercial', !!checked)}
-                    data-testid="checkbox-type-commercial"
-                  />
-                  <label htmlFor="type-commercial" className="text-sm cursor-pointer">Commercial</label>
-                </div>
-                <span className="text-xs text-gray-500">{stats.commercial}</span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-residential"
-                    checked={filters.type.includes('residential')}
-                    onCheckedChange={(checked) => handleTypeChange('residential', !!checked)}
-                    data-testid="checkbox-type-residential"
-                  />
-                  <label htmlFor="type-residential" className="text-sm cursor-pointer">Residential</label>
-                </div>
-                <span className="text-xs text-gray-500">{stats.residential}</span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-industrial"
-                    checked={filters.type.includes('industrial')}
-                    onCheckedChange={(checked) => handleTypeChange('industrial', !!checked)}
-                    data-testid="checkbox-type-industrial"
-                  />
-                  <label htmlFor="type-industrial" className="text-sm cursor-pointer">Industrial</label>
-                </div>
-                <span className="text-xs text-gray-500">{stats.industrial}</span>
               </div>
             </div>
           </div>
