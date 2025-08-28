@@ -459,7 +459,10 @@ export class DatabaseStorage implements IStorage {
         if (isNaN(value)) return false;
         
         const minCheck = filters.minValue === undefined || value >= filters.minValue;
-        const maxCheck = filters.maxValue === undefined || value <= filters.maxValue;
+        // If maxValue is 100M, treat as unbounded (no upper limit)
+        const maxCheck = filters.maxValue === undefined || 
+                        filters.maxValue === 100000000 || 
+                        value <= filters.maxValue;
         
         return minCheck && maxCheck;
       });

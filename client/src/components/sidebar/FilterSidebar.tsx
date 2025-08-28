@@ -39,7 +39,7 @@ export default function FilterSidebar({
 }: FilterSidebarProps) {
   const [valueRange, setValueRange] = useState([
     filters.minValue ? parseFloat(filters.minValue) : 0,
-    filters.maxValue ? parseFloat(filters.maxValue) : 1000000000
+    filters.maxValue ? parseFloat(filters.maxValue) : 100000000
   ]);
   const debounceTimer = useRef<NodeJS.Timeout>();
 
@@ -126,7 +126,8 @@ export default function FilterSidebar({
   }, []);
 
   const formatValue = (value: number) => {
-    if (value >= 1000000000) return `$${(value / 1000000000).toFixed(1)}B`;
+    // Show "$100M+" when at maximum value
+    if (value >= 100000000) return `$100M+`;
     if (value >= 1000000) return `$${(value / 1000000).toFixed(0)}M`;
     if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`;
     return `$${value.toLocaleString()}`;
@@ -389,7 +390,7 @@ export default function FilterSidebar({
                 value={valueRange}
                 onValueChange={handleValueRangeChange}
                 min={0}
-                max={1000000000}
+                max={100000000}
                 step={100000}
                 className="w-full"
                 data-testid="slider-value-range"

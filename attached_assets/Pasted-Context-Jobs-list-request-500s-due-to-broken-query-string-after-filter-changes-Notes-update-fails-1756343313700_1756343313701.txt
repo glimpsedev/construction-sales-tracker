@@ -1,0 +1,73 @@
+Context
+
+Jobs list request 500s due to broken query string after filter changes.
+
+Notes update fails with 401 Unauthorized and shows “Failed to update notes.”
+
+Rules
+
+Minimal changes; match existing fetch/util style.
+
+Reuse URLSearchParams helpers if present.
+
+Do not change server auth model, only make client obey it.
+
+Tasks
+
+Fix jobs URL builder
+
+Locate client API that builds /api/jobs query (likely client/src/lib/api/jobs.ts or map fetch hook).
+
+Replace string concatenation with new URLSearchParams({...}).
+
+Ensure params: status=active, minValue, and if slider at max (100000000) either omit maxValue or send maxValue=100000000 consistently. Never merge tokens (must use &).
+
+Harden server parsing
+
+In jobs list controller, validate and coerce minValue/maxValue. Treat missing maxValue as unbounded. Guard NaN.
+
+Notes PUT auth
+
+In client fetch for PUT /api/jobs/:id/notes, add auth:
+
+If cookie-session: set credentials: 'include'.
+
+If JWT: add Authorization: Bearer ${token} from existing auth store.
+
+On 401, trigger login flow or show “Session expired. Please log in.”
+
+Test matrix
+
+With DevTools Network, confirm /api/jobs?... returns 200 and payload size looks normal.
+
+Change slider to mid and max. Verify query string and results.
+
+Update a note. Verify 200 and UI toast shows success.
+
+Deliverables
+
+Updated client API URL builder file.
+
+Optional small server change in jobs controller to accept unbounded maxValue.
+
+Updated notes API call with credentials/header.
+
+Brief change log.
+
+Acceptance Criteria
+
+/api/jobs requests have valid query strings (separate params with &, correct names).
+
+Jobs load without 500s across slider positions.
+
+Editing notes succeeds; no 401. UI shows success toast and value persists on refresh.
+
+No regressions to other filters or map markers.
+
+Verification
+
+Manually copy the full /api/jobs?... URL from Network and confirm parameters are distinct.
+
+Toggle Project Value to $0–$50M and $0–$100M+; results update and no errors.
+
+Edit a note, see 200 in Network, reopen job modal and see saved note.
