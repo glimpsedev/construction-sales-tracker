@@ -380,12 +380,14 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
             </CardContent>
           </Card>
 
-          {/* Description */}
-          {job.description && (
+          {/* Description / Additional Features */}
+          {(job.description || job.additionalFeatures) && (
             <Card>
               <CardContent className="pt-4">
                 <h4 className="font-medium mb-2">Description</h4>
-                <p className="text-sm text-gray-600">{job.description}</p>
+                <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                  {job.additionalFeatures || job.description}
+                </p>
               </CardContent>
             </Card>
           )}
@@ -553,10 +555,75 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
                     <span className="text-gray-500">General Contractor (GC):</span>{" "}
                     <span className="font-medium">{job.contractor || "Not specified"}</span>
                   </div>
+                  {(job.contractorPhone || job.contractorEmail || job.contractorWebsite || job.contractorContact) && (
+                    <div className="ml-4 space-y-1">
+                      {job.contractorContact && (
+                        <div>
+                          <span className="text-gray-400">Contact:</span>{" "}
+                          <span className="font-medium">{job.contractorContact}</span>
+                        </div>
+                      )}
+                      {job.contractorPhone && (
+                        <div>
+                          <span className="text-gray-400">Phone:</span>{" "}
+                          <a href={`tel:${job.contractorPhone}`} className="text-blue-600 hover:underline">
+                            {job.contractorPhone}
+                          </a>
+                        </div>
+                      )}
+                      {job.contractorEmail && (
+                        <div>
+                          <span className="text-gray-400">Email:</span>{" "}
+                          <a href={`mailto:${job.contractorEmail}`} className="text-blue-600 hover:underline">
+                            {job.contractorEmail}
+                          </a>
+                        </div>
+                      )}
+                      {job.contractorWebsite && (
+                        <div>
+                          <span className="text-gray-400">Website:</span>{" "}
+                          <a href={job.contractorWebsite.startsWith('http') ? job.contractorWebsite : `https://${job.contractorWebsite}`} 
+                             target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                            {job.contractorWebsite}
+                          </a>
+                        </div>
+                      )}
+                      {(job.contractorAddress || job.contractorCity || job.contractorCounty) && (
+                        <div>
+                          <span className="text-gray-400">Address:</span>{" "}
+                          <span className="font-medium">
+                            {[job.contractorAddress, job.contractorCity, job.contractorCounty].filter(Boolean).join(', ')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div>
                     <span className="text-gray-500">Owner Company:</span>{" "}
                     <span className="font-medium">{job.owner || "Not specified"}</span>
                   </div>
+                  {job.ownerPhone && (
+                    <div className="ml-4">
+                      <span className="text-gray-400">Phone:</span>{" "}
+                      <a href={`tel:${job.ownerPhone}`} className="text-blue-600 hover:underline">
+                        {job.ownerPhone}
+                      </a>
+                    </div>
+                  )}
+                  {job.constructionManager && (
+                    <div>
+                      <span className="text-gray-500">Construction Manager:</span>{" "}
+                      <span className="font-medium">{job.constructionManager}</span>
+                      {job.constructionManagerPhone && (
+                        <div className="ml-4">
+                          <span className="text-gray-400">Phone:</span>{" "}
+                          <a href={`tel:${job.constructionManagerPhone}`} className="text-blue-600 hover:underline">
+                            {job.constructionManagerPhone}
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div>
                     <span className="text-gray-500">Architect:</span>{" "}
                     <span className="font-medium">{job.architect || "Not specified"}</span>
@@ -606,15 +673,48 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
           )}
 
           {/* Additional Project Info */}
-          {(job.notes || job.specialConditions || job.userNotes) && (
+          {(job.notes || job.specialConditions || job.userNotes || job.workType || job.deliverySystem || job.specsAvailable || job.projectUrl) && (
             <Card>
               <CardContent className="pt-4">
                 <h4 className="font-medium mb-3">Additional Information</h4>
                 <div className="space-y-2 text-sm">
-                  {job.specialConditions && (
+                  {job.workType && (
+                    <div>
+                      <span className="text-gray-500">Work Type:</span>{" "}
+                      <span className="font-medium">{job.workType}</span>
+                    </div>
+                  )}
+                  {job.deliverySystem && (
                     <div>
                       <span className="text-gray-500">Delivery System:</span>{" "}
-                      <span className="font-medium">{job.specialConditions}</span>
+                      <span className="font-medium">{job.deliverySystem}</span>
+                    </div>
+                  )}
+                  {job.specsAvailable && (
+                    <div>
+                      <span className="text-gray-500">Specs Available:</span>{" "}
+                      <span className="font-medium">{job.specsAvailable}</span>
+                    </div>
+                  )}
+                  {job.projectUrl && (
+                    <div>
+                      <span className="text-gray-500">Project Link:</span>{" "}
+                      <a href={job.projectUrl} target="_blank" rel="noopener noreferrer" 
+                         className="text-blue-600 hover:underline">
+                        View on Dodge Data
+                      </a>
+                    </div>
+                  )}
+                  {job.projectNumber && (
+                    <div>
+                      <span className="text-gray-500">Project Number:</span>{" "}
+                      <span className="font-medium">{job.projectNumber}</span>
+                    </div>
+                  )}
+                  {job.versionNumber && (
+                    <div>
+                      <span className="text-gray-500">Version:</span>{" "}
+                      <span className="font-medium">{job.versionNumber}</span>
                     </div>
                   )}
                   {job.notes && (

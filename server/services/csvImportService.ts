@@ -447,31 +447,39 @@ export class CSVImportService {
 
     // Extract additional info from new Dodge format columns
     const ownerName = this.cleanString(row['Owner: Company Name'] || row['Owner Name (Link)'] || row['Owner'] || '');
+    const ownerPhone = this.cleanString(row['Owner: Company Phone'] || '');
     const architectName = this.cleanString(row['Architect: Company Name'] || row['Architect Name (Link)'] || row['Architect'] || '');
     const contractorName = this.cleanString(row['GC: Company Name'] || row['Contractor'] || '');
-    const status = this.cleanString(row['Work Type'] || row['Status'] || '');
+    const contractorPhone = this.cleanString(row['GC: Company Phone'] || '');
+    const contractorAddress = this.cleanString(row['GC: Company Address'] || '');
+    const contractorCity = this.cleanString(row['GC: Company City'] || '');
+    const contractorCounty = this.cleanString(row['GC: Company County'] || '');
+    const contractorEmail = this.cleanString(row['GC: Company Email'] || row['Email'] || '');
+    const contractorWebsite = this.cleanString(row['GC: Company Website'] || '');
+    const contractorContact = this.cleanString(row['GC: Contact Name'] || '');
+    const constructionManager = this.cleanString(row['Construction Manager: Company Name'] || '');
+    const constructionManagerPhone = this.cleanString(row['Construction Manager: Company Phone'] || '');
+    const workType = this.cleanString(row['Work Type'] || '');
+    const status = this.cleanString(row['Status'] || '');
     const deliverySystem = this.cleanString(row['Delivery System'] || '');
     const tags = this.cleanString(row['Tags (Private)'] || row['Tags (Shared)'] || row['Tags'] || '');
     const userNotes = this.cleanString(row['User Notes'] || '');
     const specsAvailable = this.cleanString(row['Specs Available'] || '');
+    const projectUrl = this.cleanString(row['Project URL'] || '');
+    const versionNumber = this.cleanString(row['Version Number'] || '');
+    const projectNumber = this.cleanString(row['Project Number'] || '');
+    const additionalFeatures = this.cleanString(row['Additional Features'] || '');
     // Look for date columns - Dodge uses different column names in different exports
     const targetStartDate = row['Target Start Date'] || row['Start Date'] || row['Bid Date'] || '';
     const targetEndDate = row['Target Completion Date'] || row['End Date'] || row['Completion Date'] || '';
     
-    // Get phone and email from new column format
-    const phone = this.cleanString(row['GC: Company Phone'] || row['Owner: Company Phone'] || row['Phone'] || '');
-    const email = this.cleanString(row['GC: Company Email'] || row['Email'] || '');
-    const gcContactName = this.cleanString(row['GC: Contact Name'] || '');
-    const gcWebsite = this.cleanString(row['GC: Company Website'] || '');
+    // Legacy phone and email fields for backward compatibility
+    const phone = contractorPhone || ownerPhone || this.cleanString(row['Phone'] || '');
+    const email = contractorEmail || this.cleanString(row['Email'] || '');
     
-    // Enhance description with all available info
-    const enhancedDescription = [
+    // Enhance description with Additional Features if available, otherwise build from other fields
+    const enhancedDescription = additionalFeatures || [
       description,
-      ownerName ? `Owner: ${ownerName}` : '',
-      architectName ? `Architect: ${architectName}` : '',
-      deliverySystem ? `Delivery System: ${deliverySystem}` : '',
-      specsAvailable ? `Specs Available: ${specsAvailable}` : '',
-      gcWebsite ? `Website: ${gcWebsite}` : '',
       tags ? `Tags: ${tags}` : '',
       userNotes ? `Notes: ${userNotes}` : ''
     ].filter(Boolean).join('\n');
@@ -515,16 +523,34 @@ export class CSVImportService {
       startDate: parsedStartDate ? new Date(parsedStartDate) : null,
       endDate: parsedEndDate ? new Date(parsedEndDate) : null,
       contractor: contractorName || '',
+      contractorPhone: contractorPhone || '',
+      contractorAddress: contractorAddress || '',
+      contractorCity: contractorCity || '',
+      contractorCounty: contractorCounty || '',
+      contractorEmail: contractorEmail || '',
+      contractorWebsite: contractorWebsite || '',
+      contractorContact: contractorContact || '',
       owner: ownerName || '',
+      ownerPhone: ownerPhone || '',
+      constructionManager: constructionManager || '',
+      constructionManagerPhone: constructionManagerPhone || '',
       architect: architectName || '',
-      phone: phone,
-      email: email,
-      officeContact: gcContactName || '',
+      phone: phone, // Legacy field
+      email: email, // Legacy field
+      officeContact: contractorContact || '',
       specialConditions: deliverySystem || '',
-      notes: tags || '', // Use tags as notes
+      notes: tags || '',
       orderedBy: this.cleanString(row['Ordered By'] || ''),
       isCustom: false,
       dodgeJobId: dodgeProjectId,
+      // New fields
+      projectUrl: projectUrl || '',
+      versionNumber: versionNumber || '',
+      projectNumber: projectNumber || '',
+      additionalFeatures: additionalFeatures || '',
+      deliverySystem: deliverySystem || '',
+      specsAvailable: specsAvailable || '',
+      workType: workType || '',
       // Track viewing status
       isViewed: false,
       viewedAt: null,
