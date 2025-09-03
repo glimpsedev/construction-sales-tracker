@@ -150,7 +150,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate,
         minValue,
         maxValue,
-        cold
+        cold,
+        county,
+        nearLat,
+        nearLng
       } = req.query;
 
       const filters = {
@@ -162,6 +165,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         minValue: minValue ? parseFloat(minValue as string) : undefined,
         maxValue: maxValue ? parseFloat(maxValue as string) : undefined,
         cold: cold === 'false' ? false : cold === 'true' ? true : undefined,
+        county: county as string | undefined,
+        nearLat: nearLat ? parseFloat(nearLat as string) : undefined,
+        nearLng: nearLng ? parseFloat(nearLng as string) : undefined,
         userId: req.userId,
       };
 

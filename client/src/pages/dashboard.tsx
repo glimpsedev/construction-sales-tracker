@@ -32,7 +32,9 @@ export default function Dashboard() {
     minValue: '',
     maxValue: '',
     temperature: [] as string[],
-    hideCold: false
+    hideCold: false,
+    county: '',
+    nearMe: false
   });
 
   const { data: jobs = [], isLoading, refetch } = useJobs(filters);

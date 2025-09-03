@@ -398,12 +398,20 @@ export class DatabaseStorage implements IStorage {
     maxValue?: number;
     viewStatus?: string;
     userId?: string;
+    county?: string;
+    nearLat?: number;
+    nearLng?: number;
   }): Promise<Job[]> {
     let query = db.select().from(jobs);
     const conditions = [];
     
     if (filters.userId) {
       conditions.push(eq(jobs.userId, filters.userId));
+    }
+
+    // County filter
+    if (filters.county) {
+      conditions.push(eq(jobs.county, filters.county));
     }
 
     if (filters.status && filters.status.length > 0) {
@@ -454,6 +462,36 @@ export class DatabaseStorage implements IStorage {
         return minCheck && maxCheck;
       });
     }
+    
+    // Apply location-based filtering if nearLat and nearLng are provided
+    if (filters.nearLat !== undefined && filters.nearLng !== undefined) {
+      const radiusMiles = 25; // 25 mile radius
+      result = result.filter(job => {
+        if (!job.latitude || !job.longitude) return false;
+        
+        const jobLat = parseFloat(job.latitude);
+        const jobLng = parseFloat(job.longitude);
+        
+        if (isNaN(jobLat) || isNaN(jobLng)) return false;
+        
+        // Calculate distance using Haversine formula
+        const toRad = (x: number) => x * Math.PI / 180;
+        const R = 3959; // Earth's radius in miles
+        
+        const dLat = toRad(jobLat - filters.nearLat!);
+        const dLng = toRad(jobLng - filters.nearLng!);
+        
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(toRad(filters.nearLat!)) * Math.cos(toRad(jobLat)) *
+                  Math.sin(dLng/2) * Math.sin(dLng/2);
+        
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distance = R * c;
+        
+        return distance <= radiusMiles;
+      });
+    }
+    
     return result;
   }
 

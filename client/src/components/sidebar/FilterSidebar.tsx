@@ -3,9 +3,11 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import JobCard from "./JobCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MapPin } from "lucide-react";
 import type { Job } from "@shared/schema";
 
 interface FilterSidebarProps {
@@ -20,6 +22,8 @@ interface FilterSidebarProps {
     maxValue: string;
     temperature?: string[];
     hideCold?: boolean;
+    county?: string;
+    nearMe?: boolean;
   };
   onFilterChange: (filters: any) => void;
   onJobSelect: (job: Job) => void;
@@ -40,6 +44,18 @@ export default function FilterSidebar({
     filters.maxValue ? parseFloat(filters.maxValue) : 100000000
   ]);
   const debounceTimer = useRef<NodeJS.Timeout>();
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+
+  // Get unique counties from jobs
+  const availableCounties = useMemo(() => {
+    const counties = new Set<string>();
+    jobs.forEach(job => {
+      if (job.county) {
+        counties.add(job.county);
+      }
+    });
+    return Array.from(counties).sort();
+  }, [jobs]);
 
   const stats = useMemo(() => {
     const total = jobs.length;
@@ -157,7 +173,62 @@ export default function FilterSidebar({
 
         {/* Filter Sections */}
         <div className="space-y-6">
-          {/* Project Value Filter - moved to top */}
+          {/* Location Filters */}
+          <div>
+            <h3 className="text-sm font-medium text-darktext mb-3">Location</h3>
+            <div className="space-y-3">
+              {/* County Selector */}
+              <Select
+                value={filters.county || "all"}
+                onValueChange={(value) => handleFilterChange('county', value === 'all' ? '' : value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="All Counties" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Counties</SelectItem>
+                  {availableCounties.map(county => (
+                    <SelectItem key={county} value={county}>
+                      {county}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {/* Near Me Toggle */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="near-me"
+                  checked={filters.nearMe === true}
+                  onCheckedChange={(checked) => {
+                    if (checked && navigator.geolocation) {
+                      navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                          setUserLocation({
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                          });
+                          handleFilterChange('nearMe', true);
+                        },
+                        (error) => {
+                          console.error('Failed to get location:', error);
+                          handleFilterChange('nearMe', false);
+                        }
+                      );
+                    } else {
+                      handleFilterChange('nearMe', false);
+                    }
+                  }}
+                />
+                <label htmlFor="near-me" className="text-sm cursor-pointer flex items-center gap-1">
+                  <MapPin className="w-4 h-4" />
+                  Jobs Near Me (25 miles)
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Project Value Filter */}
           <div>
             <h3 className="text-sm font-medium text-darktext mb-3">Project Value</h3>
             <div className="space-y-3">

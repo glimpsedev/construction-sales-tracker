@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import type { Job } from "@shared/schema";
 import { getAuthHeaders } from "@/lib/auth";
 
@@ -10,11 +11,37 @@ interface JobFilters {
   maxValue?: string;
   temperature?: string[];
   hideCold?: boolean;
+  county?: string;
+  nearMe?: boolean;
+  userLat?: number;
+  userLng?: number;
 }
 
 export function useJobs(filters: JobFilters = {}) {
+  // Get user location if nearMe is enabled
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+  
+  useEffect(() => {
+    if (filters.nearMe && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.error('Failed to get location:', error);
+          setUserLocation(null);
+        }
+      );
+    } else {
+      setUserLocation(null);
+    }
+  }, [filters.nearMe]);
+
   return useQuery<Job[]>({
-    queryKey: ['/api/jobs', filters],
+    queryKey: ['/api/jobs', filters, userLocation],
     queryFn: async () => {
       const params = new URLSearchParams();
       
@@ -25,6 +52,11 @@ export function useJobs(filters: JobFilters = {}) {
       if (filters.maxValue) params.append('maxValue', filters.maxValue);
       if (filters.temperature?.length) params.append('temperature', filters.temperature.join(','));
       if (filters.hideCold === true) params.append('cold', 'false');
+      if (filters.county) params.append('county', filters.county);
+      if (filters.nearMe && userLocation) {
+        params.append('nearLat', userLocation.lat.toString());
+        params.append('nearLng', userLocation.lng.toString());
+      }
 
       const url = `/api/jobs${params.toString() ? `?${params.toString()}` : ''}`;
       const response = await fetch(url, {
