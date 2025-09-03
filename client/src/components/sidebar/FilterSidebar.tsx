@@ -40,8 +40,8 @@ export default function FilterSidebar({
   isLoading 
 }: FilterSidebarProps) {
   const [valueRange, setValueRange] = useState([
-    filters.minValue ? parseFloat(filters.minValue) : 0,
-    filters.maxValue ? parseFloat(filters.maxValue) : 100000000
+    filters.minValue ? parseFloat(filters.minValue) : 100000000,  // Default to $100M+
+    filters.maxValue ? parseFloat(filters.maxValue) : 100000000   // Default to $100M+
   ]);
   const debounceTimer = useRef<NodeJS.Timeout>();
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
@@ -201,23 +201,7 @@ export default function FilterSidebar({
                   id="near-me"
                   checked={filters.nearMe === true}
                   onCheckedChange={(checked) => {
-                    if (checked && navigator.geolocation) {
-                      navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                          setUserLocation({
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude
-                          });
-                          handleFilterChange('nearMe', true);
-                        },
-                        (error) => {
-                          console.error('Failed to get location:', error);
-                          handleFilterChange('nearMe', false);
-                        }
-                      );
-                    } else {
-                      handleFilterChange('nearMe', false);
-                    }
+                    handleFilterChange('nearMe', checked);
                   }}
                 />
                 <label htmlFor="near-me" className="text-sm cursor-pointer flex items-center gap-1">

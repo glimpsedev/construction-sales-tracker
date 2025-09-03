@@ -20,23 +20,33 @@ interface JobFilters {
 export function useJobs(filters: JobFilters = {}) {
   // Get user location if nearMe is enabled
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
   
   useEffect(() => {
     if (filters.nearMe && navigator.geolocation) {
+      setLocationLoading(true);
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setUserLocation({
             lat: position.coords.latitude,
             lng: position.coords.longitude
           });
+          setLocationLoading(false);
         },
         (error) => {
           console.error('Failed to get location:', error);
           setUserLocation(null);
+          setLocationLoading(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
         }
       );
     } else {
       setUserLocation(null);
+      setLocationLoading(false);
     }
   }, [filters.nearMe]);
 
@@ -53,6 +63,8 @@ export function useJobs(filters: JobFilters = {}) {
       if (filters.temperature?.length) params.append('temperature', filters.temperature.join(','));
       if (filters.hideCold === true) params.append('cold', 'false');
       if (filters.county) params.append('county', filters.county);
+      
+      // Only add location params if we have a location and nearMe is true
       if (filters.nearMe && userLocation) {
         params.append('nearLat', userLocation.lat.toString());
         params.append('nearLng', userLocation.lng.toString());
@@ -76,6 +88,8 @@ export function useJobs(filters: JobFilters = {}) {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 10 * 60 * 1000, // 10 minutes
+    // Wait for location if nearMe is enabled
+    enabled: !filters.nearMe || (filters.nearMe && !locationLoading)
   });
 }
 

@@ -29,8 +29,8 @@ export default function Dashboard() {
     status: ['active'] as string[],
     startDate: '',
     endDate: '',
-    minValue: '',
-    maxValue: '',
+    minValue: '100000000',  // Default to $100M+ for faster loading
+    maxValue: '100000000',  // Default to $100M+ for faster loading
     temperature: [] as string[],
     hideCold: false,
     county: '',
