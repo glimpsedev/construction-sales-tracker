@@ -63,6 +63,23 @@ const uploadExcel = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoints for deployment
+  app.get("/health", (req, res) => {
+    res.status(200).json({ 
+      status: "healthy", 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
+  
+  // Additional health check at root for external load balancers
+  app.get("/", (req, res) => {
+    res.status(200).json({ 
+      status: "Construction Sales Tracker API is running",
+      timestamp: new Date().toISOString()
+    });
+  });
+
   // Create initial user on startup
   await createInitialUser();
   
@@ -130,7 +147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update all jobs without a userId to belong to this user
       const result = await db.update(jobs)
         .set({ userId: user.id })
-        .where(eq(jobs.userId, null));
+        .where(sql`${jobs.userId} IS NULL`);
         
       res.json({ message: 'Migration completed', jobsUpdated: result.rowCount });
     } catch (error) {

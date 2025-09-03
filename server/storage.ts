@@ -33,6 +33,9 @@ export interface IStorage {
     maxValue?: number;
     cold?: boolean;
     userId?: string;
+    county?: string;
+    nearLat?: number;
+    nearLng?: number;
   }): Promise<Job[]>;
   getJobByDodgeId(dodgeId: string, userId?: string): Promise<Job | undefined>;
 
@@ -112,7 +115,7 @@ export class MemStorage implements IStorage {
 
   async deleteExpiredVerifications(): Promise<void> {
     const now = new Date();
-    for (const [token, verification] of this.emailVerificationsMap.entries()) {
+    for (const [token, verification] of Array.from(this.emailVerificationsMap.entries())) {
       if (verification.expiresAt < now) {
         this.emailVerificationsMap.delete(token);
       }
@@ -139,7 +142,10 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const now = new Date();
     const newJob: Job = { 
-      ...job, 
+      ...job,
+      email: job.email || null,
+      type: job.type || 'commercial',
+      status: job.status || 'active',
       id, 
       createdAt: now,
       lastUpdated: now 
@@ -153,7 +159,12 @@ export class MemStorage implements IStorage {
     if (!job) return undefined;
     if (userId && job.userId !== userId) return undefined;
     
-    const updatedJob = { ...job, ...updates, lastUpdated: new Date() };
+    const updatedJob = { 
+      ...job, 
+      ...updates, 
+      lastUpdated: new Date(),
+      lockedFields: Array.isArray(updates.lockedFields) ? updates.lockedFields.slice() : job.lockedFields
+    };
     this.jobsMap.set(id, updatedJob);
     return updatedJob;
   }
@@ -173,6 +184,7 @@ export class MemStorage implements IStorage {
     endDate?: Date;
     minValue?: number;
     maxValue?: number;
+    cold?: boolean;
     viewStatus?: string;
     userId?: string;
   }): Promise<Job[]> {
@@ -255,7 +267,13 @@ export class MemStorage implements IStorage {
 
   async createEquipment(equipment: InsertEquipment): Promise<Equipment> {
     const id = randomUUID();
-    const newEquipment: Equipment = { ...equipment, id, createdAt: new Date() };
+    const newEquipment: Equipment = { 
+      ...equipment,
+      userId: equipment.userId || null,
+      jobId: equipment.jobId || null,
+      id, 
+      createdAt: new Date() 
+    };
     this.equipmentMap.set(id, newEquipment);
     return newEquipment;
   }
@@ -280,7 +298,8 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const now = new Date();
     const newDocument: Document = { 
-      ...document, 
+      ...document,
+      extractedData: document.extractedData || null,
       id, 
       createdAt: now,
       processedAt: now 
@@ -385,7 +404,7 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(jobs.userId, userId));
     }
     const result = await db.delete(jobs).where(and(...conditions));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async searchJobs(filters: {
