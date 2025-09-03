@@ -63,20 +63,12 @@ const uploadExcel = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Health check endpoints for deployment
+  // Health check endpoint for deployment
   app.get("/health", (req, res) => {
     res.status(200).json({ 
       status: "healthy", 
       timestamp: new Date().toISOString(),
       uptime: process.uptime()
-    });
-  });
-  
-  // Additional health check at root for external load balancers
-  app.get("/", (req, res) => {
-    res.status(200).json({ 
-      status: "Construction Sales Tracker API is running",
-      timestamp: new Date().toISOString()
     });
   });
 
