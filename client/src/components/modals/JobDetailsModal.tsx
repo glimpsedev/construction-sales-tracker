@@ -26,7 +26,8 @@ import {
   Save,
   Flame,
   Thermometer,
-  Snowflake
+  Snowflake,
+  CheckCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Job } from "@shared/schema";
@@ -444,6 +445,16 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
                 >
                   <Snowflake className="h-4 w-4 mr-1" />
                   Cold
+                </Button>
+                <Button
+                  size="sm"
+                  variant={job.temperature === 'green' ? 'default' : 'outline'}
+                  className={job.temperature === 'green' ? 'bg-green-500 hover:bg-green-600 text-white' : ''}
+                  onClick={() => updateTemperatureMutation.mutate({ jobId: job.id, temperature: 'green' })}
+                  disabled={updateTemperatureMutation.isPending}
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Green
                 </Button>
               </div>
             </CardContent>

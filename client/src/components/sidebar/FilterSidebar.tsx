@@ -364,6 +364,23 @@ export default function FilterSidebar({
                   <label htmlFor="temp-cold" className="text-sm cursor-pointer">❄️ Cold</label>
                 </div>
               </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="temp-green"
+                    checked={filters.temperature?.includes('green')}
+                    onCheckedChange={(checked) => {
+                      const temps = filters.temperature || [];
+                      handleFilterChange('temperature', checked
+                        ? [...temps, 'green']
+                        : temps.filter((t: string) => t !== 'green')
+                      );
+                    }}
+                  />
+                  <label htmlFor="temp-green" className="text-sm cursor-pointer">✅ Green</label>
+                </div>
+              </div>
             </div>
           </div>
 

@@ -648,7 +648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { temperature } = req.body;
       
-      if (!['hot', 'warm', 'cold'].includes(temperature)) {
+      if (!['hot', 'warm', 'cold', 'green'].includes(temperature)) {
         return res.status(400).json({ error: 'Invalid temperature value' });
       }
       

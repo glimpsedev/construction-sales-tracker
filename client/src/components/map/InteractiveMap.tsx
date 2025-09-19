@@ -98,6 +98,7 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
         const iconColor = job.temperature === 'cold' || job.isCold ? 'bg-gray-500' :
                          job.temperature === 'hot' ? 'bg-red-500' :
                          job.temperature === 'warm' ? 'bg-orange-500' :
+                         job.temperature === 'green' ? 'bg-green-500' :
                          'bg-blue-600';
         const iconHtml = getStatusIcon(job.status, job.type);
         
