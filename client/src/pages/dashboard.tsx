@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { MapContainer } from "@/components/ui/map-container";
 import InteractiveMap from "@/components/map/InteractiveMap";
 import FilterSidebar from "@/components/sidebar/FilterSidebar";
@@ -37,7 +37,49 @@ export default function Dashboard() {
     nearMe: false
   });
 
-  const { data: jobs = [], isLoading, refetch } = useJobs(filters);
+  // Modify filters to fetch both active and planning jobs when active is selected
+  // (since planning jobs might actually be active based on start date)
+  const modifiedFilters = useMemo(() => {
+    const newFilters = { ...filters };
+    if (filters.status.includes('active')) {
+      // If active is selected, also fetch planning jobs to check if they should be active
+      const statusSet = new Set(filters.status);
+      statusSet.add('planning');
+      newFilters.status = Array.from(statusSet);
+    }
+    return newFilters;
+  }, [filters]);
+
+  const { data: fetchedJobs = [], isLoading, refetch } = useJobs(modifiedFilters);
+
+  // Apply effective status logic and filter jobs
+  const getEffectiveStatus = (job: Job) => {
+    if (job.status === 'completed') return 'completed';
+    
+    if (job.startDate) {
+      const startDate = new Date(job.startDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      startDate.setHours(0, 0, 0, 0);
+      
+      if (startDate <= today && job.status === 'planning') {
+        return 'active';
+      }
+    }
+    
+    return job.status;
+  };
+
+  // Filter jobs based on effective status
+  const jobs = fetchedJobs.filter(job => {
+    const effectiveStatus = getEffectiveStatus(job);
+    
+    // If status filter is empty, show all jobs
+    if (!filters.status || filters.status.length === 0) return true;
+    
+    // Check if effective status matches any of the selected filters
+    return filters.status.includes(effectiveStatus);
+  });
   const { toast } = useToast();
 
   // Update job temperature mutation

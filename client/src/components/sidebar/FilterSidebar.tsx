@@ -57,12 +57,38 @@ export default function FilterSidebar({
     return Array.from(counties).sort();
   }, [jobs]);
 
+  // Helper function to determine effective status
+  const getEffectiveStatus = (job: Job) => {
+    if (job.status === 'completed') return 'completed';
+    
+    if (job.startDate) {
+      const startDate = new Date(job.startDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      startDate.setHours(0, 0, 0, 0);
+      
+      if (startDate <= today && job.status === 'planning') {
+        return 'active';
+      }
+    }
+    
+    return job.status;
+  };
+
   const stats = useMemo(() => {
     const total = jobs.length;
-    const active = jobs.filter(job => job.status === 'active').length;
-    const completed = jobs.filter(job => job.status === 'completed').length;
-    const planning = jobs.filter(job => job.status === 'planning').length;
-    const pending = jobs.filter(job => job.status === 'pending').length;
+    
+    // Calculate status counts based on effective status
+    const statusCounts = jobs.reduce((acc, job) => {
+      const effectiveStatus = getEffectiveStatus(job);
+      acc[effectiveStatus] = (acc[effectiveStatus] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const active = statusCounts['active'] || 0;
+    const completed = statusCounts['completed'] || 0;
+    const planning = statusCounts['planning'] || 0;
+    const pending = statusCounts['pending'] || 0;
 
     const cold = jobs.filter(job => job.isCold).length;
     
