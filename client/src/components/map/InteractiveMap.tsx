@@ -100,7 +100,8 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
                          job.temperature === 'warm' ? 'bg-orange-500' :
                          job.temperature === 'green' ? 'bg-green-500' :
                          'bg-blue-600';
-        const iconHtml = getStatusIcon(job.status, job.type);
+        const effectiveStatus = getEffectiveStatus(job);
+        const iconHtml = getStatusIcon(effectiveStatus, job.type);
         
         const customIcon = L.divIcon({
           html: `
@@ -195,6 +196,24 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
   const handleToggleLayers = () => {
     // Could implement different map layers (satellite, terrain, etc.)
     console.log('Toggle layers - feature could be implemented');
+  };
+
+  // Determine the effective status based on target start date
+  const getEffectiveStatus = (job: Job) => {
+    if (job.status === 'completed') return 'completed'; // Don't change completed status
+    
+    if (job.startDate) {
+      const startDate = new Date(job.startDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // If start date has passed and job is in planning, mark as active
+      if (startDate <= today && job.status === 'planning') {
+        return 'active';
+      }
+    }
+    
+    return job.status;
   };
 
   const getStatusColor = (status: string) => {

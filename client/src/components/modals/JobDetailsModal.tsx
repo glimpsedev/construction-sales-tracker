@@ -279,6 +279,26 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
     }
   };
 
+  // Determine the effective status based on target start date
+  const getEffectiveStatus = (job: Job) => {
+    if (job.status === 'completed') return 'completed'; // Don't change completed status
+    
+    if (job.startDate) {
+      const startDate = new Date(job.startDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // If start date has passed and job is in planning, mark as active
+      if (startDate <= today && job.status === 'planning') {
+        return 'active';
+      }
+    }
+    
+    return job.status;
+  };
+
+  const effectiveStatus = getEffectiveStatus(job);
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent 
@@ -323,7 +343,7 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
                   New
                 </Badge>
               )}
-              <Badge variant="outline">{job.status}</Badge>
+              <Badge variant="outline">{effectiveStatus}</Badge>
               <Badge variant="outline">{job.type}</Badge>
             </div>
             {job.dodgeJobId && (

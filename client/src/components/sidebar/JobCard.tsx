@@ -8,6 +8,26 @@ interface JobCardProps {
 }
 
 export default function JobCard({ job, onClick }: JobCardProps) {
+  // Determine the effective status based on target start date
+  const getEffectiveStatus = (job: Job) => {
+    if (job.status === 'completed') return 'completed'; // Don't change completed status
+    
+    if (job.startDate) {
+      const startDate = new Date(job.startDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // If start date has passed and job is in planning, mark as active
+      if (startDate <= today && job.status === 'planning') {
+        return 'active';
+      }
+    }
+    
+    return job.status;
+  };
+
+  const effectiveStatus = getEffectiveStatus(job);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800';
@@ -21,7 +41,7 @@ export default function JobCard({ job, onClick }: JobCardProps) {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed': return 'fas fa-check-circle';
-      case 'active': return 'fas fa-map-marker-alt';
+      case 'active': return 'fas fa-hammer';
       case 'planning': return 'fas fa-clock';
       case 'pending': return 'fas fa-pause';
       default: return 'fas fa-map-marker-alt';
@@ -62,8 +82,8 @@ export default function JobCard({ job, onClick }: JobCardProps) {
             {truncateAddress(job.address)}
           </p>
           <div className="flex items-center space-x-2 flex-wrap gap-1">
-            <Badge className={`text-xs ${getStatusColor(job.status)}`}>
-              {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+            <Badge className={`text-xs ${getStatusColor(effectiveStatus)}`}>
+              {effectiveStatus.charAt(0).toUpperCase() + effectiveStatus.slice(1)}
             </Badge>
             {job.projectValue && (
               <span className="text-xs text-gray-500" data-testid={`job-value-${job.id}`}>
@@ -81,11 +101,11 @@ export default function JobCard({ job, onClick }: JobCardProps) {
           variant="ghost"
           size="icon"
           className={`text-gray-400 hover:text-primary flex-shrink-0 ml-2 ${
-            job.status === 'completed' ? 'text-secondary' : ''
+            effectiveStatus === 'completed' ? 'text-secondary' : ''
           }`}
           data-testid={`button-select-job-${job.id}`}
         >
-          <i className={getStatusIcon(job.status)}></i>
+          <i className={getStatusIcon(effectiveStatus)}></i>
         </Button>
       </div>
       
