@@ -287,6 +287,7 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
       const startDate = new Date(job.startDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      startDate.setHours(0, 0, 0, 0);
       
       // If start date has passed and job is in planning, mark as active
       if (startDate <= today && job.status === 'planning') {

@@ -16,9 +16,11 @@ export default function JobCard({ job, onClick }: JobCardProps) {
       const startDate = new Date(job.startDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      startDate.setHours(0, 0, 0, 0);
       
       // If start date has passed and job is in planning, mark as active
       if (startDate <= today && job.status === 'planning') {
+        console.log(`Job ${job.name} - Start: ${startDate.toISOString()}, Today: ${today.toISOString()}, Changing to active`);
         return 'active';
       }
     }

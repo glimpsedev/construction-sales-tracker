@@ -11,6 +11,15 @@ The system features comprehensive job tracking with viewed/unviewed status, note
 Preferred communication style: Simple, everyday language.
 Layout preferences: Sidebar should not block or overlap the map area. Fixed sidebar width with responsive map area.
 
+## Recent Changes (October 14, 2025)
+
+- **Dynamic Job Status Updates**: Jobs with target start dates in the past now automatically show as "active" with hammer icons
+  - Added logic to check if target start date has passed for "planning" jobs
+  - Jobs past their start date display with hammer icon instead of clock icon
+  - Applied across map pins, sidebar cards, and job details modal
+  - Fixed date comparison to properly normalize dates to midnight for accurate comparison
+  - Note: Server must run in production mode (`npm run start`) to serve the updated build
+
 ## Recent Changes (January 28, 2025)
 
 - **Visited Jobs Tracking Overhaul**: Changed from start-date logic to temperature-based tracking
