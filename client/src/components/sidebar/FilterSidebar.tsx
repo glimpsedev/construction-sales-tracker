@@ -90,7 +90,7 @@ export default function FilterSidebar({
     const planning = statusCounts['planning'] || 0;
     const pending = statusCounts['pending'] || 0;
 
-    const cold = jobs.filter(job => job.isCold).length;
+    const cold = jobs.filter(job => job.isCold || job.temperature === 'cold').length;
     
     // Count jobs as visited if their temperature has been set (Hot/Warm/Cold)
     const visited = jobs.filter(job => job.visited).length;

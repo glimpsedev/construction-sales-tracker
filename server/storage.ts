@@ -216,7 +216,10 @@ export class MemStorage implements IStorage {
     }
     
     if (filters.cold !== undefined) {
-      result = result.filter(job => job.isCold === filters.cold);
+      result = result.filter(job => {
+        const isCold = job.isCold || job.temperature === 'cold';
+        return filters.cold ? isCold : !isCold;
+      });
     }
 
     if (filters.startDate) {
@@ -415,6 +418,7 @@ export class DatabaseStorage implements IStorage {
     endDate?: Date;
     minValue?: number;
     maxValue?: number;
+    cold?: boolean;
     viewStatus?: string;
     userId?: string;
     county?: string;
@@ -442,10 +446,6 @@ export class DatabaseStorage implements IStorage {
     if (filters.temperature && filters.temperature.length > 0) {
       conditions.push(inArray(jobs.temperature, filters.temperature as any));
     }
-    
-    if (filters.cold !== undefined) {
-      conditions.push(eq(jobs.isCold, filters.cold));
-    }
 
     if (filters.startDate) {
       conditions.push(gte(jobs.startDate, filters.startDate));
@@ -460,6 +460,13 @@ export class DatabaseStorage implements IStorage {
     }
 
     let result = await query.orderBy(desc(jobs.lastUpdated));
+
+    if (filters.cold !== undefined) {
+      result = result.filter(job => {
+        const isCold = job.isCold || job.temperature === 'cold';
+        return filters.cold ? isCold : !isCold;
+      });
+    }
     
     // Apply value filtering on the result set since projectValue is a string
     if (filters.minValue !== undefined || filters.maxValue !== undefined) {
