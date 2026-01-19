@@ -3,7 +3,6 @@ import { MapContainer } from "@/components/ui/map-container";
 import InteractiveMap from "@/components/map/InteractiveMap";
 import FilterSidebar from "@/components/sidebar/FilterSidebar";
 import AddJobModal from "@/components/modals/AddJobModal";
-import DocumentUploadModal from "@/components/modals/DocumentUploadModal";
 import { JobDetailsModal } from "@/components/modals/JobDetailsModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +19,6 @@ import { getAuthHeaders } from "@/lib/auth";
 export default function Dashboard() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showUploadModal, setShowUploadModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false); // Start closed on mobile
   const [showJobDetails, setShowJobDetails] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -179,20 +177,12 @@ export default function Dashboard() {
                 </Button>
               </Link>
               <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowUploadModal(true)}
-              >
-                <i className="fas fa-file-upload mr-2"></i>
-                Upload Docs
-              </Button>
-              <Button
                 size="sm"
                 className="bg-primary hover:bg-blue-700"
                 onClick={() => setShowAddModal(true)}
               >
                 <i className="fas fa-plus mr-2"></i>
-                Add Job
+                Add Job Manually
               </Button>
               <Button
                 variant="destructive"
@@ -247,16 +237,6 @@ export default function Dashboard() {
                   Import CSV
                 </button>
               </Link>
-              <button
-                onClick={() => {
-                  setShowUploadModal(true);
-                  setShowMobileMenu(false);
-                }}
-                className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded flex items-center gap-2"
-              >
-                <i className="fas fa-file-upload"></i>
-                Upload Documents
-              </button>
               <Link href="/equipment">
                 <button
                   onClick={() => setShowMobileMenu(false)}
@@ -386,12 +366,6 @@ export default function Dashboard() {
           setShowAddModal(false);
           refetch();
         }}
-      />
-
-      <DocumentUploadModal
-        isOpen={showUploadModal}
-        onClose={() => setShowUploadModal(false)}
-        onSuccess={refetch}
       />
     </div>
   );
