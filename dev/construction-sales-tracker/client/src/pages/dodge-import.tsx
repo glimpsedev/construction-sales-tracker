@@ -188,61 +188,6 @@ export function DodgeImportPage() {
         </p>
       </div>
 
-      {/* How It Works */}
-      <Card className="border-2 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
-          <CardTitle className="flex items-center gap-3 text-xl">
-            <div className="p-2 bg-blue-500 rounded-lg">
-              <Sparkles className="h-5 w-5 text-white" />
-            </div>
-            How Duplicate Handling Works
-          </CardTitle>
-          <CardDescription className="text-base">
-            Our intelligent system automatically detects and handles duplicates
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="group relative overflow-hidden rounded-xl border-2 border-blue-100 bg-gradient-to-br from-blue-50 to-white p-6 transition-all hover:border-blue-300 hover:shadow-lg">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-blue-200 rounded-full -mr-10 -mt-10 opacity-20"></div>
-              <div className="relative">
-                <div className="mb-4 inline-flex p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-md">
-                  <Zap className="h-6 w-6 text-white" />
-                </div>
-                <div className="font-semibold text-lg mb-2 text-gray-900">1. Smart Matching</div>
-                <div className="text-sm text-gray-600 leading-relaxed">
-                  Matches by project ID, name + address, or value to prevent duplicates
-                </div>
-              </div>
-            </div>
-            <div className="group relative overflow-hidden rounded-xl border-2 border-yellow-100 bg-gradient-to-br from-yellow-50 to-white p-6 transition-all hover:border-yellow-300 hover:shadow-lg">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-yellow-200 rounded-full -mr-10 -mt-10 opacity-20"></div>
-              <div className="relative">
-                <div className="mb-4 inline-flex p-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl shadow-md">
-                  <Shield className="h-6 w-6 text-white" />
-                </div>
-                <div className="font-semibold text-lg mb-2 text-gray-900">2. Preserve Tracking</div>
-                <div className="text-sm text-gray-600 leading-relaxed">
-                  Keeps your viewed status, notes, and custom data intact
-                </div>
-              </div>
-            </div>
-            <div className="group relative overflow-hidden rounded-xl border-2 border-green-100 bg-gradient-to-br from-green-50 to-white p-6 transition-all hover:border-green-300 hover:shadow-lg">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-green-200 rounded-full -mr-10 -mt-10 opacity-20"></div>
-              <div className="relative">
-                <div className="mb-4 inline-flex p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-md">
-                  <Eye className="h-6 w-6 text-white" />
-                </div>
-                <div className="font-semibold text-lg mb-2 text-gray-900">3. Color Coding</div>
-                <div className="text-sm text-gray-600 leading-relaxed">
-                  Visual distinction between new jobs and viewed jobs on the map
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* File Upload */}
       <Card className="border-2 shadow-lg">
         <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b">
@@ -384,6 +329,61 @@ export function DodgeImportPage() {
               <Progress value={undefined} className="w-full h-2" />
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* How It Works */}
+      <Card className="border-2 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <div className="p-2 bg-blue-500 rounded-lg">
+              <Sparkles className="h-5 w-5 text-white" />
+            </div>
+            How Duplicate Handling Works
+          </CardTitle>
+          <CardDescription className="text-base">
+            Our intelligent system automatically detects and handles duplicates
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="group relative overflow-hidden rounded-xl border-2 border-blue-100 bg-gradient-to-br from-blue-50 to-white p-6 transition-all hover:border-blue-300 hover:shadow-lg">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-blue-200 rounded-full -mr-10 -mt-10 opacity-20"></div>
+              <div className="relative">
+                <div className="mb-4 inline-flex p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-md">
+                  <Zap className="h-6 w-6 text-white" />
+                </div>
+                <div className="font-semibold text-lg mb-2 text-gray-900">1. Smart Matching</div>
+                <div className="text-sm text-gray-600 leading-relaxed">
+                  Matches by project ID, name + address, or value to prevent duplicates
+                </div>
+              </div>
+            </div>
+            <div className="group relative overflow-hidden rounded-xl border-2 border-yellow-100 bg-gradient-to-br from-yellow-50 to-white p-6 transition-all hover:border-yellow-300 hover:shadow-lg">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-yellow-200 rounded-full -mr-10 -mt-10 opacity-20"></div>
+              <div className="relative">
+                <div className="mb-4 inline-flex p-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl shadow-md">
+                  <Shield className="h-6 w-6 text-white" />
+                </div>
+                <div className="font-semibold text-lg mb-2 text-gray-900">2. Preserve Tracking</div>
+                <div className="text-sm text-gray-600 leading-relaxed">
+                  Keeps your viewed status, notes, and custom data intact
+                </div>
+              </div>
+            </div>
+            <div className="group relative overflow-hidden rounded-xl border-2 border-green-100 bg-gradient-to-br from-green-50 to-white p-6 transition-all hover:border-green-300 hover:shadow-lg">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-green-200 rounded-full -mr-10 -mt-10 opacity-20"></div>
+              <div className="relative">
+                <div className="mb-4 inline-flex p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-md">
+                  <Eye className="h-6 w-6 text-white" />
+                </div>
+                <div className="font-semibold text-lg mb-2 text-gray-900">3. Color Coding</div>
+                <div className="text-sm text-gray-600 leading-relaxed">
+                  Visual distinction between new jobs and viewed jobs on the map
+                </div>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
