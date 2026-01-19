@@ -42,6 +42,21 @@ interface ImportResult {
   };
 }
 
+type ExistingJobLookup = Pick<
+  Job,
+  | "id"
+  | "name"
+  | "description"
+  | "address"
+  | "projectValue"
+  | "type"
+  | "contractor"
+  | "owner"
+  | "lockedFields"
+  | "externalId"
+  | "dedupeKey"
+>;
+
 export class CSVImportService {
   
   // Fields that should never be overwritten by imports
@@ -89,10 +104,16 @@ export class CSVImportService {
       const rawData = XLSX.utils.sheet_to_json(firstSheet) as DodgeCSVRow[];
 
       console.log(`Processing ${rawData.length} rows from Dodge CSV (dry-run: ${dryRun})`);
+      const verboseLogging = rawData.length <= 200;
       
       // Debug: Check the first row to see column names
       if (rawData.length > 0) {
         console.log('First row columns:', Object.keys(rawData[0]));
+      }
+
+      const { byExternalId, byDedupeKey } = await this.buildExistingJobMaps(userId);
+      if (byExternalId.size || byDedupeKey.size) {
+        console.log(`Loaded ${byExternalId.size} external IDs and ${byDedupeKey.size} dedupe keys for faster matching.`);
       }
 
       for (let i = 0; i < rawData.length; i++) {
@@ -102,7 +123,9 @@ export class CSVImportService {
           // Skip empty rows - check for various possible column names
           const projectNameRaw = row['Project Name (Link)'] || row['Project Name'] || row['project name'] || row['Name'] || '';
           if (!row || !projectNameRaw) {
-            console.log(`Row ${i}: Skipped - no project name found`);
+            if (verboseLogging && i < 10) {
+              console.log(`Row ${i}: Skipped - no project name found`);
+            }
             results.skipped++;
             continue;
           }
@@ -115,7 +138,9 @@ export class CSVImportService {
           const isCaliforniaJob = (!state || state.toUpperCase() === 'CA' || state.toUpperCase() === 'CALIFORNIA') && county;
           
           if (state && state.toUpperCase() !== 'CA' && state.toUpperCase() !== 'CALIFORNIA') {
-            console.log(`Row ${i}: Skipped - not in California (State: ${state})`);
+            if (verboseLogging && i < 10) {
+              console.log(`Row ${i}: Skipped - not in California (State: ${state})`);
+            }
             results.skipped++;
             continue;
           }
@@ -133,7 +158,15 @@ export class CSVImportService {
           const externalId = dodgeProjectId || null;
           
           // Find existing job
-          const existingJob = await this.findJobByDedupeKey(externalId, dedupeKey, userId);
+          let existingJob: ExistingJobLookup | null = null;
+          if (externalId && byExternalId.has(externalId)) {
+            existingJob = byExternalId.get(externalId) || null;
+          } else if (byDedupeKey.has(dedupeKey)) {
+            existingJob = byDedupeKey.get(dedupeKey) || null;
+          } else if (!userId) {
+            // Fallback to DB lookup only when userId isn't provided
+            existingJob = await this.findJobByDedupeKey(externalId, dedupeKey, userId);
+          }
           
           if (existingJob) {
             // Merge with existing job
@@ -157,6 +190,12 @@ export class CSVImportService {
                                                            projectValue, projectType, dodgeProjectId, 
                                                            dedupeKey, externalId, userId);
               results.details?.inserted?.push(newJob);
+              if (newJob.externalId) {
+                byExternalId.set(newJob.externalId, newJob);
+              }
+              if (newJob.dedupeKey) {
+                byDedupeKey.set(newJob.dedupeKey, newJob);
+              }
             }
             results.imported++;
             if (i < 5) {
@@ -210,11 +249,51 @@ export class CSVImportService {
     return job || null;
   }
 
+  private async buildExistingJobMaps(userId?: string): Promise<{
+    byExternalId: Map<string, ExistingJobLookup>;
+    byDedupeKey: Map<string, ExistingJobLookup>;
+  }> {
+    const byExternalId = new Map<string, ExistingJobLookup>();
+    const byDedupeKey = new Map<string, ExistingJobLookup>();
+
+    if (!userId) {
+      return { byExternalId, byDedupeKey };
+    }
+
+    const existingJobs = await db
+      .select({
+        id: jobs.id,
+        name: jobs.name,
+        description: jobs.description,
+        address: jobs.address,
+        projectValue: jobs.projectValue,
+        type: jobs.type,
+        contractor: jobs.contractor,
+        owner: jobs.owner,
+        lockedFields: jobs.lockedFields,
+        externalId: jobs.externalId,
+        dedupeKey: jobs.dedupeKey,
+      })
+      .from(jobs)
+      .where(eq(jobs.userId, userId));
+
+    for (const job of existingJobs) {
+      if (job.externalId) {
+        byExternalId.set(job.externalId, job);
+      }
+      if (job.dedupeKey) {
+        byDedupeKey.set(job.dedupeKey, job);
+      }
+    }
+
+    return { byExternalId, byDedupeKey };
+  }
+
   /**
    * Merge job data respecting locked fields
    */
   private async mergeJob(
-    existingJob: Job,
+    existingJob: ExistingJobLookup,
     row: DodgeCSVRow,
     projectName: string,
     description: string,
