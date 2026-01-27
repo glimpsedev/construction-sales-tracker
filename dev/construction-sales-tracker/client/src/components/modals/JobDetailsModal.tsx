@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -33,7 +33,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Job } from "@shared/schema";
 import { getAuthHeaders } from "@/lib/auth";
 import { useFilterPreferences } from "@/hooks/useFilterPreferences";
-import { DEFAULT_FILTER_PREFERENCES } from "@shared/schema";
+import { getMergedFilterPreferences } from "@/lib/utils";
 
 interface JobDetailsModalProps {
   job: Job | null;
@@ -56,8 +56,11 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
   const queryClient = useQueryClient();
   const { preferences } = useFilterPreferences();
 
-  // Merge user preferences with defaults
-  const filterPreferences = { ...DEFAULT_FILTER_PREFERENCES, ...(preferences || {}) };
+  // Merge user preferences with defaults - using shared utility to ensure synchronization
+  // with FilterSidebar component
+  const filterPreferences = useMemo(() => {
+    return getMergedFilterPreferences(preferences);
+  }, [preferences]);
 
   // Update notes and team data when job changes
   React.useEffect(() => {

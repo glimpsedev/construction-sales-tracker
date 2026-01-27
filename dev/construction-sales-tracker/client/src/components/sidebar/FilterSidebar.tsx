@@ -4,7 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import { cn, getMergedFilterPreferences } from "@/lib/utils";
 import JobCard from "./JobCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Settings } from "lucide-react";
@@ -12,7 +12,6 @@ import type { Job } from "@shared/schema";
 import CompanyFilter from "./CompanyFilter";
 import { useFilterPreferences } from "@/hooks/useFilterPreferences";
 import { FilterPreferencesModal } from "./FilterPreferencesModal";
-import { DEFAULT_FILTER_PREFERENCES } from "@shared/schema";
 
 interface FilterSidebarProps {
   isOpen: boolean;
@@ -53,9 +52,10 @@ export default function FilterSidebar({
   const { preferences } = useFilterPreferences();
   const [showPreferencesModal, setShowPreferencesModal] = useState(false);
 
-  // Merge user preferences with defaults
+  // Merge user preferences with defaults - using shared utility to ensure synchronization
+  // with JobDetailsModal component
   const filterPreferences = useMemo(() => {
-    return { ...DEFAULT_FILTER_PREFERENCES, ...(preferences || {}) };
+    return getMergedFilterPreferences(preferences);
   }, [preferences]);
 
   // Get unique counties from jobs
@@ -190,7 +190,7 @@ export default function FilterSidebar({
       className="w-full h-full bg-white overflow-y-auto"
       data-testid="filter-sidebar"
     >
-      <div className="p-6">
+      <div className="px-6 pb-6 pt-2">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-darktext">Filters & Jobs</h2>
           <Button

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import JobPin from "./JobPin";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import type { Job } from "@shared/schema";
 import { useFilterPreferences } from "@/hooks/useFilterPreferences";
-import { DEFAULT_FILTER_PREFERENCES } from "@shared/schema";
+import { getMergedFilterPreferences } from "@/lib/utils";
 
 // Extend Leaflet Map type to include our custom property
 declare module 'leaflet' {
@@ -38,8 +38,10 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
   const { location, getCurrentLocation } = useGeolocation();
   const { preferences } = useFilterPreferences();
 
-  // Merge user preferences with defaults
-  const filterPreferences = { ...DEFAULT_FILTER_PREFERENCES, ...(preferences || {}) };
+  // Merge user preferences with defaults - using shared utility for consistency
+  const filterPreferences = useMemo(() => {
+    return getMergedFilterPreferences(preferences);
+  }, [preferences]);
 
   // Initialize map
   useEffect(() => {
