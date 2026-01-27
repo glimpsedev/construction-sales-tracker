@@ -27,7 +27,8 @@ import {
   Flame,
   Thermometer,
   Snowflake,
-  CheckCircle
+  CheckCircle,
+  Star
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Job } from "@shared/schema";
@@ -241,6 +242,40 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
     }
   });
 
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async ({ jobId, isFavorite }: { jobId: string; isFavorite: boolean }) => {
+      const response = await fetch(`/api/jobs/${jobId}/favorite`, {
+        method: isFavorite ? 'POST' : 'DELETE',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+        }
+        throw new Error('Failed to update favorite status');
+      }
+      return response.json();
+    },
+    onSuccess: (_, { isFavorite }) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      toast({
+        title: "Success",
+        description: isFavorite ? "Job added to favorites" : "Job removed from favorites"
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update favorite status",
+        variant: "destructive"
+      });
+    }
+  });
+
   if (!job) return null;
 
   const handleMarkViewed = () => {
@@ -318,15 +353,29 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
         aria-describedby="job-details-description">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Building className="h-5 w-5" />
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Building className="h-5 w-5 flex-shrink-0" />
               <span className="truncate">{job.name}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`h-8 w-8 flex-shrink-0 ${
+                  job.isFavorite 
+                    ? 'text-yellow-500 hover:text-yellow-600' 
+                    : 'text-gray-300 hover:text-yellow-500'
+                }`}
+                onClick={() => toggleFavoriteMutation.mutate({ jobId: job.id, isFavorite: !job.isFavorite })}
+                data-testid={`button-favorite-modal-${job.id}`}
+                title={job.isFavorite ? "Remove from favorites" : "Add to favorites"}
+              >
+                <Star className={`h-5 w-5 ${job.isFavorite ? 'fill-current' : ''}`} />
+              </Button>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="lg:hidden"
+              className="lg:hidden ml-2"
               data-testid="close-modal-button"
             >
               Close

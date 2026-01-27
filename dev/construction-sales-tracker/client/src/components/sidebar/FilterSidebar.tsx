@@ -130,10 +130,10 @@ export default function FilterSidebar({
     };
   }, [jobs, allJobs]);
 
-  const recentJobs = useMemo(() => {
+  const favoriteJobs = useMemo(() => {
     return [...jobs]
-      .sort((a, b) => new Date(b.lastUpdated || b.createdAt!).getTime() - new Date(a.lastUpdated || a.createdAt!).getTime())
-      .slice(0, 10);
+      .filter(job => job.isFavorite)
+      .sort((a, b) => new Date(b.lastUpdated || b.createdAt!).getTime() - new Date(a.lastUpdated || a.createdAt!).getTime());
   }, [jobs]);
 
   const handleFilterChange = (key: string, value: any) => {
@@ -387,10 +387,10 @@ export default function FilterSidebar({
 
         </div>
 
-        {/* Recent Jobs List */}
+        {/* Favorites List */}
         <div className="mt-8">
-          <h3 className="text-sm font-medium text-darktext mb-4">Recent Jobs</h3>
-          <div className="space-y-3" data-testid="recent-jobs-list">
+          <h3 className="text-sm font-medium text-darktext mb-4">Favorites</h3>
+          <div className="space-y-3" data-testid="favorites-list">
             {isLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="border border-gray-200 rounded-lg p-4">
@@ -403,7 +403,7 @@ export default function FilterSidebar({
                 </div>
               ))
             ) : (
-              recentJobs.map(job => (
+              favoriteJobs.map(job => (
                 <JobCard
                   key={job.id}
                   job={job}
@@ -412,10 +412,11 @@ export default function FilterSidebar({
               ))
             )}
             
-            {!isLoading && recentJobs.length === 0 && (
+            {!isLoading && favoriteJobs.length === 0 && (
               <div className="text-center py-8 text-gray-500">
-                <i className="fas fa-inbox text-2xl mb-2 block"></i>
-                <p className="text-sm">No jobs found</p>
+                <i className="fas fa-star text-2xl mb-2 block"></i>
+                <p className="text-sm">No favorites yet</p>
+                <p className="text-xs text-gray-400 mt-1">Click the star icon on a job to add it to favorites</p>
               </div>
             )}
           </div>

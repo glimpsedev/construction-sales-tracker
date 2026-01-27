@@ -694,6 +694,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Mark job as favorite
+  app.post("/api/jobs/:id/favorite", authenticate, async (req: AuthRequest, res) => {
+    try {
+      await db
+        .update(jobs)
+        .set({
+          isFavorite: true
+        })
+        .where(and(eq(jobs.id, req.params.id), eq(jobs.userId, req.userId!)));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking job as favorite:", error);
+      res.status(500).json({ error: "Failed to mark job as favorite" });
+    }
+  });
+
+  // Unmark job as favorite
+  app.delete("/api/jobs/:id/favorite", authenticate, async (req: AuthRequest, res) => {
+    try {
+      await db
+        .update(jobs)
+        .set({
+          isFavorite: false
+        })
+        .where(and(eq(jobs.id, req.params.id), eq(jobs.userId, req.userId!)));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error unmarking job as favorite:", error);
+      res.status(500).json({ error: "Failed to unmark job as favorite" });
+    }
+  });
+
   // Update job temperature and mark as visited
   app.patch("/api/jobs/:id/temperature", authenticate, async (req: AuthRequest, res) => {
     try {
