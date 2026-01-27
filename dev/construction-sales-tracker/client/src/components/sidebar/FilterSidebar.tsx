@@ -7,9 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import JobCard from "./JobCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin } from "lucide-react";
+import { MapPin, Settings } from "lucide-react";
 import type { Job } from "@shared/schema";
 import CompanyFilter from "./CompanyFilter";
+import { useFilterPreferences } from "@/hooks/useFilterPreferences";
+import { FilterPreferencesModal } from "./FilterPreferencesModal";
+import { DEFAULT_FILTER_PREFERENCES } from "@shared/schema";
 
 interface FilterSidebarProps {
   isOpen: boolean;
@@ -18,7 +21,6 @@ interface FilterSidebarProps {
   filters: {
     status: string[];
     startDate: string;
-    endDate: string;
     minValue: string;
     maxValue: string;
     temperature?: string[];
@@ -47,6 +49,13 @@ export default function FilterSidebar({
   ]);
   const debounceTimer = useRef<NodeJS.Timeout>();
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+  const { preferences } = useFilterPreferences();
+  const [showPreferencesModal, setShowPreferencesModal] = useState(false);
+
+  // Merge user preferences with defaults
+  const filterPreferences = useMemo(() => {
+    return { ...DEFAULT_FILTER_PREFERENCES, ...(preferences || {}) };
+  }, [preferences]);
 
   // Get unique counties from jobs
   const availableCounties = useMemo(() => {
@@ -99,9 +108,7 @@ export default function FilterSidebar({
     }, {} as Record<string, number>);
 
     const active = statusCounts['active'] || 0;
-    const completed = statusCounts['completed'] || 0;
     const planning = statusCounts['planning'] || 0;
-    const pending = statusCounts['pending'] || 0;
 
     const cold = jobs.filter(job => job.isCold).length;
     
@@ -111,9 +118,7 @@ export default function FilterSidebar({
     return {
       total,
       active,
-      completed,
       planning,
-      pending,
 
       cold,
       visited
@@ -299,32 +304,6 @@ export default function FilterSidebar({
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Checkbox
-                    id="status-completed"
-                    checked={filters.status.includes('completed')}
-                    onCheckedChange={(checked) => handleStatusChange('completed', !!checked)}
-                    data-testid="checkbox-status-completed"
-                  />
-                  <label htmlFor="status-completed" className="text-sm cursor-pointer">Completed</label>
-                </div>
-                <span className="text-xs text-gray-500" data-testid="count-completed">{stats.completed}</span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="status-pending"
-                    checked={filters.status.includes('pending')}
-                    onCheckedChange={(checked) => handleStatusChange('pending', !!checked)}
-                    data-testid="checkbox-status-pending"
-                  />
-                  <label htmlFor="status-pending" className="text-sm cursor-pointer">Pending</label>
-                </div>
-                <span className="text-xs text-gray-500" data-testid="count-pending">{stats.pending}</span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
                     id="status-planning"
                     checked={filters.status.includes('planning')}
                     onCheckedChange={(checked) => handleStatusChange('planning', !!checked)}
@@ -337,9 +316,9 @@ export default function FilterSidebar({
             </div>
           </div>
 
-          {/* Date Range */}
+          {/* Start Date */}
           <div>
-            <h3 className="text-sm font-medium text-darktext mb-3">Date Range</h3>
+            <h3 className="text-sm font-medium text-darktext mb-3">Start Date</h3>
             <div className="space-y-3">
               <Input
                 type="date"
@@ -347,86 +326,45 @@ export default function FilterSidebar({
                 onChange={(e) => handleFilterChange('startDate', e.target.value)}
                 data-testid="input-start-date"
               />
-              <Input
-                type="date"
-                value={filters.endDate}
-                onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                data-testid="input-end-date"
-              />
             </div>
           </div>
 
           {/* Temperature Filter */}
           <div>
-            <h3 className="text-sm font-medium text-darktext mb-3">Temperature</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-darktext">Temperature</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPreferencesModal(true)}
+                className="h-7 px-2 text-xs"
+              >
+                <Settings className="h-3 w-3 mr-1" />
+                Manage
+              </Button>
+            </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="temp-hot"
-                    checked={filters.temperature?.includes('hot')}
-                    onCheckedChange={(checked) => {
-                      const temps = filters.temperature || [];
-                      handleFilterChange('temperature', checked
-                        ? [...temps, 'hot']
-                        : temps.filter((t: string) => t !== 'hot')
-                      );
-                    }}
-                  />
-                  <label htmlFor="temp-hot" className="text-sm cursor-pointer">🔥 Hot</label>
+              {Object.entries(filterPreferences).map(([key, filter]) => (
+                <div key={key} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`temp-${key}`}
+                      checked={filters.temperature?.includes(key)}
+                      onCheckedChange={(checked) => {
+                        const temps = filters.temperature || [];
+                        handleFilterChange('temperature', checked
+                          ? [...temps, key]
+                          : temps.filter((t: string) => t !== key)
+                        );
+                      }}
+                    />
+                    <label htmlFor={`temp-${key}`} className="text-sm cursor-pointer">
+                      <span className="mr-1">{filter.icon}</span>
+                      {filter.name}
+                    </label>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="temp-warm"
-                    checked={filters.temperature?.includes('warm')}
-                    onCheckedChange={(checked) => {
-                      const temps = filters.temperature || [];
-                      handleFilterChange('temperature', checked
-                        ? [...temps, 'warm']
-                        : temps.filter((t: string) => t !== 'warm')
-                      );
-                    }}
-                  />
-                  <label htmlFor="temp-warm" className="text-sm cursor-pointer">🌡️ Warm</label>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="temp-cold"
-                    checked={filters.temperature?.includes('cold')}
-                    onCheckedChange={(checked) => {
-                      const temps = filters.temperature || [];
-                      handleFilterChange('temperature', checked
-                        ? [...temps, 'cold']
-                        : temps.filter((t: string) => t !== 'cold')
-                      );
-                    }}
-                  />
-                  <label htmlFor="temp-cold" className="text-sm cursor-pointer">❄️ Cold</label>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="temp-green"
-                    checked={filters.temperature?.includes('green')}
-                    onCheckedChange={(checked) => {
-                      const temps = filters.temperature || [];
-                      handleFilterChange('temperature', checked
-                        ? [...temps, 'green']
-                        : temps.filter((t: string) => t !== 'green')
-                      );
-                    }}
-                  />
-                  <label htmlFor="temp-green" className="text-sm cursor-pointer">✅ Green</label>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 
@@ -442,7 +380,9 @@ export default function FilterSidebar({
                     handleFilterChange('hideCold', checked);
                   }}
                 />
-                <label htmlFor="hide-cold" className="text-sm cursor-pointer">Hide ❄️ Cold</label>
+                <label htmlFor="hide-cold" className="text-sm cursor-pointer">
+                  Hide {filterPreferences.cold?.icon || '❄️'} {filterPreferences.cold?.name || 'Cold'}
+                </label>
               </div>
               <span className="text-xs text-gray-500">{stats.cold} cold jobs</span>
             </div>
@@ -485,6 +425,12 @@ export default function FilterSidebar({
           </div>
         </div>
       </div>
+
+      {/* Filter Preferences Modal */}
+      <FilterPreferencesModal
+        isOpen={showPreferencesModal}
+        onClose={() => setShowPreferencesModal(false)}
+      />
     </aside>
   );
 }

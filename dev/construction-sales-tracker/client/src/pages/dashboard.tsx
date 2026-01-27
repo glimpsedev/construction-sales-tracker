@@ -28,7 +28,6 @@ export default function Dashboard() {
   const [filters, setFilters] = useState({
     status: ['active'] as string[],
     startDate: '',
-    endDate: '',
     minValue: '100000000',  // Default to $100M+ for faster loading
     maxValue: '100000000',  // Default to $100M+ for faster loading
     temperature: [] as string[],

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertJobSchema, insertEquipmentSchema, insertDocumentSchema, jobs, type Job } from "@shared/schema";
+import { insertJobSchema, insertEquipmentSchema, insertDocumentSchema, jobs, type Job, DEFAULT_FILTER_PREFERENCES, type FilterPreferences } from "@shared/schema";
 import { eq, desc, and, or, gte, lte, sql, count, asc, isNotNull } from "drizzle-orm";
 import { db } from "./db";
 import { authenticate, AuthRequest, hashPassword, verifyPassword, generateToken, createInitialUser } from "./auth";
@@ -145,6 +145,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Migration error:', error);
       res.status(500).json({ error: 'Migration failed' });
+    }
+  });
+
+  // Filter preferences routes
+  app.get("/api/user/filter-preferences", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const userPreferences = await storage.getFilterPreferences(req.userId!);
+      
+      // Merge user preferences with defaults
+      const mergedPreferences: FilterPreferences = {
+        ...DEFAULT_FILTER_PREFERENCES,
+        ...(userPreferences || {})
+      };
+      
+      res.json(mergedPreferences);
+    } catch (error) {
+      console.error('Get filter preferences error:', error);
+      res.status(500).json({ error: 'Failed to get filter preferences' });
+    }
+  });
+
+  app.put("/api/user/filter-preferences", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const preferences = req.body as FilterPreferences;
+      
+      // Validate preferences structure
+      if (!preferences || typeof preferences !== 'object') {
+        return res.status(400).json({ error: 'Invalid preferences format' });
+      }
+      
+      // Validate each filter preference
+      for (const [key, value] of Object.entries(preferences)) {
+        if (!value || typeof value !== 'object') {
+          return res.status(400).json({ error: `Invalid preference for ${key}` });
+        }
+        if (typeof value.name !== 'string' || typeof value.icon !== 'string' || typeof value.color !== 'string') {
+          return res.status(400).json({ error: `Invalid preference structure for ${key}` });
+        }
+        // Validate color format (hex)
+        if (!/^#[0-9A-Fa-f]{6}$/.test(value.color)) {
+          return res.status(400).json({ error: `Invalid color format for ${key}. Must be hex color (e.g., #ef4444)` });
+        }
+      }
+      
+      await storage.updateFilterPreferences(req.userId!, preferences);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Update filter preferences error:', error);
+      res.status(500).json({ error: 'Failed to update filter preferences' });
     }
   });
   

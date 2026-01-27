@@ -1,4 +1,4 @@
-import { jobs, equipment, documents, users, emailVerifications, type Job, type InsertJob, type Equipment, type InsertEquipment, type Document, type InsertDocument, type User, type InsertUser, type EmailVerification, type InsertEmailVerification } from "@shared/schema";
+import { jobs, equipment, documents, users, emailVerifications, type Job, type InsertJob, type Equipment, type InsertEquipment, type Document, type InsertDocument, type User, type InsertUser, type EmailVerification, type InsertEmailVerification, type FilterPreferences } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, ilike, gte, lte, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -49,6 +49,10 @@ export interface IStorage {
   getAllDocuments(): Promise<Document[]>;
   createDocument(document: InsertDocument): Promise<Document>;
   getDocumentById(id: string): Promise<Document | undefined>;
+
+  // Filter preferences methods
+  getFilterPreferences(userId: string): Promise<FilterPreferences | null>;
+  updateFilterPreferences(userId: string, preferences: FilterPreferences): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -312,6 +316,18 @@ export class MemStorage implements IStorage {
   async getDocumentById(id: string): Promise<Document | undefined> {
     return this.documentsMap.get(id);
   }
+
+  async getFilterPreferences(userId: string): Promise<FilterPreferences | null> {
+    const user = this.users.get(userId);
+    return user?.filterPreferences || null;
+  }
+
+  async updateFilterPreferences(userId: string, preferences: FilterPreferences): Promise<void> {
+    const user = this.users.get(userId);
+    if (user) {
+      user.filterPreferences = preferences;
+    }
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -574,6 +590,17 @@ export class DatabaseStorage implements IStorage {
   async getDocumentById(id: string): Promise<Document | undefined> {
     const [document] = await db.select().from(documents).where(eq(documents.id, id));
     return document || undefined;
+  }
+
+  async getFilterPreferences(userId: string): Promise<FilterPreferences | null> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    return user?.filterPreferences || null;
+  }
+
+  async updateFilterPreferences(userId: string, preferences: FilterPreferences): Promise<void> {
+    await db.update(users)
+      .set({ filterPreferences: preferences })
+      .where(eq(users.id, userId));
   }
 }
 
