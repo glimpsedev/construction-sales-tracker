@@ -345,7 +345,7 @@ export default function FilterSidebar({
               </Button>
             </div>
             <div className="space-y-2">
-              {/* Show Unvisited Jobs - at the top */}
+              {/* Unvisited Jobs - at the top */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -355,8 +355,13 @@ export default function FilterSidebar({
                       handleFilterChange('showUnvisited', !!checked);
                     }}
                   />
-                  <label htmlFor="show-unvisited" className="text-sm cursor-pointer">
-                    Show Unvisited Jobs
+                  <label htmlFor="show-unvisited" className="text-sm cursor-pointer flex items-center gap-2">
+                    <span 
+                      className="w-3 h-3 rounded-full border border-gray-300 flex-shrink-0"
+                      style={{ backgroundColor: '#3b82f6' }}
+                      aria-label="Unvisited Jobs color"
+                    />
+                    Unvisited Jobs
                   </label>
                 </div>
                 <span className="text-xs text-gray-500">{stats.unvisited} unvisited</span>
