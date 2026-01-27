@@ -1,8 +1,28 @@
-CREATE TYPE "public"."equipment_status" AS ENUM('starting', 'stopping', 'maintenance');--> statement-breakpoint
-CREATE TYPE "public"."job_status" AS ENUM('active', 'completed', 'planning', 'pending');--> statement-breakpoint
-CREATE TYPE "public"."job_temperature" AS ENUM('hot', 'warm', 'cold');--> statement-breakpoint
-CREATE TYPE "public"."job_type" AS ENUM('commercial', 'residential', 'industrial', 'equipment', 'other');--> statement-breakpoint
-CREATE TYPE "public"."rental_status" AS ENUM('on_rent', 'off_rent', 'maintenance');--> statement-breakpoint
+DO $$ BEGIN
+ CREATE TYPE "public"."equipment_status" AS ENUM('starting', 'stopping', 'maintenance');
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ CREATE TYPE "public"."job_status" AS ENUM('active', 'completed', 'planning', 'pending');
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ CREATE TYPE "public"."job_temperature" AS ENUM('hot', 'warm', 'cold');
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ CREATE TYPE "public"."job_type" AS ENUM('commercial', 'residential', 'industrial', 'equipment', 'other');
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ CREATE TYPE "public"."rental_status" AS ENUM('on_rent', 'off_rent', 'maintenance');
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
 CREATE TABLE "documents" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"filename" text NOT NULL,
