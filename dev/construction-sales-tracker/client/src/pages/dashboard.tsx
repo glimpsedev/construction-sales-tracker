@@ -51,6 +51,9 @@ export default function Dashboard() {
   }, [filters]);
 
   const { data: fetchedJobs = [], isLoading, refetch } = useJobs(modifiedFilters);
+  
+  // Fetch all jobs (without filters) for total count and visited count
+  const { data: allJobs = [] } = useJobs({});
 
   // Apply effective status logic and filter jobs
   const getEffectiveStatus = (job: Job) => {
@@ -309,6 +312,7 @@ export default function Dashboard() {
               isOpen={sidebarOpen}
               onToggle={toggleSidebar}
               jobs={jobs}
+              allJobs={allJobs}
               filters={filters}
               onFilterChange={handleFilterChange}
               onJobSelect={handleJobSelect}

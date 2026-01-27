@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import JobCard from "./JobCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 import type { Job } from "@shared/schema";
 import CompanyFilter from "./CompanyFilter";
 import { useFilterPreferences } from "@/hooks/useFilterPreferences";
@@ -18,6 +18,7 @@ interface FilterSidebarProps {
   isOpen: boolean;
   onToggle: () => void;
   jobs: Job[];
+  allJobs: Job[];
   filters: {
     status: string[];
     startDate: string;
@@ -38,6 +39,7 @@ export default function FilterSidebar({
   isOpen, 
   onToggle, 
   jobs, 
+  allJobs,
   filters, 
   onFilterChange, 
   onJobSelect, 
@@ -48,7 +50,6 @@ export default function FilterSidebar({
     filters.maxValue ? parseFloat(filters.maxValue) : 100000000   // Default to $100M+
   ]);
   const debounceTimer = useRef<NodeJS.Timeout>();
-  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
   const { preferences } = useFilterPreferences();
   const [showPreferencesModal, setShowPreferencesModal] = useState(false);
 
@@ -98,9 +99,16 @@ export default function FilterSidebar({
   };
 
   const stats = useMemo(() => {
-    const total = jobs.length;
+    // Total Jobs: count of all jobs in the database
+    const total = allJobs.length;
     
-    // Calculate status counts based on effective status
+    // Jobs Visible: count of jobs that match current filters
+    const visible = jobs.length;
+    
+    // Jobs Visited: count of all jobs that have been visited
+    const visited = allJobs.filter(job => job.visited).length;
+    
+    // Calculate status counts based on effective status (for filter display)
     const statusCounts = jobs.reduce((acc, job) => {
       const effectiveStatus = getEffectiveStatus(job);
       acc[effectiveStatus] = (acc[effectiveStatus] || 0) + 1;
@@ -111,19 +119,16 @@ export default function FilterSidebar({
     const planning = statusCounts['planning'] || 0;
 
     const cold = jobs.filter(job => job.isCold).length;
-    
-    // Count jobs as visited if their temperature has been set (Hot/Warm/Cold)
-    const visited = jobs.filter(job => job.visited).length;
 
     return {
       total,
+      visible,
       active,
       planning,
-
       cold,
       visited
     };
-  }, [jobs]);
+  }, [jobs, allJobs]);
 
   const recentJobs = useMemo(() => {
     return [...jobs]
@@ -200,18 +205,24 @@ export default function FilterSidebar({
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
           <div className="bg-blue-50 p-3 rounded-lg">
             <div className="text-2xl font-bold text-primary" data-testid="stat-total-jobs">
               {isLoading ? <Skeleton className="h-6 w-12" /> : stats.total}
             </div>
             <div className="text-sm text-blue-600">Total Jobs</div>
           </div>
+          <div className="bg-purple-50 p-3 rounded-lg">
+            <div className="text-2xl font-bold text-purple-600" data-testid="stat-visible-jobs">
+              {isLoading ? <Skeleton className="h-6 w-12" /> : stats.visible}
+            </div>
+            <div className="text-sm text-purple-600">Jobs Visible</div>
+          </div>
           <div className="bg-green-50 p-3 rounded-lg">
             <div className="text-2xl font-bold text-secondary" data-testid="stat-visited-jobs">
               {isLoading ? <Skeleton className="h-6 w-12" /> : stats.visited}
             </div>
-            <div className="text-sm text-green-600">Visited</div>
+            <div className="text-sm text-green-600">Jobs Visited</div>
           </div>
         </div>
 
@@ -238,21 +249,6 @@ export default function FilterSidebar({
                   ))}
                 </SelectContent>
               </Select>
-              
-              {/* Near Me Toggle */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="near-me"
-                  checked={filters.nearMe === true}
-                  onCheckedChange={(checked) => {
-                    handleFilterChange('nearMe', checked);
-                  }}
-                />
-                <label htmlFor="near-me" className="text-sm cursor-pointer flex items-center gap-1">
-                  <MapPin className="w-4 h-4" />
-                  Jobs Near Me (25 miles)
-                </label>
-              </div>
             </div>
           </div>
 
