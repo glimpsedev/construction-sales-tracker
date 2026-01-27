@@ -1,29 +1,9 @@
-DO $$ BEGIN
- CREATE TYPE "public"."equipment_status" AS ENUM('starting', 'stopping', 'maintenance');
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;--> statement-breakpoint
-DO $$ BEGIN
- CREATE TYPE "public"."job_status" AS ENUM('active', 'completed', 'planning', 'pending');
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;--> statement-breakpoint
-DO $$ BEGIN
- CREATE TYPE "public"."job_temperature" AS ENUM('hot', 'warm', 'cold');
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;--> statement-breakpoint
-DO $$ BEGIN
- CREATE TYPE "public"."job_type" AS ENUM('commercial', 'residential', 'industrial', 'equipment', 'other');
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;--> statement-breakpoint
-DO $$ BEGIN
- CREATE TYPE "public"."rental_status" AS ENUM('on_rent', 'off_rent', 'maintenance');
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;--> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "documents" (
+CREATE TYPE "public"."equipment_status" AS ENUM('starting', 'stopping', 'maintenance');--> statement-breakpoint
+CREATE TYPE "public"."job_status" AS ENUM('active', 'completed', 'planning', 'pending');--> statement-breakpoint
+CREATE TYPE "public"."job_temperature" AS ENUM('hot', 'warm', 'cold');--> statement-breakpoint
+CREATE TYPE "public"."job_type" AS ENUM('commercial', 'residential', 'industrial', 'equipment', 'other');--> statement-breakpoint
+CREATE TYPE "public"."rental_status" AS ENUM('on_rent', 'off_rent', 'maintenance');--> statement-breakpoint
+CREATE TABLE "documents" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"filename" text NOT NULL,
 	"original_name" text NOT NULL,
@@ -34,7 +14,7 @@ CREATE TABLE IF NOT EXISTS "documents" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "email_verifications" (
+CREATE TABLE "email_verifications" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" varchar NOT NULL,
 	"token" text NOT NULL,
@@ -43,7 +23,7 @@ CREATE TABLE IF NOT EXISTS "email_verifications" (
 	CONSTRAINT "email_verifications_token_unique" UNIQUE("token")
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "equipment" (
+CREATE TABLE "equipment" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" varchar,
 	"job_id" varchar,
@@ -55,7 +35,7 @@ CREATE TABLE IF NOT EXISTS "equipment" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "jobs" (
+CREATE TABLE "jobs" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" varchar,
 	"name" text NOT NULL,
@@ -88,7 +68,7 @@ CREATE TABLE IF NOT EXISTS "jobs" (
 	"temperature" "job_temperature"
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "rental_equipment" (
+CREATE TABLE "rental_equipment" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"equipment_number" text NOT NULL,
 	"model" text NOT NULL,
@@ -103,7 +83,7 @@ CREATE TABLE IF NOT EXISTS "rental_equipment" (
 	"last_updated" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "users" (
+CREATE TABLE "users" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"email" text NOT NULL,
 	"password" text NOT NULL,
@@ -112,23 +92,7 @@ CREATE TABLE IF NOT EXISTS "users" (
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "email_verifications" ADD CONSTRAINT "email_verifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;--> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "equipment" ADD CONSTRAINT "equipment_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;--> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "equipment" ADD CONSTRAINT "equipment_job_id_jobs_id_fk" FOREIGN KEY ("job_id") REFERENCES "public"."jobs"("id") ON DELETE cascade ON UPDATE no action;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;--> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "jobs" ADD CONSTRAINT "jobs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
+ALTER TABLE "email_verifications" ADD CONSTRAINT "email_verifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "equipment" ADD CONSTRAINT "equipment_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "equipment" ADD CONSTRAINT "equipment_job_id_jobs_id_fk" FOREIGN KEY ("job_id") REFERENCES "public"."jobs"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "jobs" ADD CONSTRAINT "jobs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;

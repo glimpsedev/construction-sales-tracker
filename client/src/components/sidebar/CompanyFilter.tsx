@@ -4,6 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command";
 import { Check, Star, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Job } from "@shared/schema";
 
 interface CompanyFilterProps {
   companies: string[];
@@ -53,15 +54,16 @@ export default function CompanyFilter({ companies, value, onChange }: CompanyFil
   const filteredCompanies = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
     if (!query) return companies;
-    return companies.filter(company =>
+    return companies.filter(company => 
       company.toLowerCase().includes(query)
     );
   }, [companies, searchQuery]);
 
   // Separate favorites and non-favorites
+  // Favorites always appear at top, regardless of search query
   const favoriteCompanies = useMemo(() => {
-    return filteredCompanies.filter(c => favorites.includes(c));
-  }, [filteredCompanies, favorites]);
+    return companies.filter(c => favorites.includes(c));
+  }, [companies, favorites]);
 
   const nonFavoriteCompanies = useMemo(() => {
     return filteredCompanies.filter(c => !favorites.includes(c));
@@ -113,7 +115,7 @@ export default function CompanyFilter({ companies, value, onChange }: CompanyFil
             />
             <CommandList>
               <CommandEmpty>No companies found.</CommandEmpty>
-
+              
               {/* All Companies option */}
               <CommandGroup>
                 <CommandItem
@@ -151,13 +153,19 @@ export default function CompanyFilter({ companies, value, onChange }: CompanyFil
                           />
                           <span className="truncate">{company}</span>
                         </div>
-                        <Star
-                          className={cn(
-                            "h-4 w-4 ml-2 shrink-0",
-                            "fill-yellow-400 text-yellow-400"
-                          )}
+                        <button
+                          type="button"
+                          className="ml-2 shrink-0 p-1 hover:bg-accent rounded"
                           onClick={(e) => toggleFavorite(company, e)}
-                        />
+                          onMouseDown={(e) => e.stopPropagation()}
+                        >
+                          <Star
+                            className={cn(
+                              "h-4 w-4",
+                              "fill-yellow-400 text-yellow-400"
+                            )}
+                          />
+                        </button>
                       </CommandItem>
                     ))}
                   </CommandGroup>
@@ -185,15 +193,21 @@ export default function CompanyFilter({ companies, value, onChange }: CompanyFil
                           />
                           <span className="truncate">{company}</span>
                         </div>
-                        <Star
-                          className={cn(
-                            "h-4 w-4 ml-2 shrink-0",
-                            favorites.includes(company)
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "opacity-30 hover:opacity-100"
-                          )}
+                        <button
+                          type="button"
+                          className="ml-2 shrink-0 p-1 hover:bg-accent rounded"
                           onClick={(e) => toggleFavorite(company, e)}
-                        />
+                          onMouseDown={(e) => e.stopPropagation()}
+                        >
+                          <Star
+                            className={cn(
+                              "h-4 w-4",
+                              favorites.includes(company)
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "opacity-30 hover:opacity-100"
+                            )}
+                          />
+                        </button>
                       </CommandItem>
                     ))}
                   </CommandGroup>

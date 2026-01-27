@@ -250,6 +250,16 @@ export default function Dashboard() {
                   Import CSV
                 </button>
               </Link>
+              <button
+                onClick={() => {
+                  setShowUploadModal(true);
+                  setShowMobileMenu(false);
+                }}
+                className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded flex items-center gap-2"
+              >
+                <i className="fas fa-file-upload"></i>
+                Upload Documents
+              </button>
               <Link href="/equipment">
                 <button
                   onClick={() => setShowMobileMenu(false)}

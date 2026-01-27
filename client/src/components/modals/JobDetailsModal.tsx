@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -27,11 +27,14 @@ import {
   Flame,
   Thermometer,
   Snowflake,
-  CheckCircle
+  CheckCircle,
+  Star
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Job } from "@shared/schema";
 import { getAuthHeaders } from "@/lib/auth";
+import { useFilterPreferences } from "@/hooks/useFilterPreferences";
+import { getMergedFilterPreferences } from "@/lib/utils";
 
 interface JobDetailsModalProps {
   job: Job | null;
@@ -52,6 +55,13 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { preferences } = useFilterPreferences();
+
+  // Merge user preferences with defaults - using shared utility to ensure synchronization
+  // with FilterSidebar component
+  const filterPreferences = useMemo(() => {
+    return getMergedFilterPreferences(preferences);
+  }, [preferences]);
 
   // Update notes and team data when job changes
   React.useEffect(() => {
@@ -232,6 +242,40 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
     }
   });
 
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async ({ jobId, isFavorite }: { jobId: string; isFavorite: boolean }) => {
+      const response = await fetch(`/api/jobs/${jobId}/favorite`, {
+        method: isFavorite ? 'POST' : 'DELETE',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+        }
+        throw new Error('Failed to update favorite status');
+      }
+      return response.json();
+    },
+    onSuccess: (_, { isFavorite }) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      toast({
+        title: "Success",
+        description: isFavorite ? "Job added to favorites" : "Job removed from favorites"
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update favorite status",
+        variant: "destructive"
+      });
+    }
+  });
+
   if (!job) return null;
 
   const handleMarkViewed = () => {
@@ -309,15 +353,29 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
         aria-describedby="job-details-description">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Building className="h-5 w-5" />
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Building className="h-5 w-5 flex-shrink-0" />
               <span className="truncate">{job.name}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`h-8 w-8 flex-shrink-0 ${
+                  job.isFavorite 
+                    ? 'text-yellow-500 hover:text-yellow-600' 
+                    : 'text-gray-300 hover:text-yellow-500'
+                }`}
+                onClick={() => toggleFavoriteMutation.mutate({ jobId: job.id, isFavorite: !job.isFavorite })}
+                data-testid={`button-favorite-modal-${job.id}`}
+                title={job.isFavorite ? "Remove from favorites" : "Add to favorites"}
+              >
+                <Star className={`h-5 w-5 ${job.isFavorite ? 'fill-current' : ''}`} />
+              </Button>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="lg:hidden"
+              className="lg:hidden ml-2"
               data-testid="close-modal-button"
             >
               Close
@@ -436,47 +494,24 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
           <Card>
             <CardContent className="pt-4">
               <h4 className="font-medium mb-3 text-sm">Job Temperature</h4>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant={job.temperature === 'hot' ? 'default' : 'outline'}
-                  className={job.temperature === 'hot' ? 'bg-red-500 hover:bg-red-600 text-white' : ''}
-                  onClick={() => updateTemperatureMutation.mutate({ jobId: job.id, temperature: 'hot' })}
-                  disabled={updateTemperatureMutation.isPending}
-                >
-                  <Flame className="h-4 w-4 mr-1" />
-                  Hot
-                </Button>
-                <Button
-                  size="sm"
-                  variant={job.temperature === 'warm' ? 'default' : 'outline'}
-                  className={job.temperature === 'warm' ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}
-                  onClick={() => updateTemperatureMutation.mutate({ jobId: job.id, temperature: 'warm' })}
-                  disabled={updateTemperatureMutation.isPending}
-                >
-                  <Thermometer className="h-4 w-4 mr-1" />
-                  Warm
-                </Button>
-                <Button
-                  size="sm"
-                  variant={job.temperature === 'cold' ? 'default' : 'outline'}
-                  className={job.temperature === 'cold' ? 'bg-blue-500 hover:bg-blue-600 text-white' : ''}
-                  onClick={() => updateTemperatureMutation.mutate({ jobId: job.id, temperature: 'cold' })}
-                  disabled={updateTemperatureMutation.isPending}
-                >
-                  <Snowflake className="h-4 w-4 mr-1" />
-                  Cold
-                </Button>
-                <Button
-                  size="sm"
-                  variant={job.temperature === 'green' ? 'default' : 'outline'}
-                  className={job.temperature === 'green' ? 'bg-green-500 hover:bg-green-600 text-white' : ''}
-                  onClick={() => updateTemperatureMutation.mutate({ jobId: job.id, temperature: 'green' })}
-                  disabled={updateTemperatureMutation.isPending}
-                >
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                  Green
-                </Button>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(filterPreferences).map(([key, filter]) => {
+                  const isSelected = job.temperature === key;
+                  return (
+                    <Button
+                      key={key}
+                      size="sm"
+                      variant={isSelected ? 'default' : 'outline'}
+                      style={isSelected ? { backgroundColor: filter.color, borderColor: filter.color } : {}}
+                      className={isSelected ? 'text-white hover:opacity-90' : ''}
+                      onClick={() => updateTemperatureMutation.mutate({ jobId: job.id, temperature: key })}
+                      disabled={updateTemperatureMutation.isPending}
+                    >
+                      <span className="mr-1">{filter.icon}</span>
+                      {filter.name}
+                    </Button>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

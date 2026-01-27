@@ -192,28 +192,11 @@ export class MemStorage implements IStorage {
     cold?: boolean;
     viewStatus?: string;
     userId?: string;
-    county?: string;
-    company?: string;
-    nearLat?: number;
-    nearLng?: number;
   }): Promise<Job[]> {
     let result = Array.from(this.jobsMap.values());
     
     if (filters.userId) {
       result = result.filter(job => job.userId === filters.userId);
-    }
-
-    // County filter
-    if (filters.county) {
-      result = result.filter(job => job.county === filters.county);
-    }
-
-    // Company filter (case-insensitive match on contractor/GC field)
-    if (filters.company) {
-      const companyLower = filters.company.toLowerCase();
-      result = result.filter(job => 
-        job.contractor && job.contractor.toLowerCase() === companyLower
-      );
     }
 
     if (filters.search) {
@@ -238,10 +221,7 @@ export class MemStorage implements IStorage {
     }
     
     if (filters.cold !== undefined) {
-      result = result.filter(job => {
-        const isCold = job.isCold || job.temperature === 'cold';
-        return filters.cold ? isCold : !isCold;
-      });
+      result = result.filter(job => job.isCold === filters.cold);
     }
 
     if (filters.startDate) {
@@ -452,7 +432,6 @@ export class DatabaseStorage implements IStorage {
     endDate?: Date;
     minValue?: number;
     maxValue?: number;
-    cold?: boolean;
     viewStatus?: string;
     userId?: string;
     county?: string;
@@ -472,9 +451,9 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(jobs.county, filters.county));
     }
 
-    // Company filter (case-insensitive exact match on contractor/GC field)
+    // Company filter (case-insensitive exact match on owner field)
     if (filters.company) {
-      conditions.push(ilike(jobs.contractor, filters.company));
+      conditions.push(ilike(jobs.owner, filters.company));
     }
 
     if (filters.status && filters.status.length > 0) {
@@ -485,6 +464,10 @@ export class DatabaseStorage implements IStorage {
 
     if (filters.temperature && filters.temperature.length > 0) {
       conditions.push(inArray(jobs.temperature, filters.temperature as any));
+    }
+    
+    if (filters.cold !== undefined) {
+      conditions.push(eq(jobs.isCold, filters.cold));
     }
 
     if (filters.startDate) {
@@ -500,13 +483,6 @@ export class DatabaseStorage implements IStorage {
     }
 
     let result = await query.orderBy(desc(jobs.lastUpdated));
-
-    if (filters.cold !== undefined) {
-      result = result.filter(job => {
-        const isCold = job.isCold || job.temperature === 'cold';
-        return filters.cold ? isCold : !isCold;
-      });
-    }
     
     // Apply value filtering on the result set since projectValue is a string
     if (filters.minValue !== undefined || filters.maxValue !== undefined) {

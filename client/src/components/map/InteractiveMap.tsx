@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import JobPin from "./JobPin";
 import { Button } from "@/components/ui/button";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import type { Job } from "@shared/schema";
+import { useFilterPreferences } from "@/hooks/useFilterPreferences";
+import { getMergedFilterPreferences } from "@/lib/utils";
 
 // Extend Leaflet Map type to include our custom property
 declare module 'leaflet' {
@@ -34,6 +36,12 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const [mapLoaded, setMapLoaded] = useState(false);
   const { location, getCurrentLocation } = useGeolocation();
+  const { preferences } = useFilterPreferences();
+
+  // Merge user preferences with defaults - using shared utility for consistency
+  const filterPreferences = useMemo(() => {
+    return getMergedFilterPreferences(preferences);
+  }, [preferences]);
 
   // Initialize map
   useEffect(() => {
@@ -94,19 +102,21 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
           return;
         }
 
-        // Create custom icon based on temperature or cold status
-        const iconColor = job.temperature === 'cold' || job.isCold ? 'bg-gray-500' :
-                         job.temperature === 'hot' ? 'bg-red-500' :
-                         job.temperature === 'warm' ? 'bg-orange-500' :
-                         job.temperature === 'green' ? 'bg-green-500' :
-                         'bg-blue-600';
+        // Get color from filter preferences based on temperature
+        let pinColor = '#3b82f6'; // Default blue
+        if (job.temperature && filterPreferences[job.temperature]) {
+          pinColor = filterPreferences[job.temperature].color;
+        } else if (job.isCold && filterPreferences.cold) {
+          pinColor = filterPreferences.cold.color;
+        }
+        
         const effectiveStatus = getEffectiveStatus(job);
         const iconHtml = getStatusIcon(effectiveStatus, job.type);
         
         const customIcon = L.divIcon({
           html: `
             <div class="relative">
-              <div class="w-8 h-8 ${iconColor} rounded-full border-4 border-white shadow-lg flex items-center justify-center pin-drop">
+              <div class="w-8 h-8 rounded-full border-4 border-white shadow-lg flex items-center justify-center pin-drop" style="background-color: ${pinColor};">
                 <i class="${iconHtml} text-white text-xs"></i>
               </div>
             </div>
@@ -149,7 +159,7 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
       );
       map.fitBounds(bounds, { padding: [50, 50] });
     }
-  }, [jobs, mapLoaded, onJobSelect]);
+  }, [jobs, mapLoaded, onJobSelect, filterPreferences]);
 
   // Highlight selected job without moving the map
   useEffect(() => {

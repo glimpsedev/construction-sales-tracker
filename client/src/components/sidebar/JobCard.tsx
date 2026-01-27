@@ -1,5 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { getAuthHeaders } from "@/lib/auth";
 import type { Job } from "@shared/schema";
 
 interface JobCardProps {
@@ -8,6 +11,48 @@ interface JobCardProps {
 }
 
 export default function JobCard({ job, onClick }: JobCardProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async ({ jobId, isFavorite }: { jobId: string; isFavorite: boolean }) => {
+      const response = await fetch(`/api/jobs/${jobId}/favorite`, {
+        method: isFavorite ? 'POST' : 'DELETE',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+        }
+        throw new Error('Failed to update favorite status');
+      }
+      return response.json();
+    },
+    onSuccess: (_, { isFavorite }) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      toast({
+        title: "Success",
+        description: isFavorite ? "Job added to favorites" : "Job removed from favorites"
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update favorite status",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering the card's onClick
+    toggleFavoriteMutation.mutate({ jobId: job.id, isFavorite: !job.isFavorite });
+  };
+
   // Determine the effective status based on target start date
   const getEffectiveStatus = (job: Job) => {
     if (job.status === 'completed') return 'completed'; // Don't change completed status
@@ -74,9 +119,25 @@ export default function JobCard({ job, onClick }: JobCardProps) {
     >
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <h4 className="text-sm font-medium text-darktext mb-1 truncate" title={job.name}>
-            {job.name}
-          </h4>
+          <div className="flex items-center gap-2 mb-1">
+            <h4 className="text-sm font-medium text-darktext truncate flex-1" title={job.name}>
+              {job.name}
+            </h4>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-6 w-6 flex-shrink-0 ${
+                job.isFavorite 
+                  ? 'text-yellow-500 hover:text-yellow-600' 
+                  : 'text-gray-300 hover:text-yellow-500'
+              }`}
+              onClick={handleToggleFavorite}
+              data-testid={`button-favorite-${job.id}`}
+              title={job.isFavorite ? "Remove from favorites" : "Add to favorites"}
+            >
+              <i className={`fas fa-star ${job.isFavorite ? 'fill-current' : ''}`}></i>
+            </Button>
+          </div>
           <p 
             className="text-xs text-gray-500 font-mono mb-2 truncate" 
             title={job.address}

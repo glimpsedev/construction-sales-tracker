@@ -61,6 +61,7 @@ export const jobs = pgTable("jobs", {
   userNotes: text("user_notes").default(""),
   temperature: text("temperature"),
   isCold: boolean("is_cold").default(false).notNull(), // Manually marked as cold
+  isFavorite: boolean("is_favorite").default(false).notNull(), // User's favorite jobs
   // Temperature-based visited tracking
   visited: boolean("visited").default(false).notNull(),
   temperatureSetAt: timestamp("temperature_set_at"),
