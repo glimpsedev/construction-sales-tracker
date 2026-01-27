@@ -478,26 +478,30 @@ export class DatabaseStorage implements IStorage {
 
     // Handle temperature and unvisited filters with OR logic when both are present
     // This allows unvisited jobs to be shown alongside jobs matching temperature filters
+    // When temperature array is empty, it means "all temperatures" are selected, so don't filter by temperature
     const temperatureOrUnvisitedConditions = [];
     
+    // Only add temperature filter if specific temperatures are selected (not empty array)
     if (filters.temperature && filters.temperature.length > 0) {
       temperatureOrUnvisitedConditions.push(inArray(jobs.temperature, filters.temperature as any));
     }
     
+    // Add unvisited condition if checked
     if (filters.unvisited === true) {
       temperatureOrUnvisitedConditions.push(eq(jobs.visited, false));
     }
     
-    // If we have temperature or unvisited filters, combine them with OR
+    // Apply filters: if both are present, use OR; if only one, use that; if neither, show all
     if (temperatureOrUnvisitedConditions.length > 0) {
       if (temperatureOrUnvisitedConditions.length === 1) {
-        // Only one condition, add it directly
+        // Only one condition (either temperature OR unvisited)
         conditions.push(temperatureOrUnvisitedConditions[0]);
       } else {
-        // Multiple conditions, combine with OR
+        // Both conditions present: show jobs that are unvisited OR match temperature filters
         conditions.push(or(...temperatureOrUnvisitedConditions));
       }
     }
+    // If neither condition is present, don't filter by temperature/visited (show all jobs)
     
     if (filters.cold !== undefined) {
       conditions.push(eq(jobs.isCold, filters.cold));
