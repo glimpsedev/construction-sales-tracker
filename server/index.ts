@@ -1,8 +1,12 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import { runMigrations } from "./db";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -37,6 +41,23 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  console.log("Starting application...");
+  console.log("Current working directory:", process.cwd());
+  console.log("NODE_ENV:", process.env.NODE_ENV);
+  
+  try {
+    console.log("Running database migrations...");
+    await runMigrations();
+    console.log("Migrations completed, starting server...");
+  } catch (error) {
+    console.error("Database migration failed:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
+    process.exit(1);
+  }
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
