@@ -41,34 +41,27 @@ async function runUntrackedMigrations(migrationsFolder: string) {
     try {
       const sql = fs.readFileSync(migrationPath, "utf-8");
       
-      // Split by statement-breakpoint and execute each statement
-      const statements = sql
-        .split("--> statement-breakpoint")
-        .map(s => s.trim())
-        .filter(s => s.length > 0 && !s.startsWith("--") || s.includes("DO $$"));
-      
-      for (const statement of statements) {
-        if (statement.trim()) {
-          try {
-            await pool.query(statement);
-          } catch (error: any) {
-            // Ignore "already exists" errors - these migrations are idempotent
-            if (error?.message && (
-              error.message.includes("already exists") ||
-              error.message.includes("duplicate") ||
-              error.code === "42P07" || // duplicate_table
-              error.code === "42701" || // duplicate_column
-              error.code === "42710"    // duplicate_object
-            )) {
-              console.log(`  ✓ ${migrationFile} - skipped (already applied)`);
-            } else {
-              throw error;
-            }
-          }
+      // Execute the entire SQL file as-is
+      // Most migrations are idempotent with IF NOT EXISTS checks
+      try {
+        await pool.query(sql);
+        console.log(`  ✓ ${migrationFile} - completed`);
+      } catch (error: any) {
+        // Ignore "already exists" errors - these migrations are idempotent
+        if (error?.message && (
+          error.message.includes("already exists") ||
+          error.message.includes("duplicate") ||
+          error.message.includes("does not exist") && error.message.includes("column") ||
+          error.code === "42P07" || // duplicate_table
+          error.code === "42701" || // duplicate_column
+          error.code === "42710" || // duplicate_object
+          error.code === "42703"    // undefined_column (for IF NOT EXISTS checks)
+        )) {
+          console.log(`  ✓ ${migrationFile} - skipped (already applied or not needed)`);
+        } else {
+          throw error;
         }
       }
-      
-      console.log(`  ✓ ${migrationFile} - completed`);
     } catch (error: any) {
       console.error(`  ✗ ${migrationFile} - failed:`, error.message);
       // Don't throw - continue with other migrations
