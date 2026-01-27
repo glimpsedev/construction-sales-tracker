@@ -198,22 +198,22 @@ export type FilterPreferences = Record<string, FilterPreference>;
 export const DEFAULT_FILTER_PREFERENCES: FilterPreferences = {
   hot: {
     name: "Hot",
-    icon: "🔥",
+    icon: "",
     color: "#ef4444", // red-500
   },
   warm: {
     name: "Warm",
-    icon: "🌡️",
+    icon: "",
     color: "#f97316", // orange-500
   },
   cold: {
     name: "Cold",
-    icon: "❄️",
+    icon: "",
     color: "#6b7280", // gray-500
   },
   green: {
     name: "Green",
-    icon: "✅",
+    icon: "",
     color: "#22c55e", // green-500
   },
 };

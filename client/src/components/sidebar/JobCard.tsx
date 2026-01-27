@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { getAuthHeaders } from "@/lib/auth";
 import type { Job } from "@shared/schema";
@@ -13,6 +14,11 @@ interface JobCardProps {
 export default function JobCard({ job, onClick }: JobCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isFavorite, setIsFavorite] = useState(job.isFavorite);
+
+  useEffect(() => {
+    setIsFavorite(job.isFavorite);
+  }, [job.isFavorite]);
 
   const toggleFavoriteMutation = useMutation({
     mutationFn: async ({ jobId, isFavorite }: { jobId: string; isFavorite: boolean }) => {
@@ -34,12 +40,14 @@ export default function JobCard({ job, onClick }: JobCardProps) {
     },
     onSuccess: (_, { isFavorite }) => {
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      setIsFavorite(isFavorite);
       toast({
         title: "Success",
         description: isFavorite ? "Job added to favorites" : "Job removed from favorites"
       });
     },
     onError: () => {
+      setIsFavorite(job.isFavorite);
       toast({
         title: "Error",
         description: "Failed to update favorite status",
@@ -50,7 +58,9 @@ export default function JobCard({ job, onClick }: JobCardProps) {
 
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering the card's onClick
-    toggleFavoriteMutation.mutate({ jobId: job.id, isFavorite: !job.isFavorite });
+    const nextFavorite = !isFavorite;
+    setIsFavorite(nextFavorite);
+    toggleFavoriteMutation.mutate({ jobId: job.id, isFavorite: nextFavorite });
   };
 
   // Determine the effective status based on target start date
@@ -127,15 +137,16 @@ export default function JobCard({ job, onClick }: JobCardProps) {
               variant="ghost"
               size="icon"
               className={`h-6 w-6 flex-shrink-0 ${
-                job.isFavorite 
+                isFavorite 
                   ? 'text-yellow-500 hover:text-yellow-600' 
                   : 'text-gray-300 hover:text-yellow-500'
               }`}
               onClick={handleToggleFavorite}
               data-testid={`button-favorite-${job.id}`}
-              title={job.isFavorite ? "Remove from favorites" : "Add to favorites"}
+              title={isFavorite ? "Remove job from favorites" : "Add job to favorites"}
+              aria-label={isFavorite ? "Remove job from favorites" : "Add job to favorites"}
             >
-              <i className={`fas fa-star ${job.isFavorite ? 'fill-current' : ''}`}></i>
+              <i className={`fas fa-star ${isFavorite ? 'text-yellow-500' : ''}`}></i>
             </Button>
           </div>
           <p 

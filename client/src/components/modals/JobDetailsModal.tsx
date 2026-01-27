@@ -46,6 +46,7 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
   const [notes, setNotes] = useState(job?.userNotes || "");
   const [isEditing, setIsEditing] = useState(false);
   const [isEditingTeam, setIsEditingTeam] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(job?.isFavorite ?? false);
   const [teamData, setTeamData] = useState({
     contractor: job?.contractor || "",
     owner: job?.owner || "",
@@ -67,6 +68,7 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
   React.useEffect(() => {
     if (job) {
       setNotes(job.userNotes || "");
+      setIsFavorite(job.isFavorite);
       setTeamData({
         contractor: job.contractor || "",
         owner: job.owner || "",
@@ -174,7 +176,7 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
   });
 
   const updateTemperatureMutation = useMutation({
-    mutationFn: async ({ jobId, temperature }: { jobId: string; temperature: string }) => {
+    mutationFn: async ({ jobId, temperature }: { jobId: string; temperature: string | null }) => {
       const response = await fetch(`/api/jobs/${jobId}/temperature`, {
         method: 'PATCH',
         headers: { 
@@ -262,12 +264,14 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
     },
     onSuccess: (_, { isFavorite }) => {
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      setIsFavorite(isFavorite);
       toast({
         title: "Success",
         description: isFavorite ? "Job added to favorites" : "Job removed from favorites"
       });
     },
     onError: () => {
+      setIsFavorite(job?.isFavorite ?? false);
       toast({
         title: "Error",
         description: "Failed to update favorite status",
@@ -360,15 +364,20 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
                 variant="ghost"
                 size="icon"
                 className={`h-8 w-8 flex-shrink-0 ${
-                  job.isFavorite 
+                  isFavorite 
                     ? 'text-yellow-500 hover:text-yellow-600' 
                     : 'text-gray-300 hover:text-yellow-500'
                 }`}
-                onClick={() => toggleFavoriteMutation.mutate({ jobId: job.id, isFavorite: !job.isFavorite })}
+                onClick={() => {
+                  const nextFavorite = !isFavorite;
+                  setIsFavorite(nextFavorite);
+                  toggleFavoriteMutation.mutate({ jobId: job.id, isFavorite: nextFavorite });
+                }}
                 data-testid={`button-favorite-modal-${job.id}`}
-                title={job.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                title={isFavorite ? "Remove job from favorites" : "Add job to favorites"}
+                aria-label={isFavorite ? "Remove job from favorites" : "Add job to favorites"}
               >
-                <Star className={`h-5 w-5 ${job.isFavorite ? 'fill-current' : ''}`} />
+                <Star className={`h-5 w-5 ${isFavorite ? 'fill-current text-yellow-500' : ''}`} />
               </Button>
             </div>
             <Button
@@ -507,11 +516,21 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
                       onClick={() => updateTemperatureMutation.mutate({ jobId: job.id, temperature: key })}
                       disabled={updateTemperatureMutation.isPending}
                     >
-                      <span className="mr-1">{filter.icon}</span>
                       {filter.name}
                     </Button>
                   );
                 })}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => updateTemperatureMutation.mutate({ jobId: job.id, temperature: null })}
+                  disabled={
+                    updateTemperatureMutation.isPending ||
+                    (!job.temperature && !job.visited)
+                  }
+                >
+                  Reset
+                </Button>
               </div>
             </CardContent>
           </Card>

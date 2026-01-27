@@ -69,12 +69,12 @@ export default function FilterSidebar({
     return Array.from(counties).sort();
   }, [jobs]);
 
-  // Get unique companies from jobs (using owner field)
+  // Get unique companies from jobs (using contractor field - General Contractor/GC)
   const availableCompanies = useMemo(() => {
     const companies = new Set<string>();
     jobs.forEach(job => {
-      if (job.owner && job.owner.trim()) {
-        companies.add(job.owner.trim());
+      if (job.contractor && job.contractor.trim()) {
+        companies.add(job.contractor.trim());
       }
     });
     return Array.from(companies).sort();
@@ -118,14 +118,11 @@ export default function FilterSidebar({
     const active = statusCounts['active'] || 0;
     const planning = statusCounts['planning'] || 0;
 
-    const cold = jobs.filter(job => job.isCold).length;
-
     return {
       total,
       visible,
       active,
       planning,
-      cold,
       visited
     };
   }, [jobs, allJobs]);
@@ -185,12 +182,15 @@ export default function FilterSidebar({
     return `$${value.toLocaleString()}`;
   };
 
+  const temperatureKeys = useMemo(() => Object.keys(filterPreferences), [filterPreferences]);
+  const selectedTemperatures = filters.temperature?.length ? filters.temperature : temperatureKeys;
+
   return (
     <aside 
       className="w-full h-full bg-white overflow-y-auto"
       data-testid="filter-sidebar"
     >
-      <div className="px-6 pb-6 pt-2">
+      <div className="px-6 pb-6 pt-0">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-darktext">Filters & Jobs</h2>
           <Button
@@ -325,10 +325,10 @@ export default function FilterSidebar({
             </div>
           </div>
 
-          {/* Temperature Filter */}
+          {/* Temperature Visibility */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-darktext">Temperature</h3>
+              <h3 className="text-sm font-medium text-darktext">Temperature Visibility</h3>
               <Button
                 variant="ghost"
                 size="sm"
@@ -345,42 +345,34 @@ export default function FilterSidebar({
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id={`temp-${key}`}
-                      checked={filters.temperature?.includes(key)}
+                      checked={selectedTemperatures.includes(key)}
                       onCheckedChange={(checked) => {
-                        const temps = filters.temperature || [];
-                        handleFilterChange('temperature', checked
-                          ? [...temps, key]
-                          : temps.filter((t: string) => t !== key)
-                        );
+                        const nextTemperatures = checked
+                          ? Array.from(new Set([...selectedTemperatures, key]))
+                          : selectedTemperatures.filter((t: string) => t !== key);
+                        handleFilterChange('temperature', nextTemperatures);
                       }}
                     />
                     <label htmlFor={`temp-${key}`} className="text-sm cursor-pointer">
-                      <span className="mr-1">{filter.icon}</span>
                       {filter.name}
                     </label>
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-
-          {/* Hide Cold Jobs Filter */}
-          <div>
-            <h3 className="text-sm font-medium text-darktext mb-3">Hide Cold Jobs</h3>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="hide-cold"
-                  checked={filters.hideCold === true}
-                  onCheckedChange={(checked) => {
-                    handleFilterChange('hideCold', checked);
-                  }}
-                />
-                <label htmlFor="hide-cold" className="text-sm cursor-pointer">
-                  Hide {filterPreferences.cold?.icon || '❄️'} {filterPreferences.cold?.name || 'Cold'}
-                </label>
+              <div className="flex items-center justify-between border-t border-gray-100 pt-2 mt-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="show-cold-jobs"
+                    checked={filters.hideCold !== true}
+                    onCheckedChange={(checked) => {
+                      handleFilterChange('hideCold', !checked);
+                    }}
+                  />
+                  <label htmlFor="show-cold-jobs" className="text-sm cursor-pointer">
+                    Show Cold Jobs
+                  </label>
+                </div>
               </div>
-              <span className="text-xs text-gray-500">{stats.cold} cold jobs</span>
             </div>
           </div>
 

@@ -451,9 +451,9 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(jobs.county, filters.county));
     }
 
-    // Company filter (case-insensitive exact match on owner field)
+    // Company filter (case-insensitive exact match on contractor field - General Contractor/GC)
     if (filters.company) {
-      conditions.push(ilike(jobs.owner, filters.company));
+      conditions.push(ilike(jobs.contractor, filters.company));
     }
 
     if (filters.status && filters.status.length > 0) {

@@ -728,12 +728,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update job temperature and mark as visited
+  // Update job temperature and mark as visited (or reset to default)
   app.patch("/api/jobs/:id/temperature", authenticate, async (req: AuthRequest, res) => {
     try {
       const { temperature } = req.body;
+      const isReset =
+        temperature === null ||
+        temperature === undefined ||
+        temperature === "" ||
+        temperature === "default";
       
-      if (!['hot', 'warm', 'cold', 'green'].includes(temperature)) {
+      if (!isReset && !['hot', 'warm', 'cold', 'green'].includes(temperature)) {
         return res.status(400).json({ error: 'Invalid temperature value' });
       }
       
@@ -747,12 +752,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Job not found' });
       }
       
-      const updateData: any = {
-        temperature: temperature as any
-      };
+      const updateData: any = isReset
+        ? { temperature: null, visited: false, temperatureSetAt: null }
+        : { temperature: temperature as any };
       
       // If temperature is being set for the first time (from null/undefined), mark as visited
-      if (!currentJob.temperature || !currentJob.visited) {
+      if (!isReset && (!currentJob.temperature || !currentJob.visited)) {
         updateData.visited = true;
         updateData.temperatureSetAt = new Date();
       }

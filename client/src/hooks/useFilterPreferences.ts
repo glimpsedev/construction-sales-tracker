@@ -49,8 +49,10 @@ export function useFilterPreferences() {
       
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/user/filter-preferences'] });
+    onSuccess: async () => {
+      // Invalidate and immediately refetch to ensure UI updates
+      await queryClient.invalidateQueries({ queryKey: ['/api/user/filter-preferences'] });
+      await queryClient.refetchQueries({ queryKey: ['/api/user/filter-preferences'] });
     },
   });
 
@@ -61,5 +63,6 @@ export function useFilterPreferences() {
     updatePreferences: updateMutation.mutate,
     updatePreferencesAsync: updateMutation.mutateAsync,
     isUpdating: updateMutation.isPending,
+    refetch: query.refetch,
   };
 }

@@ -87,7 +87,7 @@ export default function Dashboard() {
 
   // Update job temperature mutation
   const updateTemperatureMutation = useMutation({
-    mutationFn: async ({ jobId, temperature }: { jobId: string; temperature: string }) => {
+    mutationFn: async ({ jobId, temperature }: { jobId: string; temperature: string | null }) => {
       const response = await fetch(`/api/jobs/${jobId}/temperature`, {
         method: 'PATCH',
         headers: { 
@@ -115,7 +115,7 @@ export default function Dashboard() {
     }
   });
 
-  const updateJobTemperature = (temperature: string) => {
+  const updateJobTemperature = (temperature: string | null) => {
     if (selectedJob) {
       updateTemperatureMutation.mutate({ jobId: selectedJob.id, temperature });
       setSelectedJob({ ...selectedJob, temperature } as Job);

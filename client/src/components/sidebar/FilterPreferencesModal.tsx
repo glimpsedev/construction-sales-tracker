@@ -20,7 +20,7 @@ interface FilterPreferencesModalProps {
 }
 
 export function FilterPreferencesModal({ isOpen, onClose }: FilterPreferencesModalProps) {
-  const { preferences, isLoading, updatePreferences, isUpdating } = useFilterPreferences();
+  const { preferences, isLoading, updatePreferencesAsync, isUpdating, refetch } = useFilterPreferences();
   const { toast } = useToast();
   const [localPreferences, setLocalPreferences] = useState<FilterPreferences>({});
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -28,15 +28,19 @@ export function FilterPreferencesModal({ isOpen, onClose }: FilterPreferencesMod
   const [newFilter, setNewFilter] = useState<FilterPreference>({ name: "", icon: "", color: "#6b7280" });
 
   // Initialize local preferences when modal opens or preferences load
+  // Also refetch preferences when modal opens to ensure we have the latest data
   useEffect(() => {
-    if (isOpen && preferences) {
-      setLocalPreferences({ ...preferences });
+    if (isOpen) {
+      refetch?.();
+      if (preferences) {
+        setLocalPreferences({ ...preferences });
+      }
     }
-  }, [isOpen, preferences]);
+  }, [isOpen, preferences, refetch]);
 
   const handleSave = async () => {
     try {
-      await updatePreferences(localPreferences);
+      await updatePreferencesAsync(localPreferences);
       toast({
         title: "Success",
         description: "Filter preferences saved successfully",
