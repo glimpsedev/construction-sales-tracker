@@ -60,9 +60,10 @@ export default function CompanyFilter({ companies, value, onChange }: CompanyFil
   }, [companies, searchQuery]);
 
   // Separate favorites and non-favorites
+  // Favorites always appear at top, regardless of search query
   const favoriteCompanies = useMemo(() => {
-    return filteredCompanies.filter(c => favorites.includes(c));
-  }, [filteredCompanies, favorites]);
+    return companies.filter(c => favorites.includes(c));
+  }, [companies, favorites]);
 
   const nonFavoriteCompanies = useMemo(() => {
     return filteredCompanies.filter(c => !favorites.includes(c));
@@ -152,13 +153,19 @@ export default function CompanyFilter({ companies, value, onChange }: CompanyFil
                           />
                           <span className="truncate">{company}</span>
                         </div>
-                        <Star
-                          className={cn(
-                            "h-4 w-4 ml-2 shrink-0",
-                            "fill-yellow-400 text-yellow-400"
-                          )}
+                        <button
+                          type="button"
+                          className="ml-2 shrink-0 p-1 hover:bg-accent rounded"
                           onClick={(e) => toggleFavorite(company, e)}
-                        />
+                          onMouseDown={(e) => e.stopPropagation()}
+                        >
+                          <Star
+                            className={cn(
+                              "h-4 w-4",
+                              "fill-yellow-400 text-yellow-400"
+                            )}
+                          />
+                        </button>
                       </CommandItem>
                     ))}
                   </CommandGroup>
@@ -186,15 +193,21 @@ export default function CompanyFilter({ companies, value, onChange }: CompanyFil
                           />
                           <span className="truncate">{company}</span>
                         </div>
-                        <Star
-                          className={cn(
-                            "h-4 w-4 ml-2 shrink-0",
-                            favorites.includes(company)
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "opacity-30 hover:opacity-100"
-                          )}
+                        <button
+                          type="button"
+                          className="ml-2 shrink-0 p-1 hover:bg-accent rounded"
                           onClick={(e) => toggleFavorite(company, e)}
-                        />
+                          onMouseDown={(e) => e.stopPropagation()}
+                        >
+                          <Star
+                            className={cn(
+                              "h-4 w-4",
+                              favorites.includes(company)
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "opacity-30 hover:opacity-100"
+                            )}
+                          />
+                        </button>
                       </CommandItem>
                     ))}
                   </CommandGroup>

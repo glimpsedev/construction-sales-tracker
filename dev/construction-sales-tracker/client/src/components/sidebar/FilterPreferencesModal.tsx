@@ -147,7 +147,6 @@ export function FilterPreferencesModal({ isOpen, onClose }: FilterPreferencesMod
                 <div key={key} className="border rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-lg">{filter.icon}</span>
                       <span className="font-medium">{filter.name}</span>
                       <span className="text-xs text-gray-500">({key})</span>
                     </div>
@@ -162,7 +161,7 @@ export function FilterPreferencesModal({ isOpen, onClose }: FilterPreferencesMod
                       </Button>
                     )}
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label htmlFor={`name-${key}`}>Name</Label>
                       <Input
@@ -170,16 +169,6 @@ export function FilterPreferencesModal({ isOpen, onClose }: FilterPreferencesMod
                         value={filter.name}
                         onChange={(e) => handleUpdateFilter(key, { name: e.target.value })}
                         placeholder="Filter name"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor={`icon-${key}`}>Icon (Emoji)</Label>
-                      <Input
-                        id={`icon-${key}`}
-                        value={filter.icon}
-                        onChange={(e) => handleUpdateFilter(key, { icon: e.target.value })}
-                        placeholder="🔥"
-                        maxLength={2}
                       />
                     </div>
                     <div>
@@ -220,7 +209,7 @@ export function FilterPreferencesModal({ isOpen, onClose }: FilterPreferencesMod
                 />
                 <p className="text-xs text-gray-500 mt-1">Lowercase letters, numbers, hyphens, and underscores only</p>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label htmlFor="new-filter-name">Name</Label>
                   <Input
@@ -228,16 +217,6 @@ export function FilterPreferencesModal({ isOpen, onClose }: FilterPreferencesMod
                     value={newFilter.name}
                     onChange={(e) => setNewFilter({ ...newFilter, name: e.target.value })}
                     placeholder="Filter name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="new-filter-icon">Icon (Emoji)</Label>
-                  <Input
-                    id="new-filter-icon"
-                    value={newFilter.icon}
-                    onChange={(e) => setNewFilter({ ...newFilter, icon: e.target.value })}
-                    placeholder="🔥"
-                    maxLength={2}
                   />
                 </div>
                 <div>
