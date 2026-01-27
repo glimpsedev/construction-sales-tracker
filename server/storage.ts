@@ -208,11 +208,11 @@ export class MemStorage implements IStorage {
       result = result.filter(job => job.county === filters.county);
     }
 
-    // Company filter (case-insensitive match on owner field)
+    // Company filter (case-insensitive match on contractor/GC field)
     if (filters.company) {
       const companyLower = filters.company.toLowerCase();
       result = result.filter(job => 
-        job.owner && job.owner.toLowerCase() === companyLower
+        job.contractor && job.contractor.toLowerCase() === companyLower
       );
     }
 
@@ -472,9 +472,9 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(jobs.county, filters.county));
     }
 
-    // Company filter (case-insensitive exact match on owner field)
+    // Company filter (case-insensitive exact match on contractor/GC field)
     if (filters.company) {
-      conditions.push(ilike(jobs.owner, filters.company));
+      conditions.push(ilike(jobs.contractor, filters.company));
     }
 
     if (filters.status && filters.status.length > 0) {

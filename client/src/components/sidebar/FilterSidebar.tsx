@@ -69,12 +69,12 @@ export default function FilterSidebar({
     return Array.from(counties).sort();
   }, [jobs]);
 
-  // Get unique companies from jobs (using owner field)
+  // Get unique companies from jobs (using contractor/GC field)
   const availableCompanies = useMemo(() => {
     const companies = new Set<string>();
     jobs.forEach(job => {
-      if (job.owner && job.owner.trim()) {
-        companies.add(job.owner.trim());
+      if (job.contractor && job.contractor.trim()) {
+        companies.add(job.contractor.trim());
       }
     });
     return Array.from(companies).sort();
