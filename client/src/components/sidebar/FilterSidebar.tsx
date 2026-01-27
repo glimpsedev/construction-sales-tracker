@@ -345,6 +345,24 @@ export default function FilterSidebar({
               </Button>
             </div>
             <div className="space-y-2">
+              {/* Show Unvisited Jobs - at the top */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="show-unvisited"
+                    checked={!!filters.showUnvisited}
+                    onCheckedChange={(checked) => {
+                      handleFilterChange('showUnvisited', !!checked);
+                    }}
+                  />
+                  <label htmlFor="show-unvisited" className="text-sm cursor-pointer">
+                    Show Unvisited Jobs
+                  </label>
+                </div>
+                <span className="text-xs text-gray-500">{stats.unvisited} unvisited</span>
+              </div>
+              
+              {/* Temperature filters */}
               {Object.entries(filterPreferences).map(([key, filter]) => (
                 <div key={key} className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
@@ -369,28 +387,6 @@ export default function FilterSidebar({
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-
-          {/* Unvisited/Undiscovered Jobs Filter */}
-          <div>
-            <h3 className="text-sm font-medium text-darktext mb-3">Discovery Status</h3>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="show-unvisited"
-                    checked={filters.showUnvisited === true}
-                    onCheckedChange={(checked) => {
-                      handleFilterChange('showUnvisited', checked);
-                    }}
-                  />
-                  <label htmlFor="show-unvisited" className="text-sm cursor-pointer">
-                    Show Unvisited Jobs
-                  </label>
-                </div>
-                <span className="text-xs text-gray-500">{stats.unvisited} unvisited</span>
-              </div>
             </div>
           </div>
 

@@ -506,13 +506,43 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
               <div className="flex flex-wrap gap-2">
                 {Object.entries(filterPreferences).map(([key, filter]) => {
                   const isSelected = job.temperature === key;
+                  // Convert hex color to rgba for hover effect
+                  const hexToRgba = (hex: string, alpha: number) => {
+                    const r = parseInt(hex.slice(1, 3), 16);
+                    const g = parseInt(hex.slice(3, 5), 16);
+                    const b = parseInt(hex.slice(5, 7), 16);
+                    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                  };
+                  const hoverBgColor = hexToRgba(filter.color, 0.1);
+                  
                   return (
                     <Button
                       key={key}
                       size="sm"
                       variant={isSelected ? 'default' : 'outline'}
-                      style={isSelected ? { backgroundColor: filter.color, borderColor: filter.color } : {}}
-                      className={isSelected ? 'text-white hover:opacity-90' : ''}
+                      style={isSelected 
+                        ? { 
+                            backgroundColor: filter.color, 
+                            borderColor: filter.color, 
+                            color: 'white'
+                          }
+                        : { 
+                            borderColor: filter.color, 
+                            color: filter.color, 
+                            backgroundColor: 'transparent'
+                          }
+                      }
+                      className={isSelected ? 'hover:opacity-90' : ''}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.backgroundColor = hoverBgColor;
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }
+                      }}
                       onClick={() => updateTemperatureMutation.mutate({ jobId: job.id, temperature: key })}
                       disabled={updateTemperatureMutation.isPending}
                     >
