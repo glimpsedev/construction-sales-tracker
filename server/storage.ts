@@ -218,17 +218,23 @@ export class MemStorage implements IStorage {
       result = result.filter(job => filters.type!.includes(job.type));
     }
 
-    if (filters.temperature && filters.temperature.length > 0) {
-      result = result.filter(job => job.temperature && filters.temperature!.includes(job.temperature));
+    // Handle temperature and unvisited filters with OR logic when both are present
+    // This allows unvisited jobs to be shown alongside jobs matching temperature filters
+    if ((filters.temperature && filters.temperature.length > 0) || filters.unvisited === true) {
+      result = result.filter(job => {
+        const matchesTemperature = filters.temperature && filters.temperature.length > 0 
+          ? (job.temperature && filters.temperature.includes(job.temperature))
+          : false;
+        const matchesUnvisited = filters.unvisited === true 
+          ? !job.visited
+          : false;
+        // Show job if it matches temperature filter OR unvisited filter
+        return matchesTemperature || matchesUnvisited;
+      });
     }
     
     if (filters.cold !== undefined) {
       result = result.filter(job => job.isCold === filters.cold);
-    }
-
-    // Filter by visited status - if unvisited is true, show only unvisited jobs
-    if (filters.unvisited === true) {
-      result = result.filter(job => !job.visited);
     }
 
     if (filters.startDate) {
@@ -470,17 +476,31 @@ export class DatabaseStorage implements IStorage {
 
     // Legacy type filter - ignored for backward compatibility with old URLs
 
+    // Handle temperature and unvisited filters with OR logic when both are present
+    // This allows unvisited jobs to be shown alongside jobs matching temperature filters
+    const temperatureOrUnvisitedConditions = [];
+    
     if (filters.temperature && filters.temperature.length > 0) {
-      conditions.push(inArray(jobs.temperature, filters.temperature as any));
+      temperatureOrUnvisitedConditions.push(inArray(jobs.temperature, filters.temperature as any));
+    }
+    
+    if (filters.unvisited === true) {
+      temperatureOrUnvisitedConditions.push(eq(jobs.visited, false));
+    }
+    
+    // If we have temperature or unvisited filters, combine them with OR
+    if (temperatureOrUnvisitedConditions.length > 0) {
+      if (temperatureOrUnvisitedConditions.length === 1) {
+        // Only one condition, add it directly
+        conditions.push(temperatureOrUnvisitedConditions[0]);
+      } else {
+        // Multiple conditions, combine with OR
+        conditions.push(or(...temperatureOrUnvisitedConditions));
+      }
     }
     
     if (filters.cold !== undefined) {
       conditions.push(eq(jobs.isCold, filters.cold));
-    }
-
-    // Filter by visited status - if unvisited is true, show only unvisited jobs
-    if (filters.unvisited === true) {
-      conditions.push(eq(jobs.visited, false));
     }
 
     if (filters.startDate) {
