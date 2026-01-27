@@ -188,7 +188,15 @@ export default function FilterSidebar({
   };
 
   const temperatureKeys = useMemo(() => Object.keys(filterPreferences), [filterPreferences]);
-  const selectedTemperatures = filters.temperature?.length ? filters.temperature : temperatureKeys;
+  const selectedTemperatures = filters.temperature ?? temperatureKeys;
+
+  // Initialize temperature filters to "all selected" once preferences load.
+  // Do not overwrite explicit user selections (including empty array).
+  useEffect(() => {
+    if (filters.temperature === undefined && temperatureKeys.length > 0) {
+      handleFilterChange('temperature', temperatureKeys);
+    }
+  }, [filters.temperature, temperatureKeys]);
 
   return (
     <aside 

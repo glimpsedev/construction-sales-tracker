@@ -30,7 +30,7 @@ export default function Dashboard() {
     startDate: '',
     minValue: '100000000',  // Default to $100M+ for faster loading
     maxValue: '100000000',  // Default to $100M+ for faster loading
-    temperature: [] as string[],
+    temperature: undefined as string[] | undefined,
     hideCold: false,
     county: '',
     nearMe: false,

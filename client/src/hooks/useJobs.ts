@@ -62,7 +62,12 @@ export function useJobs(filters: JobFilters = {}) {
       if (filters.endDate) params.append('endDate', filters.endDate);
       if (filters.minValue) params.append('minValue', filters.minValue);
       if (filters.maxValue) params.append('maxValue', filters.maxValue);
-      if (filters.temperature?.length) params.append('temperature', filters.temperature.join(','));
+      if (filters.temperature && filters.temperature.length > 0) {
+        params.append('temperature', filters.temperature.join(','));
+      } else if (filters.temperature && filters.temperature.length === 0 && filters.showUnvisited !== true) {
+        // Explicitly request no temperature matches when user deselects all temperatures
+        params.append('temperature', '__none__');
+      }
       if (filters.hideCold === true) params.append('cold', 'false');
       if (filters.county) params.append('county', filters.county);
       if (filters.company) params.append('company', filters.company);
