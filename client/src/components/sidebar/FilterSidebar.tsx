@@ -28,6 +28,7 @@ interface FilterSidebarProps {
     county?: string;
     nearMe?: boolean;
     company?: string;
+    showUnvisited?: boolean;
   };
   onFilterChange: (filters: any) => void;
   onJobSelect: (job: Job) => void;
@@ -108,6 +109,9 @@ export default function FilterSidebar({
     // Jobs Visited: count of all jobs that have been visited
     const visited = allJobs.filter(job => job.visited).length;
     
+    // Jobs Unvisited: count of all jobs that haven't been visited
+    const unvisited = allJobs.filter(job => !job.visited).length;
+    
     // Calculate status counts based on effective status (for filter display)
     const statusCounts = jobs.reduce((acc, job) => {
       const effectiveStatus = getEffectiveStatus(job);
@@ -123,7 +127,8 @@ export default function FilterSidebar({
       visible,
       active,
       planning,
-      visited
+      visited,
+      unvisited
     };
   }, [jobs, allJobs]);
 
@@ -353,25 +358,38 @@ export default function FilterSidebar({
                         handleFilterChange('temperature', nextTemperatures);
                       }}
                     />
-                    <label htmlFor={`temp-${key}`} className="text-sm cursor-pointer">
+                    <label htmlFor={`temp-${key}`} className="text-sm cursor-pointer flex items-center gap-2">
+                      <span 
+                        className="w-3 h-3 rounded-full border border-gray-300 flex-shrink-0"
+                        style={{ backgroundColor: filter.color }}
+                        aria-label={`${filter.name} color`}
+                      />
                       {filter.name}
                     </label>
                   </div>
                 </div>
               ))}
-              <div className="flex items-center justify-between border-t border-gray-100 pt-2 mt-2">
+            </div>
+          </div>
+
+          {/* Unvisited/Undiscovered Jobs Filter */}
+          <div>
+            <h3 className="text-sm font-medium text-darktext mb-3">Discovery Status</h3>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Checkbox
-                    id="show-cold-jobs"
-                    checked={filters.hideCold !== true}
+                    id="show-unvisited"
+                    checked={filters.showUnvisited === true}
                     onCheckedChange={(checked) => {
-                      handleFilterChange('hideCold', !checked);
+                      handleFilterChange('showUnvisited', checked);
                     }}
                   />
-                  <label htmlFor="show-cold-jobs" className="text-sm cursor-pointer">
-                    Show Cold Jobs
+                  <label htmlFor="show-unvisited" className="text-sm cursor-pointer">
+                    Show Unvisited Jobs
                   </label>
                 </div>
+                <span className="text-xs text-gray-500">{stats.unvisited} unvisited</span>
               </div>
             </div>
           </div>

@@ -37,6 +37,7 @@ export interface IStorage {
     company?: string;
     nearLat?: number;
     nearLng?: number;
+    unvisited?: boolean;
   }): Promise<Job[]>;
   getJobByDodgeId(dodgeId: string, userId?: string): Promise<Job | undefined>;
 
@@ -192,6 +193,7 @@ export class MemStorage implements IStorage {
     cold?: boolean;
     viewStatus?: string;
     userId?: string;
+    unvisited?: boolean;
   }): Promise<Job[]> {
     let result = Array.from(this.jobsMap.values());
     
@@ -222,6 +224,11 @@ export class MemStorage implements IStorage {
     
     if (filters.cold !== undefined) {
       result = result.filter(job => job.isCold === filters.cold);
+    }
+
+    // Filter by visited status - if unvisited is true, show only unvisited jobs
+    if (filters.unvisited === true) {
+      result = result.filter(job => !job.visited);
     }
 
     if (filters.startDate) {
@@ -438,6 +445,7 @@ export class DatabaseStorage implements IStorage {
     company?: string;
     nearLat?: number;
     nearLng?: number;
+    unvisited?: boolean;
   }): Promise<Job[]> {
     let query = db.select().from(jobs);
     const conditions = [];
@@ -468,6 +476,11 @@ export class DatabaseStorage implements IStorage {
     
     if (filters.cold !== undefined) {
       conditions.push(eq(jobs.isCold, filters.cold));
+    }
+
+    // Filter by visited status - if unvisited is true, show only unvisited jobs
+    if (filters.unvisited === true) {
+      conditions.push(eq(jobs.visited, false));
     }
 
     if (filters.startDate) {

@@ -34,7 +34,8 @@ export default function Dashboard() {
     hideCold: false,
     county: '',
     nearMe: false,
-    company: ''
+    company: '',
+    showUnvisited: false
   });
 
   // Modify filters to fetch both active and planning jobs when active is selected
