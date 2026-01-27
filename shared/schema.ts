@@ -59,7 +59,7 @@ export const jobs = pgTable("jobs", {
   isViewed: boolean("is_viewed").default(false), // Deprecated - use is_cold instead
   viewedAt: timestamp("viewed_at"), // Deprecated
   userNotes: text("user_notes").default(""),
-  temperature: jobTemperatureEnum("temperature"),
+  temperature: text("temperature"),
   isCold: boolean("is_cold").default(false).notNull(), // Manually marked as cold
   // Temperature-based visited tracking
   visited: boolean("visited").default(false).notNull(),
@@ -99,6 +99,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   verified: boolean("verified").default(false).notNull(),
+  filterPreferences: json("filter_preferences").$type<Record<string, FilterPreference>>(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -182,3 +183,36 @@ export type EmailVerification = typeof emailVerifications.$inferSelect;
 export type InsertEmailVerification = z.infer<typeof insertEmailVerificationSchema>;
 export type RentalEquipment = typeof rentalEquipment.$inferSelect;
 export type InsertRentalEquipment = z.infer<typeof insertRentalEquipmentSchema>;
+
+// Filter preferences types
+export interface FilterPreference {
+  name: string;
+  icon: string;
+  color: string;
+}
+
+export type FilterPreferences = Record<string, FilterPreference>;
+
+// Default filter preferences
+export const DEFAULT_FILTER_PREFERENCES: FilterPreferences = {
+  hot: {
+    name: "Hot",
+    icon: "🔥",
+    color: "#ef4444", // red-500
+  },
+  warm: {
+    name: "Warm",
+    icon: "🌡️",
+    color: "#f97316", // orange-500
+  },
+  cold: {
+    name: "Cold",
+    icon: "❄️",
+    color: "#6b7280", // gray-500
+  },
+  green: {
+    name: "Green",
+    icon: "✅",
+    color: "#22c55e", // green-500
+  },
+};

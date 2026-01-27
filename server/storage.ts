@@ -1,4 +1,4 @@
-import { jobs, equipment, documents, users, emailVerifications, type Job, type InsertJob, type Equipment, type InsertEquipment, type Document, type InsertDocument, type User, type InsertUser, type EmailVerification, type InsertEmailVerification } from "@shared/schema";
+import { jobs, equipment, documents, users, emailVerifications, type Job, type InsertJob, type Equipment, type InsertEquipment, type Document, type InsertDocument, type User, type InsertUser, type EmailVerification, type InsertEmailVerification, type FilterPreferences } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, ilike, gte, lte, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -34,6 +34,7 @@ export interface IStorage {
     cold?: boolean;
     userId?: string;
     county?: string;
+    company?: string;
     nearLat?: number;
     nearLng?: number;
   }): Promise<Job[]>;
@@ -48,6 +49,10 @@ export interface IStorage {
   getAllDocuments(): Promise<Document[]>;
   createDocument(document: InsertDocument): Promise<Document>;
   getDocumentById(id: string): Promise<Document | undefined>;
+
+  // Filter preferences methods
+  getFilterPreferences(userId: string): Promise<FilterPreferences | null>;
+  updateFilterPreferences(userId: string, preferences: FilterPreferences): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -187,11 +192,28 @@ export class MemStorage implements IStorage {
     cold?: boolean;
     viewStatus?: string;
     userId?: string;
+    county?: string;
+    company?: string;
+    nearLat?: number;
+    nearLng?: number;
   }): Promise<Job[]> {
     let result = Array.from(this.jobsMap.values());
     
     if (filters.userId) {
       result = result.filter(job => job.userId === filters.userId);
+    }
+
+    // County filter
+    if (filters.county) {
+      result = result.filter(job => job.county === filters.county);
+    }
+
+    // Company filter (case-insensitive match on owner field)
+    if (filters.company) {
+      const companyLower = filters.company.toLowerCase();
+      result = result.filter(job => 
+        job.owner && job.owner.toLowerCase() === companyLower
+      );
     }
 
     if (filters.search) {
@@ -314,6 +336,18 @@ export class MemStorage implements IStorage {
   async getDocumentById(id: string): Promise<Document | undefined> {
     return this.documentsMap.get(id);
   }
+
+  async getFilterPreferences(userId: string): Promise<FilterPreferences | null> {
+    const user = this.users.get(userId);
+    return user?.filterPreferences || null;
+  }
+
+  async updateFilterPreferences(userId: string, preferences: FilterPreferences): Promise<void> {
+    const user = this.users.get(userId);
+    if (user) {
+      user.filterPreferences = preferences;
+    }
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -422,6 +456,7 @@ export class DatabaseStorage implements IStorage {
     viewStatus?: string;
     userId?: string;
     county?: string;
+    company?: string;
     nearLat?: number;
     nearLng?: number;
   }): Promise<Job[]> {
@@ -435,6 +470,11 @@ export class DatabaseStorage implements IStorage {
     // County filter
     if (filters.county) {
       conditions.push(eq(jobs.county, filters.county));
+    }
+
+    // Company filter (case-insensitive exact match on owner field)
+    if (filters.company) {
+      conditions.push(ilike(jobs.owner, filters.company));
     }
 
     if (filters.status && filters.status.length > 0) {
@@ -574,6 +614,17 @@ export class DatabaseStorage implements IStorage {
   async getDocumentById(id: string): Promise<Document | undefined> {
     const [document] = await db.select().from(documents).where(eq(documents.id, id));
     return document || undefined;
+  }
+
+  async getFilterPreferences(userId: string): Promise<FilterPreferences | null> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    return user?.filterPreferences || null;
+  }
+
+  async updateFilterPreferences(userId: string, preferences: FilterPreferences): Promise<void> {
+    await db.update(users)
+      .set({ filterPreferences: preferences })
+      .where(eq(users.id, userId));
   }
 }
 

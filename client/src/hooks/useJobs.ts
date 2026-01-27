@@ -15,6 +15,7 @@ interface JobFilters {
   nearMe?: boolean;
   userLat?: number;
   userLng?: number;
+  company?: string;
 }
 
 export function useJobs(filters: JobFilters = {}) {
@@ -63,6 +64,7 @@ export function useJobs(filters: JobFilters = {}) {
       if (filters.temperature?.length) params.append('temperature', filters.temperature.join(','));
       if (filters.hideCold === true) params.append('cold', 'false');
       if (filters.county) params.append('county', filters.county);
+      if (filters.company) params.append('company', filters.company);
       
       // Only add location params if we have a location and nearMe is true
       if (filters.nearMe && userLocation) {

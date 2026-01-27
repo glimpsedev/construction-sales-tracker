@@ -3,6 +3,7 @@ import { MapContainer } from "@/components/ui/map-container";
 import InteractiveMap from "@/components/map/InteractiveMap";
 import FilterSidebar from "@/components/sidebar/FilterSidebar";
 import AddJobModal from "@/components/modals/AddJobModal";
+import DocumentUploadModal from "@/components/modals/DocumentUploadModal";
 import { JobDetailsModal } from "@/components/modals/JobDetailsModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,7 @@ import { getAuthHeaders } from "@/lib/auth";
 export default function Dashboard() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false); // Start closed on mobile
   const [showJobDetails, setShowJobDetails] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -26,13 +28,13 @@ export default function Dashboard() {
   const [filters, setFilters] = useState({
     status: ['active'] as string[],
     startDate: '',
-    endDate: '',
     minValue: '100000000',  // Default to $100M+ for faster loading
     maxValue: '100000000',  // Default to $100M+ for faster loading
     temperature: [] as string[],
     hideCold: false,
     county: '',
-    nearMe: false
+    nearMe: false,
+    company: ''
   });
 
   // Modify filters to fetch both active and planning jobs when active is selected
@@ -49,6 +51,9 @@ export default function Dashboard() {
   }, [filters]);
 
   const { data: fetchedJobs = [], isLoading, refetch } = useJobs(modifiedFilters);
+  
+  // Fetch all jobs (without filters) for total count and visited count
+  const { data: allJobs = [] } = useJobs({});
 
   // Apply effective status logic and filter jobs
   const getEffectiveStatus = (job: Job) => {
@@ -177,12 +182,20 @@ export default function Dashboard() {
                 </Button>
               </Link>
               <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowUploadModal(true)}
+              >
+                <i className="fas fa-file-upload mr-2"></i>
+                Upload Docs
+              </Button>
+              <Button
                 size="sm"
                 className="bg-primary hover:bg-blue-700"
                 onClick={() => setShowAddModal(true)}
               >
                 <i className="fas fa-plus mr-2"></i>
-                Add Job Manually
+                Add Job
               </Button>
               <Button
                 variant="destructive"
@@ -289,6 +302,7 @@ export default function Dashboard() {
               isOpen={sidebarOpen}
               onToggle={toggleSidebar}
               jobs={jobs}
+              allJobs={allJobs}
               filters={filters}
               onFilterChange={handleFilterChange}
               onJobSelect={handleJobSelect}
@@ -366,6 +380,12 @@ export default function Dashboard() {
           setShowAddModal(false);
           refetch();
         }}
+      />
+
+      <DocumentUploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onSuccess={refetch}
       />
     </div>
   );

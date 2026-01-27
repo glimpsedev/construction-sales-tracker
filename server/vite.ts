@@ -76,10 +76,32 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  // Serve static files with appropriate cache headers
+  // Hashed assets (JS/CSS) can be cached forever since they have unique names
+  app.use("/assets", express.static(path.join(distPath, "assets"), {
+    maxAge: "1y", // Cache hashed assets for 1 year
+    immutable: true,
+  }));
+
+  // Serve other static files (like fonts, images) with shorter cache
+  app.use(express.static(distPath, {
+    maxAge: "1h", // Cache other static files for 1 hour
+    setHeaders: (res, filePath) => {
+      // Never cache index.html - it must always be fresh to get new asset references
+      if (filePath.endsWith("index.html")) {
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
+      }
+    },
+  }));
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
+    // Set no-cache headers for index.html
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
