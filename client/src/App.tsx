@@ -9,6 +9,7 @@ import Dashboard from "@/pages/dashboard";
 import Equipment from "@/pages/equipment";
 import { EmailSetupPage } from "@/pages/email-setup";
 import { DodgeImportPage } from "@/pages/dodge-import";
+import { AppleMapsImportPage } from "@/pages/apple-maps-import";
 import DatabaseManagement from "@/pages/database-management";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
@@ -39,6 +40,7 @@ function Router() {
           <Route path="/equipment" component={Equipment} />
           <Route path="/email-setup" component={EmailSetupPage} />
           <Route path="/dodge-import" component={DodgeImportPage} />
+          <Route path="/apple-maps-import" component={AppleMapsImportPage} />
           <Route path="/database" component={DatabaseManagement} />
           <Route component={NotFound} />
         </>

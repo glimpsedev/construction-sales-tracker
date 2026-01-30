@@ -146,6 +146,7 @@ export default function AddJobModal({ isOpen, onClose, onSuccess }: AddJobModalP
                         <SelectItem value="residential">Residential</SelectItem>
                         <SelectItem value="industrial">Industrial</SelectItem>
                         <SelectItem value="equipment">Equipment Drop</SelectItem>
+                        <SelectItem value="office">Office</SelectItem>
                         <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>

@@ -103,8 +103,11 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
         }
 
         // Get color from filter preferences based on temperature
+        // Offices get a distinct color (cyan/teal)
         let pinColor = '#3b82f6'; // Default blue
-        if (job.temperature && filterPreferences[job.temperature]) {
+        if (job.type === 'office') {
+          pinColor = '#0891b2'; // Cyan-600 for offices
+        } else if (job.temperature && filterPreferences[job.temperature]) {
           pinColor = filterPreferences[job.temperature].color;
         } else if (job.isCold && filterPreferences.cold) {
           pinColor = filterPreferences.cold.color;
@@ -239,6 +242,7 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
 
   const getStatusIcon = (status: string, type: string) => {
     if (type === 'equipment') return 'fas fa-cog';
+    if (type === 'office') return 'fas fa-building'; // Office icon
     
     switch (status) {
       case 'active': return 'fas fa-hammer';

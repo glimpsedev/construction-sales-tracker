@@ -10,6 +10,9 @@ interface JobPinProps {
 
 export default function JobPin({ job, isSelected, onClick, className }: JobPinProps) {
   const getStatusColor = () => {
+    // Offices get a distinct color (teal/cyan)
+    if (job.type === 'office') return 'bg-cyan-600';
+    
     switch (job.status) {
       case 'active': return 'bg-primary';
       case 'completed': return 'bg-secondary';
@@ -21,6 +24,7 @@ export default function JobPin({ job, isSelected, onClick, className }: JobPinPr
 
   const getStatusIcon = () => {
     if (job.type === 'equipment') return 'fas fa-cog';
+    if (job.type === 'office') return 'fas fa-building'; // Office icon
     
     switch (job.status) {
       case 'active': return 'fas fa-hammer';

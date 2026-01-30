@@ -182,6 +182,12 @@ export default function Dashboard() {
                   Import CSV
                 </Button>
               </Link>
+              <Link href="/apple-maps-import">
+                <Button variant="outline" size="sm">
+                  <i className="fas fa-building mr-2"></i>
+                  Import Offices
+                </Button>
+              </Link>
               <Button
                 variant="outline"
                 size="sm"
@@ -249,6 +255,15 @@ export default function Dashboard() {
                 >
                   <FileSpreadsheet className="h-4 w-4" />
                   Import CSV
+                </button>
+              </Link>
+              <Link href="/apple-maps-import">
+                <button
+                  onClick={() => setShowMobileMenu(false)}
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded flex items-center gap-2"
+                >
+                  <i className="fas fa-building"></i>
+                  Import Offices
                 </button>
               </Link>
               <button

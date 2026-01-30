@@ -5,7 +5,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const jobStatusEnum = pgEnum("job_status", ["active", "completed", "planning", "pending"]);
-export const jobTypeEnum = pgEnum("job_type", ["commercial", "residential", "industrial", "equipment", "other"]);
+export const jobTypeEnum = pgEnum("job_type", ["commercial", "residential", "industrial", "equipment", "other", "office"]);
 export const equipmentStatusEnum = pgEnum("equipment_status", ["starting", "stopping", "maintenance"]);
 export const rentalStatusEnum = pgEnum("rental_status", ["on_rent", "off_rent", "maintenance"]);
 export const jobTemperatureEnum = pgEnum("job_temperature", ["hot", "warm", "cold", "green"]);

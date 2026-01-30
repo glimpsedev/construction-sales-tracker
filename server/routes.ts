@@ -11,6 +11,7 @@ import { documentProcessor } from "./services/documentProcessor";
 import { emailProcessor } from "./services/emailProcessor";
 import { emailWebhookService } from "./services/emailWebhookService";
 import { csvImportService } from "./services/csvImportService";
+import { appleMapsImportService } from "./services/appleMapsImportService";
 import { geocodeAddress } from "./services/geocodingService";
 import multer from 'multer';
 
@@ -522,6 +523,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error importing Dodge CSV:", error);
       res.status(500).json({ 
         error: "Failed to import CSV",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Apple Maps guide import route for offices
+  app.post("/api/import-apple-maps", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const { url } = req.body;
+      
+      if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: "Apple Maps guide URL is required" });
+      }
+
+      const dryRun = req.query.dryRun === 'true';
+      const results = await appleMapsImportService.importAppleMapsGuide(url, req.userId, dryRun);
+      
+      const message = dryRun 
+        ? `Dry-run completed: ${results.imported} offices would be imported, ${results.skipped} skipped`
+        : `Import completed: ${results.imported} new offices, ${results.skipped} skipped`;
+      
+      res.json({ 
+        success: true,
+        dryRun,
+        message,
+        results 
+      });
+    } catch (error) {
+      console.error("Error importing Apple Maps guide:", error);
+      res.status(500).json({ 
+        error: "Failed to import Apple Maps guide",
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
