@@ -17,6 +17,7 @@ interface JobFilters {
   userLng?: number;
   company?: string;
   showUnvisited?: boolean;
+  showOffices?: boolean;
 }
 
 export function useJobs(filters: JobFilters = {}) {
@@ -72,6 +73,8 @@ export function useJobs(filters: JobFilters = {}) {
       if (filters.county) params.append('county', filters.county);
       if (filters.company) params.append('company', filters.company);
       if (filters.showUnvisited === true) params.append('unvisited', 'true');
+      if (filters.showOffices === false) params.append('offices', 'false');
+      if (filters.showOffices === true) params.append('offices', 'true');
       
       // Only add location params if we have a location and nearMe is true
       if (filters.nearMe && userLocation) {

@@ -214,7 +214,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         company,
         nearLat,
         nearLng,
-        unvisited
+        unvisited,
+        offices
       } = req.query;
 
       const filters = {
@@ -231,6 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         nearLat: nearLat ? parseFloat(nearLat as string) : undefined,
         nearLng: nearLng ? parseFloat(nearLng as string) : undefined,
         unvisited: unvisited === 'true' ? true : undefined,
+        offices: offices === 'false' ? false : offices === 'true' ? true : undefined,
         userId: req.userId,
       };
 

@@ -29,6 +29,7 @@ interface FilterSidebarProps {
     nearMe?: boolean;
     company?: string;
     showUnvisited?: boolean;
+    showOffices?: boolean;
   };
   onFilterChange: (filters: any) => void;
   onJobSelect: (job: Job) => void;
@@ -111,6 +112,7 @@ export default function FilterSidebar({
     
     // Jobs Unvisited: count of all jobs that haven't been visited
     const unvisited = allJobs.filter(job => !job.visited).length;
+    const offices = allJobs.filter(job => job.type === 'office').length;
     
     // Calculate status counts based on effective status (for filter display)
     const statusCounts = jobs.reduce((acc, job) => {
@@ -128,7 +130,8 @@ export default function FilterSidebar({
       active,
       planning,
       visited,
-      unvisited
+      unvisited,
+      offices
     };
   }, [jobs, allJobs]);
 
@@ -376,6 +379,28 @@ export default function FilterSidebar({
                   </label>
                 </div>
                 <span className="text-xs text-gray-500">{stats.unvisited} unvisited</span>
+              </div>
+
+              {/* Offices visibility */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="show-offices"
+                    checked={filters.showOffices !== false}
+                    onCheckedChange={(checked) => {
+                      handleFilterChange('showOffices', !!checked);
+                    }}
+                  />
+                  <label htmlFor="show-offices" className="text-sm cursor-pointer flex items-center gap-2">
+                    <span 
+                      className="w-3 h-3 rounded-full border border-gray-300 flex-shrink-0"
+                      style={{ backgroundColor: '#0891b2' }}
+                      aria-label="Offices color"
+                    />
+                    Offices
+                  </label>
+                </div>
+                <span className="text-xs text-gray-500">{stats.offices} offices</span>
               </div>
               
               {/* Temperature filters */}

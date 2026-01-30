@@ -194,6 +194,7 @@ export class MemStorage implements IStorage {
     viewStatus?: string;
     userId?: string;
     unvisited?: boolean;
+    offices?: boolean;
   }): Promise<Job[]> {
     let result = Array.from(this.jobsMap.values());
     
@@ -214,6 +215,10 @@ export class MemStorage implements IStorage {
       result = result.filter(job => filters.status!.includes(job.status));
     }
 
+    if (filters.offices === false) {
+      result = result.filter(job => job.type !== 'office');
+    }
+
     if (filters.type && filters.type.length > 0) {
       result = result.filter(job => filters.type!.includes(job.type));
     }
@@ -228,8 +233,11 @@ export class MemStorage implements IStorage {
         const matchesUnvisited = filters.unvisited === true 
           ? !job.visited
           : false;
+        const matchesOffice = filters.offices === true 
+          ? job.type === 'office'
+          : false;
         // Show job if it matches temperature filter OR unvisited filter
-        return matchesTemperature || matchesUnvisited;
+        return matchesTemperature || matchesUnvisited || matchesOffice;
       });
     }
     
