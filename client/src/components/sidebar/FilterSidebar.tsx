@@ -20,7 +20,6 @@ interface FilterSidebarProps {
   allJobs: Job[];
   filters: {
     status: string[];
-    type?: string[];
     startDate: string;
     minValue: string;
     maxValue: string;
@@ -191,23 +190,6 @@ export default function FilterSidebar({
   const temperatureKeys = useMemo(() => Object.keys(filterPreferences), [filterPreferences]);
   const selectedTemperatures = filters.temperature ?? temperatureKeys;
 
-  const typeOptions = useMemo(() => ([
-    { key: 'commercial', label: 'Commercial' },
-    { key: 'residential', label: 'Residential' },
-    { key: 'industrial', label: 'Industrial' },
-    { key: 'equipment', label: 'Equipment' },
-    { key: 'office', label: 'Offices' },
-    { key: 'other', label: 'Other' },
-  ]), []);
-
-  const selectedTypes = filters.type ?? typeOptions.map(option => option.key);
-
-  const typeCounts = useMemo(() => {
-    return jobs.reduce((acc, job) => {
-      acc[job.type] = (acc[job.type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-  }, [jobs]);
 
   // Initialize temperature filters to "all selected" once preferences load.
   // Do not overwrite explicit user selections (including empty array).
@@ -217,11 +199,6 @@ export default function FilterSidebar({
     }
   }, [filters.temperature, temperatureKeys]);
 
-  useEffect(() => {
-    if (filters.type === undefined && typeOptions.length > 0) {
-      handleFilterChange('type', typeOptions.map(option => option.key));
-    }
-  }, [filters.type, typeOptions]);
 
   return (
     <aside 
@@ -350,35 +327,6 @@ export default function FilterSidebar({
             </div>
           </div>
 
-          {/* Type Filter */}
-          <div>
-            <h3 className="text-sm font-medium text-darktext mb-3">Type</h3>
-            <div className="space-y-2">
-              {typeOptions.map(option => (
-                <div key={option.key} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`type-${option.key}`}
-                      checked={selectedTypes.includes(option.key)}
-                      onCheckedChange={(checked) => {
-                        const nextTypes = checked
-                          ? [...selectedTypes, option.key]
-                          : selectedTypes.filter(type => type !== option.key);
-                        handleFilterChange('type', nextTypes);
-                      }}
-                      data-testid={`checkbox-type-${option.key}`}
-                    />
-                    <label htmlFor={`type-${option.key}`} className="text-sm cursor-pointer">
-                      {option.label}
-                    </label>
-                  </div>
-                  <span className="text-xs text-gray-500">
-                    {typeCounts[option.key] || 0}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* Start Date */}
           <div>

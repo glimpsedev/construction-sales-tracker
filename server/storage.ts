@@ -251,6 +251,9 @@ export class MemStorage implements IStorage {
 
     if (filters.minValue !== undefined || filters.maxValue !== undefined) {
       result = result.filter(job => {
+        // Offices should remain visible even when value filters are set
+        if (job.type === 'office') return true;
+
         // Handle null/undefined projectValue
         if (!job.projectValue) return false;
         
