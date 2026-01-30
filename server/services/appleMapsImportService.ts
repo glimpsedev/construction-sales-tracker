@@ -48,99 +48,132 @@ export class AppleMapsImportService {
         decoded = url;
       }
       
-      const locations: OfficeLocation[] = [];
-      
-      // Pattern to match full addresses: number + street + city + state + zip
-      // Example: "41152 Stealth St, Livermore, CA  94551, United States"
-      const addressPattern = /(\d{1,6}[\s\u00A0]+[^,]+?),\s*([A-Za-z\s]+?),\s*CA[\s\u00A0]+(\d{5})/g;
-      
-      // Pattern to match company names (ALL CAPS, may contain &, ., spaces)
-      // They typically appear before addresses
-      const companyNamePattern = /([A-Z][A-Z\s&.()]+?)(?=\d{1,6}[\s\u00A0]+[^,]+?,\s*[A-Za-z\s]+?,\s*CA[\s\u00A0]+\d{5})/g;
-      
-      const addressMatches = Array.from(decoded.matchAll(addressPattern));
-      const companyMatches = Array.from(decoded.matchAll(companyNamePattern));
-      
-      console.log(`Found ${addressMatches.length} address matches and ${companyMatches.length} company name matches in decoded URL (length: ${decoded.length})`);
-      
-      // Create a map of address positions to find nearest company name
-      const addressPositions = addressMatches.map((match, idx) => ({
-        index: idx,
-        match: match,
-        position: match.index || 0,
-        fullAddress: match[0],
-        streetAddress: match[1],
-        city: match[2]?.trim(),
-        zip: match[3]
-      }));
-      
-      // Match each address with the nearest preceding company name
-      for (const addrInfo of addressPositions) {
-        let companyName = 'Office';
+      const extractFromText = (text: string, label: string): OfficeLocation[] => {
+        const locations: OfficeLocation[] = [];
         
-        // Find the company name that appears before this address
-        for (let i = companyMatches.length - 1; i >= 0; i--) {
-          const companyMatch = companyMatches[i];
-          if (!companyMatch || companyMatch.index === undefined) continue;
+        // Pattern to match full addresses: number + street + city + state + zip
+        // Example: "41152 Stealth St, Livermore, CA  94551, United States"
+        const addressPattern = /(\d{1,6}[\s\u00A0]+[^,]+?),\s*([A-Za-z\s]+?),\s*CA[\s\u00A0]+(\d{5})/g;
+        
+        // Pattern to match company names (ALL CAPS, may contain &, ., spaces)
+        // They typically appear before addresses
+        const companyNamePattern = /([A-Z][A-Z\s&.()]+?)(?=\d{1,6}[\s\u00A0]+[^,]+?,\s*[A-Za-z\s]+?,\s*CA[\s\u00A0]+\d{5})/g;
+        
+        const addressMatches = Array.from(text.matchAll(addressPattern));
+        const companyMatches = Array.from(text.matchAll(companyNamePattern));
+        
+        console.log(`Found ${addressMatches.length} address matches and ${companyMatches.length} company name matches in ${label} (length: ${text.length})`);
+        
+        // Create a map of address positions to find nearest company name
+        const addressPositions = addressMatches.map((match, idx) => ({
+          index: idx,
+          match: match,
+          position: match.index || 0,
+          fullAddress: match[0],
+          streetAddress: match[1],
+          city: match[2]?.trim(),
+          zip: match[3]
+        }));
+        
+        // Match each address with the nearest preceding company name
+        for (const addrInfo of addressPositions) {
+          let companyName = 'Office';
           
-          const companyPos = companyMatch.index;
-          const addrPos = addrInfo.position;
-          
-          // Company should be before address and reasonably close (within 1000 chars)
-          if (companyPos < addrPos && (addrPos - companyPos) < 1000) {
-            const name = companyMatch[1]?.trim();
-            // Filter out common false positives
-            if (name && 
-                name.length > 2 && 
-                name.length < 100 &&
-                !name.match(/^(United States|California|CA)$/i)) {
-              companyName = name;
-              break;
+          // Find the company name that appears before this address
+          for (let i = companyMatches.length - 1; i >= 0; i--) {
+            const companyMatch = companyMatches[i];
+            if (!companyMatch || companyMatch.index === undefined) continue;
+            
+            const companyPos = companyMatch.index;
+            const addrPos = addrInfo.position;
+            
+            // Company should be before address and reasonably close (within 1000 chars)
+            if (companyPos < addrPos && (addrPos - companyPos) < 1000) {
+              const name = companyMatch[1]?.trim();
+              // Filter out common false positives
+              if (name && 
+                  name.length > 2 && 
+                  name.length < 100 &&
+                  !name.match(/^(United States|California|CA)$/i)) {
+                companyName = name;
+                break;
+              }
             }
           }
-        }
-        
-        // Clean up company name (remove extra spaces, normalize)
-        companyName = companyName
-          .replace(/\s+/g, ' ')
-          .replace(/^\s+|\s+$/g, '')
-          .trim();
-        
-        if (!companyName || companyName === 'Office') {
-          // Try to extract from the address context
-          // Sometimes the company name is embedded differently
-          const beforeAddress = decoded.substring(Math.max(0, addrInfo.position - 200), addrInfo.position);
-          const nameMatch = beforeAddress.match(/([A-Z][A-Z\s&.()]{3,50})(?=\s*\d{1,6})/);
-          if (nameMatch && nameMatch[1]) {
-            companyName = nameMatch[1].trim();
+          
+          // Clean up company name (remove extra spaces, normalize)
+          companyName = companyName
+            .replace(/\s+/g, ' ')
+            .replace(/^\s+|\s+$/g, '')
+            .trim();
+          
+          if (!companyName || companyName === 'Office') {
+            // Try to extract from the address context
+            // Sometimes the company name is embedded differently
+            const beforeAddress = text.substring(Math.max(0, addrInfo.position - 200), addrInfo.position);
+            const nameMatch = beforeAddress.match(/([A-Z][A-Z\s&.()]{3,50})(?=\s*\d{1,6})/);
+            if (nameMatch && nameMatch[1]) {
+              companyName = nameMatch[1].trim();
+            }
           }
+          
+          const fullAddress = `${addrInfo.streetAddress}, ${addrInfo.city}, CA ${addrInfo.zip}`;
+          
+          locations.push({
+            name: companyName || 'Office',
+            address: fullAddress,
+            city: addrInfo.city,
+            state: 'CA',
+            zip: addrInfo.zip
+          });
         }
         
-        const fullAddress = `${addrInfo.streetAddress}, ${addrInfo.city}, CA ${addrInfo.zip}`;
-        
-        locations.push({
-          name: companyName || 'Office',
-          address: fullAddress,
-          city: addrInfo.city,
-          state: 'CA',
-          zip: addrInfo.zip
+        // Remove duplicates based on address
+        const seen = new Set<string>();
+        const uniqueLocations = locations.filter(loc => {
+          const key = loc.address.toLowerCase().trim();
+          if (seen.has(key)) {
+            return false;
+          }
+          seen.add(key);
+          return true;
         });
+        
+        console.log(`Parsed ${uniqueLocations.length} unique office locations from ${label}`);
+        
+        return uniqueLocations;
+      };
+      
+      const primaryLocations = extractFromText(decoded, 'decoded URL');
+      if (primaryLocations.length > 0) {
+        return primaryLocations;
       }
       
-      // Remove duplicates based on address
-      const seen = new Set<string>();
-      const uniqueLocations = locations.filter(loc => {
-        const key = loc.address.toLowerCase().trim();
-        if (seen.has(key)) {
-          return false;
+      // Fallback: parse base64-encoded user param payload
+      let userParam: string | null = null;
+      try {
+        const parsedUrl = new URL(decoded);
+        userParam = parsedUrl.searchParams.get('user');
+      } catch {
+        const match = decoded.match(/[?&]user=([^&]+)/);
+        userParam = match?.[1] ?? null;
+      }
+      
+      if (userParam) {
+        try {
+          const normalized = userParam.replace(/-/g, '+').replace(/_/g, '/');
+          const padded = normalized + '==='.slice((normalized.length + 3) % 4);
+          const decodedUser = Buffer.from(padded, 'base64').toString('utf8');
+          const fallbackLocations = extractFromText(decodedUser, 'user param payload');
+          if (fallbackLocations.length > 0) {
+            return fallbackLocations;
+          }
+        } catch (decodeError) {
+          console.warn('Failed to decode Apple Maps user param payload:', decodeError);
         }
-        seen.add(key);
-        return true;
-      });
+      }
       
-      console.log(`Parsed ${uniqueLocations.length} unique office locations from Apple Maps guide`);
-      
-      return uniqueLocations;
+      return [];
     } catch (error) {
       console.error('Error parsing Apple Maps guide:', error);
       throw new Error(`Failed to parse Apple Maps guide: ${error instanceof Error ? error.message : 'Unknown error'}`);
