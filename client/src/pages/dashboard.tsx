@@ -27,6 +27,7 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const [filters, setFilters] = useState({
     status: ['active'] as string[],
+    type: undefined as string[] | undefined,
     startDate: '',
     minValue: '100000000',  // Default to $100M+ for faster loading
     maxValue: '100000000',  // Default to $100M+ for faster loading

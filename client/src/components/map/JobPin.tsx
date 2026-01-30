@@ -24,7 +24,7 @@ export default function JobPin({ job, isSelected, onClick, className }: JobPinPr
 
   const getStatusIcon = () => {
     if (job.type === 'equipment') return 'fas fa-cog';
-    if (job.type === 'office') return 'fas fa-building'; // Office icon
+    if (job.type === 'office') return 'fas fa-building-columns'; // Office icon
     
     switch (job.status) {
       case 'active': return 'fas fa-hammer';

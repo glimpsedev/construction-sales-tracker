@@ -242,7 +242,7 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
 
   const getStatusIcon = (status: string, type: string) => {
     if (type === 'equipment') return 'fas fa-cog';
-    if (type === 'office') return 'fas fa-building'; // Office icon
+    if (type === 'office') return 'fas fa-building-columns'; // Office icon
     
     switch (status) {
       case 'active': return 'fas fa-hammer';
