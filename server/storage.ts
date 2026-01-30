@@ -212,7 +212,10 @@ export class MemStorage implements IStorage {
     }
 
     if (filters.status && filters.status.length > 0) {
-      result = result.filter(job => filters.status!.includes(job.status));
+      result = result.filter(job => {
+        if (filters.offices === true && job.type === 'office') return true;
+        return filters.status!.includes(job.status);
+      });
     }
 
     if (filters.offices === false) {
