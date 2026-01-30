@@ -8,6 +8,9 @@ import { cn, getMergedFilterPreferences } from "@/lib/utils";
 import JobCard from "./JobCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Settings } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { getAuthHeaders } from "@/lib/auth";
 import type { Job } from "@shared/schema";
 import CompanyFilter from "./CompanyFilter";
 import { useFilterPreferences } from "@/hooks/useFilterPreferences";
@@ -53,6 +56,35 @@ export default function FilterSidebar({
   const debounceTimer = useRef<NodeJS.Timeout>();
   const { preferences } = useFilterPreferences();
   const [showPreferencesModal, setShowPreferencesModal] = useState(false);
+  const { toast } = useToast();
+
+  const geocodeOfficesMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/geocode-missing?type=office&limit=500', {
+        method: 'POST',
+        headers: {
+          ...getAuthHeaders()
+        }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to geocode offices');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Geocoding Started",
+        description: data.message || "Office geocoding completed"
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Geocoding Failed",
+        description: "Unable to geocode office addresses",
+        variant: "destructive"
+      });
+    }
+  });
 
   // Merge user preferences with defaults - using shared utility to ensure synchronization
   // with JobDetailsModal component
@@ -401,6 +433,17 @@ export default function FilterSidebar({
                   </label>
                 </div>
                 <span className="text-xs text-gray-500">{stats.offices} offices</span>
+              </div>
+              <div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => geocodeOfficesMutation.mutate()}
+                  disabled={geocodeOfficesMutation.isPending}
+                >
+                  {geocodeOfficesMutation.isPending ? "Geocoding..." : "Geocode Offices"}
+                </Button>
               </div>
               
               {/* Temperature filters */}

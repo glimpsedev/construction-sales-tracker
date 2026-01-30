@@ -847,13 +847,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Geocode missing coordinates
   app.post('/api/geocode-missing', async (req, res) => {
     try {
+      const { type, limit } = req.query;
+      const batchLimit = Math.min(parseInt((limit as string) || '50', 10) || 50, 500);
+
+      const conditions = [
+        sql`${jobs.latitude} IS NULL AND ${jobs.address} IS NOT NULL`
+      ];
+
+      if (type && typeof type === 'string') {
+        conditions.push(eq(jobs.type, type));
+      }
+
       const jobsWithoutCoords = await db
         .select()
         .from(jobs)
-        .where(
-          sql`${jobs.latitude} IS NULL AND ${jobs.address} IS NOT NULL`
-        )
-        .limit(50); // Process 50 at a time to avoid API limits
+        .where(and(...conditions))
+        .limit(batchLimit); // Process in batches to avoid API limits
 
       console.log(`Found ${jobsWithoutCoords.length} jobs without coordinates`);
 
@@ -890,7 +899,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: `Geocoding completed: ${geocoded} successful, ${failed} failed`,
         geocoded,
         failed,
-        remaining: jobsWithoutCoords.length === 50 ? 'More jobs may need geocoding' : 'All jobs processed'
+        remaining: jobsWithoutCoords.length === batchLimit ? 'More jobs may need geocoding' : 'All jobs processed'
       });
     } catch (error) {
       console.error('Error geocoding jobs:', error);
