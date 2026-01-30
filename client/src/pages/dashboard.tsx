@@ -77,6 +77,10 @@ export default function Dashboard() {
 
   // Filter jobs based on effective status
   const jobs = fetchedJobs.filter(job => {
+    if (job.type === 'office') {
+      return filters.showOffices !== false;
+    }
+
     const effectiveStatus = getEffectiveStatus(job);
     
     // If status filter is empty, show all jobs
