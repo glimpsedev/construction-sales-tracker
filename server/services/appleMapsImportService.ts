@@ -22,6 +22,31 @@ interface ImportResult {
 }
 
 export class AppleMapsImportService {
+  private sanitizeText(value: string): string {
+    return value
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  private async ensureOfficeJobType(): Promise<void> {
+    try {
+      await db.execute(sql`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_enum 
+            WHERE enumlabel = 'office' 
+              AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'job_type')
+          ) THEN
+            ALTER TYPE "job_type" ADD VALUE 'office';
+          END IF;
+        END $$;
+      `);
+    } catch (error) {
+      console.warn("Unable to ensure office job_type enum:", error);
+    }
+  }
   
   /**
    * Parse Apple Maps guide URL and extract office locations
@@ -50,19 +75,20 @@ export class AppleMapsImportService {
       
       const extractFromText = (text: string, label: string): OfficeLocation[] => {
         const locations: OfficeLocation[] = [];
+        const sanitizedText = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " ");
         
         // Pattern to match full addresses: number + street + city + state + zip
         // Example: "41152 Stealth St, Livermore, CA  94551, United States"
-        const addressPattern = /(\d{1,6}[\s\u00A0]+[^,]+?),\s*([A-Za-z\s]+?),\s*CA[\s\u00A0]+(\d{5})/g;
+        const addressPattern = /(\d{1,6}[\s\u00A0]+[^,]+?),\s*([^,]+?),\s*([A-Z]{2})[\s\u00A0]+(\d{5}(?:-\d{4})?)/g;
         
         // Pattern to match company names (ALL CAPS, may contain &, ., spaces)
         // They typically appear before addresses
-        const companyNamePattern = /([A-Z][A-Z\s&.()]+?)(?=\d{1,6}[\s\u00A0]+[^,]+?,\s*[A-Za-z\s]+?,\s*CA[\s\u00A0]+\d{5})/g;
+        const companyNamePattern = /([A-Z][A-Z\s&.()]+?)(?=\d{1,6}[\s\u00A0]+[^,]+?,\s*[^,]+?,\s*[A-Z]{2}[\s\u00A0]+\d{5}(?:-\d{4})?)/g;
         
-        const addressMatches = Array.from(text.matchAll(addressPattern));
-        const companyMatches = Array.from(text.matchAll(companyNamePattern));
+        const addressMatches = Array.from(sanitizedText.matchAll(addressPattern));
+        const companyMatches = Array.from(sanitizedText.matchAll(companyNamePattern));
         
-        console.log(`Found ${addressMatches.length} address matches and ${companyMatches.length} company name matches in ${label} (length: ${text.length})`);
+        console.log(`Found ${addressMatches.length} address matches and ${companyMatches.length} company name matches in ${label} (length: ${sanitizedText.length})`);
         
         // Create a map of address positions to find nearest company name
         const addressPositions = addressMatches.map((match, idx) => ({
@@ -72,7 +98,8 @@ export class AppleMapsImportService {
           fullAddress: match[0],
           streetAddress: match[1],
           city: match[2]?.trim(),
-          zip: match[3]
+          state: match[3],
+          zip: match[4]
         }));
         
         // Match each address with the nearest preceding company name
@@ -110,21 +137,21 @@ export class AppleMapsImportService {
           if (!companyName || companyName === 'Office') {
             // Try to extract from the address context
             // Sometimes the company name is embedded differently
-            const beforeAddress = text.substring(Math.max(0, addrInfo.position - 200), addrInfo.position);
+            const beforeAddress = sanitizedText.substring(Math.max(0, addrInfo.position - 200), addrInfo.position);
             const nameMatch = beforeAddress.match(/([A-Z][A-Z\s&.()]{3,50})(?=\s*\d{1,6})/);
-            if (nameMatch && nameMatch[1]) {
-              companyName = nameMatch[1].trim();
+          if (nameMatch && nameMatch[1]) {
+            companyName = nameMatch[1].trim();
             }
           }
-          
-          const fullAddress = `${addrInfo.streetAddress}, ${addrInfo.city}, CA ${addrInfo.zip}`;
+
+        const fullAddress = `${addrInfo.streetAddress}, ${addrInfo.city}, ${addrInfo.state} ${addrInfo.zip}`;
           
           locations.push({
-            name: companyName || 'Office',
-            address: fullAddress,
-            city: addrInfo.city,
-            state: 'CA',
-            zip: addrInfo.zip
+          name: this.sanitizeText(companyName || "Office"),
+          address: this.sanitizeText(fullAddress),
+          city: this.sanitizeText(addrInfo.city || ""),
+          state: addrInfo.state,
+          zip: addrInfo.zip
           });
         }
         
@@ -163,7 +190,7 @@ export class AppleMapsImportService {
         try {
           const normalized = userParam.replace(/-/g, '+').replace(/_/g, '/');
           const padded = normalized + '==='.slice((normalized.length + 3) % 4);
-          const decodedUser = Buffer.from(padded, 'base64').toString('utf8');
+          const decodedUser = Buffer.from(padded, 'base64').toString('latin1');
           const fallbackLocations = extractFromText(decodedUser, 'user param payload');
           if (fallbackLocations.length > 0) {
             return fallbackLocations;
@@ -243,6 +270,8 @@ export class AppleMapsImportService {
         results.errors.push('No locations found in Apple Maps guide URL');
         return results;
       }
+
+      await this.ensureOfficeJobType();
       
       for (let i = 0; i < locations.length; i++) {
         const location = locations[i];
