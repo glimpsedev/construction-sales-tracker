@@ -29,6 +29,11 @@ export class AppleMapsImportService {
    */
   parseAppleMapsGuide(url: string): OfficeLocation[] {
     try {
+      if (!url || typeof url !== 'string' || url.trim().length === 0) {
+        console.error('Invalid URL provided to parseAppleMapsGuide:', { url, type: typeof url, length: url?.length });
+        return [];
+      }
+      
       // Decode the URL multiple times as it may be double-encoded
       let decoded = url;
       try {
@@ -37,8 +42,9 @@ export class AppleMapsImportService {
         if (decoded !== url) {
           decoded = decodeURIComponent(decoded);
         }
-      } catch {
+      } catch (decodeError) {
         // If decoding fails, use original
+        console.warn('URL decoding failed, using original URL:', decodeError);
         decoded = url;
       }
       
@@ -54,6 +60,8 @@ export class AppleMapsImportService {
       
       const addressMatches = Array.from(decoded.matchAll(addressPattern));
       const companyMatches = Array.from(decoded.matchAll(companyNamePattern));
+      
+      console.log(`Found ${addressMatches.length} address matches and ${companyMatches.length} company name matches in decoded URL (length: ${decoded.length})`);
       
       // Create a map of address positions to find nearest company name
       const addressPositions = addressMatches.map((match, idx) => ({
@@ -175,6 +183,8 @@ export class AppleMapsImportService {
     dryRun: boolean = false
   ): Promise<ImportResult> {
     try {
+      console.log(`Importing Apple Maps guide (dry-run: ${dryRun}), URL length: ${url.length}`);
+      
       const results: ImportResult = {
         imported: 0,
         skipped: 0,
@@ -186,11 +196,17 @@ export class AppleMapsImportService {
       };
       
       // Parse the URL to extract locations
-      const locations = this.parseAppleMapsGuide(url);
+      let locations: OfficeLocation[] = [];
+      try {
+        locations = this.parseAppleMapsGuide(url);
+        console.log(`Parsed ${locations.length} office locations from Apple Maps guide (dry-run: ${dryRun})`);
+      } catch (parseError) {
+        console.error('Error parsing Apple Maps guide URL:', parseError);
+        results.errors.push(`Failed to parse Apple Maps guide URL: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+        return results;
+      }
       
-      console.log(`Parsed ${locations.length} office locations from Apple Maps guide (dry-run: ${dryRun})`);
-      
-      if (locations.length === 0) {
+      if (!locations || locations.length === 0) {
         results.errors.push('No locations found in Apple Maps guide URL');
         return results;
       }
