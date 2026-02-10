@@ -210,6 +210,40 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
     }
   });
 
+  const markVisitedMutation = useMutation({
+    mutationFn: async (jobId: string) => {
+      const response = await fetch(`/api/jobs/${jobId}/visit`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+        }
+        throw new Error('Failed to mark job as visited');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      toast({
+        title: "Success",
+        description: "Job marked as visited"
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to mark job as visited",
+        variant: "destructive"
+      });
+    }
+  });
+
   const markColdMutation = useMutation({
     mutationFn: async ({ jobId, isCold }: { jobId: string; isCold: boolean }) => {
       const response = await fetch(`/api/jobs/${jobId}/cold`, {
@@ -556,10 +590,19 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
                   onClick={() => updateTemperatureMutation.mutate({ jobId: job.id, temperature: null })}
                   disabled={
                     updateTemperatureMutation.isPending ||
-                    (!job.temperature && !job.visited)
+                    !job.temperature
                   }
                 >
                   Reset
+                </Button>
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => markVisitedMutation.mutate(job.id)}
+                  disabled={markVisitedMutation.isPending}
+                  data-testid="button-visited"
+                >
+                  Visited
                 </Button>
               </div>
             </CardContent>

@@ -764,7 +764,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update job temperature and mark as visited (or reset to default)
+  // Mark job as visited (updates visit timestamp without changing temperature)
+  app.patch("/api/jobs/:id/visit", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const [currentJob] = await db
+        .select()
+        .from(jobs)
+        .where(and(eq(jobs.id, req.params.id), eq(jobs.userId, req.userId!)));
+      
+      if (!currentJob) {
+        return res.status(404).json({ error: 'Job not found' });
+      }
+      
+      await db
+        .update(jobs)
+        .set({
+          visited: true,
+          temperatureSetAt: new Date()
+        })
+        .where(and(eq(jobs.id, req.params.id), eq(jobs.userId, req.userId!)));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking job as visited:", error);
+      res.status(500).json({ error: "Failed to mark job as visited" });
+    }
+  });
+
+  // Update job temperature (or reset to default). Reset clears temperature only; visit tracking is preserved.
   app.patch("/api/jobs/:id/temperature", authenticate, async (req: AuthRequest, res) => {
     try {
       const { temperature } = req.body;
@@ -789,10 +816,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const updateData: any = isReset
-        ? { temperature: null, visited: false, temperatureSetAt: null }
+        ? { temperature: null }
         : { temperature: temperature as any };
       
-      // If temperature is being set for the first time (from null/undefined), mark as visited
+      // If temperature is being set (not reset), also mark as visited and set timestamp
       if (!isReset && (!currentJob.temperature || !currentJob.visited)) {
         updateData.visited = true;
         updateData.temperatureSetAt = new Date();

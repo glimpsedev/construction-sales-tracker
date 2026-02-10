@@ -115,12 +115,13 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
         
         const effectiveStatus = getEffectiveStatus(job);
         const iconHtml = getStatusIcon(effectiveStatus, job.type);
+        const markerContent = getMarkerContent(job, iconHtml);
         
         const customIcon = L.divIcon({
           html: `
             <div class="relative">
               <div class="w-8 h-8 rounded-full border-4 border-white shadow-lg flex items-center justify-center pin-drop" style="background-color: ${pinColor};">
-                <i class="${iconHtml} text-white text-xs"></i>
+                ${markerContent}
               </div>
             </div>
           `,
@@ -251,6 +252,27 @@ export default function InteractiveMap({ jobs, selectedJob, onJobSelect, isLoadi
       case 'pending': return 'fas fa-pause';
       default: return 'fas fa-map-marker-alt';
     }
+  };
+
+  const getDaysSinceVisit = (date: Date | string): number => {
+    const visitDate = new Date(date);
+    visitDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffMs = today.getTime() - visitDate.getTime();
+    return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  };
+
+  // For visited jobs: show days since last visit. For never-visited: show status icon.
+  const getMarkerContent = (job: Job, iconHtml: string): string => {
+    if (job.type === 'equipment' || job.type === 'office') {
+      return `<i class="${iconHtml} text-white text-xs"></i>`;
+    }
+    if (job.visited && job.temperatureSetAt) {
+      const days = getDaysSinceVisit(job.temperatureSetAt);
+      return `<span class="text-white text-xs font-semibold leading-none">${days}</span>`;
+    }
+    return `<i class="${iconHtml} text-white text-xs"></i>`;
   };
 
   return (
