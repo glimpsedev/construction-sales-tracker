@@ -1,0 +1,665 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Construction Sales Tracker - Interactive Job Site Map</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    primary: '#1976D2',
+                    secondary: '#388E3C',
+                    accent: '#FF9800',
+                    neutral: '#FAFAFA',
+                    darktext: '#424242',
+                    error: '#F44336',
+                    info: '#2196F3'
+                },
+                fontFamily: {
+                    'sans': ['Inter', 'system-ui', 'sans-serif'],
+                    'mono': ['JetBrains Mono', 'monospace']
+                }
+            }
+        }
+    };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .map-container {
+            background: linear-gradient(45deg, #e3f2fd 25%, transparent 25%), 
+                        linear-gradient(-45deg, #e3f2fd 25%, transparent 25%), 
+                        linear-gradient(45deg, transparent 75%, #e3f2fd 75%), 
+                        linear-gradient(-45deg, transparent 75%, #e3f2fd 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        .pin-drop {
+            animation: pinDrop 0.6s ease-out;
+        }
+        @keyframes pinDrop {
+            0% { transform: translateY(-20px) scale(0.8); opacity: 0; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .filter-slide {
+            transition: transform 0.3s ease-in-out;
+        }
+        .job-card {
+            transition: all 0.2s ease-in-out;
+        }
+        .job-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+    </style>
+</head>
+<body class="bg-neutral font-sans">
+    <!-- @COMPONENT: MainLayout -->
+    
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center">
+                        <i class="fas fa-map-marked-alt text-primary text-2xl mr-3"></i>
+                        <h1 class="text-xl font-semibold text-darktext">Construction Sales Tracker</h1>
+                    </div>
+                    
+                    <!-- Data Status Indicator -->
+                    <div class="hidden sm:flex items-center space-x-2 px-3 py-1 bg-secondary/10 rounded-full">
+                        <div class="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
+                        <span class="text-sm text-secondary font-medium">Live Data</span>
+                        <span class="text-xs text-gray-500">Updated 2 min ago</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <!-- Document Upload Button -->
+                    <button class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-darktext bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                        <i class="fas fa-file-upload mr-2"></i>
+                        <span class="hidden sm:inline">Upload Docs</span>
+                    </button>
+                    
+                    <!-- Add Job Button -->
+                    <button class="inline-flex items-center px-4 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                        <i class="fas fa-plus mr-2"></i>
+                        Add Job
+                    </button>
+                    
+                    <!-- Mobile Menu Toggle -->
+                    <button class="sm:hidden p-2 rounded-md text-darktext hover:bg-gray-100">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex h-screen pt-16">
+        <!-- Filter Sidebar -->
+        <aside class="w-80 bg-white border-r border-gray-200 shadow-sm overflow-y-auto filter-slide" id="filterSidebar">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-lg font-semibold text-darktext">Filters & Jobs</h2>
+                    <button class="text-gray-400 hover:text-darktext sm:hidden" onclick="toggleSidebar()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-blue-50 p-3 rounded-lg">
+                        <div class="text-2xl font-bold text-primary" data-bind="stats.totalJobs">247</div>
+                        <div class="text-sm text-blue-600">Total Jobs</div>
+                    </div>
+                    <div class="bg-green-50 p-3 rounded-lg">
+                        <div class="text-2xl font-bold text-secondary" data-bind="stats.completedJobs">89</div>
+                        <div class="text-sm text-green-600">Completed</div>
+                    </div>
+                </div>
+
+                <!-- Search -->
+                <div class="mb-6">
+                    <div class="relative">
+                        <input type="text" placeholder="Search jobs, addresses..." 
+                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                               data-bind="filters.searchQuery">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                </div>
+
+                <!-- Filter Sections -->
+                <div class="space-y-6">
+                    <!-- Status Filter -->
+                    <div>
+                        <h3 class="text-sm font-medium text-darktext mb-3">Status</h3>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="checkbox" class="rounded text-primary focus:ring-primary" checked data-bind="filters.status.active">
+                                <span class="ml-2 text-sm">Active Jobs</span>
+                                <span class="ml-auto text-xs text-gray-500" data-bind="counts.active">158</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="rounded text-secondary focus:ring-secondary" data-bind="filters.status.completed">
+                                <span class="ml-2 text-sm">Completed</span>
+                                <span class="ml-auto text-xs text-gray-500" data-bind="counts.completed">89</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="rounded text-accent focus:ring-accent" data-bind="filters.status.pending">
+                                <span class="ml-2 text-sm">Pending</span>
+                                <span class="ml-auto text-xs text-gray-500" data-bind="counts.pending">12</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Project Type Filter -->
+                    <div>
+                        <h3 class="text-sm font-medium text-darktext mb-3">Project Type</h3>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="checkbox" class="rounded text-primary focus:ring-primary" data-bind="filters.type.commercial">
+                                <span class="ml-2 text-sm">Commercial</span>
+                                <span class="ml-auto text-xs text-gray-500">124</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="rounded text-primary focus:ring-primary" data-bind="filters.type.residential">
+                                <span class="ml-2 text-sm">Residential</span>
+                                <span class="ml-auto text-xs text-gray-500">89</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="rounded text-primary focus:ring-primary" data-bind="filters.type.industrial">
+                                <span class="ml-2 text-sm">Industrial</span>
+                                <span class="ml-auto text-xs text-gray-500">34</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Date Range -->
+                    <div>
+                        <h3 class="text-sm font-medium text-darktext mb-3">Date Range</h3>
+                        <div class="space-y-3">
+                            <input type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" data-bind="filters.dateRange.start">
+                            <input type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" data-bind="filters.dateRange.end">
+                        </div>
+                    </div>
+
+                    <!-- Value Range -->
+                    <div>
+                        <h3 class="text-sm font-medium text-darktext mb-3">Project Value</h3>
+                        <div class="space-y-3">
+                            <input type="range" min="0" max="10000000" step="50000" class="w-full" data-bind="filters.valueRange">
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span>$0</span>
+                                <span data-bind="filters.valueRange.display">$2.5M</span>
+                                <span>$10M+</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Jobs List -->
+                <div class="mt-8">
+                    <h3 class="text-sm font-medium text-darktext mb-4">Recent Jobs</h3>
+                    <div class="space-y-3">
+                        <!-- @MAP: recentJobs.map(job => ( -->
+                        <div class="job-card bg-white border border-gray-200 rounded-lg p-4 cursor-pointer" data-mock="true">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <h4 class="text-sm font-medium text-darktext mb-1" data-bind="job.name">Plumbwood House Construction</h4>
+                                    <p class="text-xs text-gray-500 font-mono mb-2" data-bind="job.address">850 Irwin St, Irvine, CA 92614</p>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800" data-bind="job.status">Active</span>
+                                        <span class="text-xs text-gray-500" data-bind="job.value">$2.1M</span>
+                                    </div>
+                                </div>
+                                <button class="text-gray-400 hover:text-primary" data-event="click:selectJob">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="job-card bg-white border border-gray-200 rounded-lg p-4 cursor-pointer" data-mock="true">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <h4 class="text-sm font-medium text-darktext mb-1">La Cantina Mart Development</h4>
+                                    <p class="text-xs text-gray-500 font-mono mb-2">1805 W 190th St, Torrance, CA 90504</p>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">Planning</span>
+                                        <span class="text-xs text-gray-500">$850K</span>
+                                    </div>
+                                </div>
+                                <button class="text-gray-400 hover:text-primary">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="job-card bg-white border border-gray-200 rounded-lg p-4 cursor-pointer" data-mock="true">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <h4 class="text-sm font-medium text-darktext mb-1">Sierra Avenue Elementary</h4>
+                                    <p class="text-xs text-gray-500 font-mono mb-2">1234 Sierra Ave, Fontana, CA 92335</p>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-secondary/20 text-secondary">Completed</span>
+                                        <span class="text-xs text-gray-500">$7.2M</span>
+                                    </div>
+                                </div>
+                                <button class="text-secondary">
+                                    <i class="fas fa-check-circle"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <!-- @END_MAP )) -->
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Map Area -->
+        <main class="flex-1 relative">
+            <!-- Map Container -->
+            <div class="map-container h-full w-full relative bg-blue-50" data-implementation="Integration with Google Maps or Mapbox API required">
+                
+                <!-- Map Controls -->
+                <div class="absolute top-4 right-4 z-10 space-y-2">
+                    <button class="bg-white p-3 rounded-lg shadow-md hover:shadow-lg border border-gray-200">
+                        <i class="fas fa-plus text-darktext"></i>
+                    </button>
+                    <button class="bg-white p-3 rounded-lg shadow-md hover:shadow-lg border border-gray-200">
+                        <i class="fas fa-minus text-darktext"></i>
+                    </button>
+                    <button class="bg-white p-3 rounded-lg shadow-md hover:shadow-lg border border-gray-200">
+                        <i class="fas fa-crosshairs text-darktext"></i>
+                    </button>
+                    <button class="bg-white p-3 rounded-lg shadow-md hover:shadow-lg border border-gray-200">
+                        <i class="fas fa-layer-group text-darktext"></i>
+                    </button>
+                </div>
+
+                <!-- Mobile Filter Toggle -->
+                <button class="sm:hidden absolute top-4 left-4 z-10 bg-white p-3 rounded-lg shadow-md" onclick="toggleSidebar()">
+                    <i class="fas fa-filter text-darktext"></i>
+                </button>
+
+                <!-- Sample Pin Drops -->
+                <div class="absolute inset-0">
+                    <!-- @FUNCTIONALITY: Pin drops should be dynamically generated based on job data -->
+                    
+                    <!-- Active Job Pin -->
+                    <div class="pin-drop absolute" style="top: 35%; left: 40%; cursor: pointer;" onclick="showJobDetails('job1')" data-mock="true">
+                        <div class="relative">
+                            <div class="w-8 h-8 bg-primary rounded-full border-4 border-white shadow-lg flex items-center justify-center">
+                                <i class="fas fa-hammer text-white text-xs"></i>
+                            </div>
+                            <div class="absolute top-8 left-1/2 transform -translate-x-1/2 bg-darktext text-white px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 hover:opacity-100 transition-opacity">
+                                Plumbwood House - $2.1M
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Completed Job Pin -->
+                    <div class="pin-drop absolute" style="top: 50%; left: 60%; cursor: pointer;" onclick="showJobDetails('job2')" data-mock="true">
+                        <div class="relative">
+                            <div class="w-8 h-8 bg-secondary rounded-full border-4 border-white shadow-lg flex items-center justify-center">
+                                <i class="fas fa-check text-white text-xs"></i>
+                            </div>
+                            <div class="absolute top-8 left-1/2 transform -translate-x-1/2 bg-darktext text-white px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 hover:opacity-100 transition-opacity">
+                                Sierra Avenue Elementary - $7.2M
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Planning Phase Pin -->
+                    <div class="pin-drop absolute" style="top: 25%; left: 65%; cursor: pointer;" onclick="showJobDetails('job3')" data-mock="true">
+                        <div class="relative">
+                            <div class="w-8 h-8 bg-accent rounded-full border-4 border-white shadow-lg flex items-center justify-center">
+                                <i class="fas fa-clock text-white text-xs"></i>
+                            </div>
+                            <div class="absolute top-8 left-1/2 transform -translate-x-1/2 bg-darktext text-white px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 hover:opacity-100 transition-opacity">
+                                La Cantina Mart - $850K
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Custom User Pin -->
+                    <div class="pin-drop absolute" style="top: 70%; left: 30%; cursor: pointer;" onclick="showJobDetails('custom1')" data-mock="true">
+                        <div class="relative">
+                            <div class="w-8 h-8 bg-purple-500 rounded-full border-4 border-white shadow-lg flex items-center justify-center">
+                                <i class="fas fa-user text-white text-xs"></i>
+                            </div>
+                            <div class="absolute top-8 left-1/2 transform -translate-x-1/2 bg-darktext text-white px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 hover:opacity-100 transition-opacity">
+                                Custom: Equipment Drop-off
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="absolute bottom-4 left-4 bg-white p-4 rounded-lg shadow-md border border-gray-200">
+                    <h4 class="text-sm font-medium text-darktext mb-3">Legend</h4>
+                    <div class="space-y-2">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-4 h-4 bg-primary rounded-full"></div>
+                            <span class="text-xs">Active Jobs</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-4 h-4 bg-secondary rounded-full"></div>
+                            <span class="text-xs">Completed</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-4 h-4 bg-accent rounded-full"></div>
+                            <span class="text-xs">Planning</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-4 h-4 bg-purple-500 rounded-full"></div>
+                            <span class="text-xs">Custom Pins</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Job Detail Modal -->
+    <div id="jobModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden" onclick="closeModal()">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-screen overflow-y-auto" onclick="event.stopPropagation()">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-darktext" data-bind="selectedJob.name">Plumbwood House Parking Lots Construction</h2>
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-darktext">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+
+                <!-- Modal Content -->
+                <div class="p-6">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <!-- Basic Information -->
+                        <div>
+                            <h3 class="text-sm font-medium text-darktext mb-3">Project Details</h3>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="text-xs text-gray-500">Address</label>
+                                    <p class="font-mono text-sm" data-bind="selectedJob.address" data-mock="true">850 Irwin St, Irvine, CA 92614 USA</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs text-gray-500">General Contractor</label>
+                                    <p class="text-sm" data-bind="selectedJob.contractor" data-mock="true">Los Angeles Engineering Co., Inc.</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs text-gray-500">Project Value</label>
+                                    <p class="text-lg font-semibold text-primary" data-bind="selectedJob.value" data-mock="true">$2,095,350</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs text-gray-500">Status</label>
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800" data-bind="selectedJob.status" data-mock="true">Active</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Timeline Information -->
+                        <div>
+                            <h3 class="text-sm font-medium text-darktext mb-3">Timeline</h3>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="text-xs text-gray-500">Start Date</label>
+                                    <p class="text-sm" data-bind="selectedJob.startDate" data-mock="true">May 14, 2025</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs text-gray-500">Target Completion</label>
+                                    <p class="text-sm" data-bind="selectedJob.endDate" data-mock="true">Mar 01, 2026</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs text-gray-500">Last Updated</label>
+                                    <p class="text-sm text-gray-600" data-bind="selectedJob.lastUpdated" data-mock="true">Dec 15, 2024 4:30 AM PST</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Special Conditions -->
+                    <div class="mt-6">
+                        <h3 class="text-sm font-medium text-darktext mb-3">Special Conditions</h3>
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <p class="text-sm text-blue-800" data-bind="selectedJob.specialConditions" data-mock="true">Contract award - Work to begin pending bid meeting. Contact office for detailed proposal requirements and site access coordination.</p>
+                        </div>
+                    </div>
+
+                    <!-- Contact Information -->
+                    <div class="mt-6">
+                        <h3 class="text-sm font-medium text-darktext mb-3">Contacts</h3>
+                        <div class="grid sm:grid-cols-2 gap-4">
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="text-sm font-medium">Ordered By</h4>
+                                <p class="text-sm mt-1" data-bind="selectedJob.orderedBy" data-mock="true">Travis Lopez</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="text-sm font-medium">Office Contact</h4>
+                                <p class="text-sm mt-1" data-bind="selectedJob.officeContact" data-mock="true">Juan Rodriguez</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Equipment Details -->
+                    <div class="mt-6">
+                        <h3 class="text-sm font-medium text-darktext mb-3">Equipment Requirements</h3>
+                        <div class="bg-yellow-50 p-4 rounded-lg">
+                            <div class="space-y-2" data-mock="true">
+                                <p class="text-sm"><strong>Equipment #:</strong> EX-960 (Attachment: 1579)</p>
+                                <p class="text-sm"><strong>Type:</strong> 24" tooth bucket (Attachment: 1307)</p>
+                                <p class="text-sm"><strong>Instructions:</strong> Drop pin</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-wrap gap-3 mt-8 pt-6 border-t border-gray-200">
+                        <button class="flex items-center px-4 py-2 bg-secondary text-white rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary" data-event="click:markCompleted">
+                            <i class="fas fa-check mr-2"></i>
+                            Mark Completed
+                        </button>
+                        <button class="flex items-center px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" data-event="click:editJob">
+                            <i class="fas fa-edit mr-2"></i>
+                            Edit Details
+                        </button>
+                        <button class="flex items-center px-4 py-2 border border-gray-300 text-darktext rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500" data-event="click:getDirections">
+                            <i class="fas fa-route mr-2"></i>
+                            Get Directions
+                        </button>
+                        <button class="flex items-center px-4 py-2 border border-gray-300 text-darktext rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500" data-event="click:exportJob">
+                            <i class="fas fa-download mr-2"></i>
+                            Export
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Job Modal -->
+    <div id="addJobModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden" onclick="closeAddJobModal()">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full" onclick="event.stopPropagation()">
+                <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-darktext">Add Custom Job Site</h2>
+                    <button onclick="closeAddJobModal()" class="text-gray-400 hover:text-darktext">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+
+                <form class="p-6 space-y-4" data-event="submit:addCustomJob">
+                    <div>
+                        <label class="block text-sm font-medium text-darktext mb-1">Job Name</label>
+                        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Enter job name" required data-bind="newJob.name">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-darktext mb-1">Address</label>
+                        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Enter full address" required data-bind="newJob.address">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-darktext mb-1">Project Type</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" data-bind="newJob.type">
+                                <option value="commercial">Commercial</option>
+                                <option value="residential">Residential</option>
+                                <option value="industrial">Industrial</option>
+                                <option value="equipment">Equipment Drop</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-darktext mb-1">Status</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" data-bind="newJob.status">
+                                <option value="active">Active</option>
+                                <option value="planning">Planning</option>
+                                <option value="pending">Pending</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-darktext mb-1">Notes</label>
+                        <textarea class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" rows="3" placeholder="Additional notes or equipment details..." data-bind="newJob.notes"></textarea>
+                    </div>
+
+                    <div class="flex space-x-3 pt-4">
+                        <button type="submit" class="flex-1 bg-primary text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                            Add Job Site
+                        </button>
+                        <button type="button" onclick="closeAddJobModal()" class="px-4 py-2 border border-gray-300 text-darktext rounded-lg hover:bg-gray-50">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Upload Modal -->
+    <div id="uploadModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden" onclick="closeUploadModal()">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full" onclick="event.stopPropagation()">
+                <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-darktext">Upload Documents</h2>
+                    <button onclick="closeUploadModal()" class="text-gray-400 hover:text-darktext">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+
+                <div class="p-6">
+                    <!-- @FUNCTIONALITY: File upload with drag & drop support and address extraction -->
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary transition-colors">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+                        <p class="text-lg font-medium text-darktext mb-2">Drop Word documents here</p>
+                        <p class="text-sm text-gray-500 mb-4">or click to browse files</p>
+                        <input type="file" multiple accept=".doc,.docx" class="hidden" id="fileInput" data-implementation="Should extract addresses automatically">
+                        <button onclick="document.getElementById('fileInput').click()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            Choose Files
+                        </button>
+                    </div>
+
+                    <div class="mt-6">
+                        <h3 class="text-sm font-medium text-darktext mb-3">Email Integration</h3>
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <p class="text-sm text-blue-800 mb-2">Forward equipment emails to:</p>
+                            <p class="font-mono text-sm text-blue-900">docs@your-tracker-domain.com</p>
+                            <p class="text-xs text-blue-600 mt-2">Addresses will be automatically extracted and added as job sites</p>
+                        </div>
+                    </div>
+
+                    <div class="flex space-x-3 pt-6">
+                        <button class="flex-1 bg-secondary text-white py-2 px-4 rounded-lg hover:bg-green-600" data-event="click:processUploads">
+                            Process Documents
+                        </button>
+                        <button onclick="closeUploadModal()" class="px-4 py-2 border border-gray-300 text-darktext rounded-lg hover:bg-gray-50">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- @END_COMPONENT: MainLayout -->
+
+    <!-- JavaScript for Basic Interactions -->
+    <script>
+        // TODO: Implement business logic, API calls, or state management
+        (function() {
+            // Sidebar toggle for mobile
+            window.toggleSidebar = function() {
+                const sidebar = document.getElementById('filterSidebar');
+                sidebar.classList.toggle('-translate-x-full');
+            };
+
+            // Modal controls
+            window.showJobDetails = function(jobId) {
+                document.getElementById('jobModal').classList.remove('hidden');
+                // TODO: Load job details based on jobId
+            };
+
+            window.closeModal = function() {
+                document.getElementById('jobModal').classList.add('hidden');
+            };
+
+            window.closeAddJobModal = function() {
+                document.getElementById('addJobModal').classList.add('hidden');
+            };
+
+            window.closeUploadModal = function() {
+                document.getElementById('uploadModal').classList.add('hidden');
+            };
+
+            // Event listeners for header buttons
+            document.addEventListener('DOMContentLoaded', function() {
+                // Add Job button
+                document.querySelector('[data-event="click:addJob"]')?.addEventListener('click', function() {
+                    document.getElementById('addJobModal').classList.remove('hidden');
+                });
+
+                // Upload Docs button
+                document.querySelector('[data-implementation="Should extract addresses automatically"]')?.closest('button')?.addEventListener('click', function() {
+                    document.getElementById('uploadModal').classList.remove('hidden');
+                });
+
+                // Add the click event to the actual upload button in header
+                const uploadButton = document.querySelector('button:has(.fa-file-upload)');
+                if (uploadButton) {
+                    uploadButton.addEventListener('click', function() {
+                        document.getElementById('uploadModal').classList.remove('hidden');
+                    });
+                }
+
+                // Add the click event to the "Add Job" button in header
+                const addJobButton = document.querySelector('button:has(.fa-plus)');
+                if (addJobButton) {
+                    addJobButton.addEventListener('click', function() {
+                        document.getElementById('addJobModal').classList.remove('hidden');
+                    });
+                }
+            });
+
+            // Responsive behavior
+            function handleResize() {
+                const sidebar = document.getElementById('filterSidebar');
+                if (window.innerWidth >= 640) {
+                    sidebar.classList.remove('-translate-x-full');
+                } else {
+                    sidebar.classList.add('-translate-x-full');
+                }
+            }
+
+            window.addEventListener('resize', handleResize);
+            handleResize(); // Initial call
+        })();
+    </script>
+</body>
+</html>
