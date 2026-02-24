@@ -28,7 +28,9 @@ import {
   Thermometer,
   Snowflake,
   CheckCircle,
-  Star
+  Star,
+  Copy,
+  ExternalLink
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Job } from "@shared/schema";
@@ -470,26 +472,62 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
                 <MapPin className="h-4 w-4" />
                 Location
               </h4>
-              <a 
-                href={`https://maps.google.com/?q=${encodeURIComponent(job.address)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline cursor-pointer"
-                data-testid="address-link"
-              >
-                {job.address}
-              </a>
+              <p className="text-sm font-medium mb-1">{job.address}</p>
               {job.latitude && job.longitude && (
-                <a
-                  href={`https://maps.google.com/?q=${job.latitude},${job.longitude}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-gray-500 hover:text-blue-600 hover:underline mt-1 block cursor-pointer"
-                  data-testid="coordinates-link"
-                >
+                <p className="text-xs text-gray-500 mb-3">
                   Coordinates: {job.latitude}, {job.longitude}
-                </a>
+                </p>
               )}
+              <div className="flex flex-col gap-2 mt-2">
+                {/* Google Maps */}
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`https://maps.google.com/?q=${job.latitude && job.longitude ? `${job.latitude},${job.longitude}` : encodeURIComponent(job.address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    Google Maps
+                  </a>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded border border-gray-200 hover:bg-gray-100 text-gray-600 transition-colors"
+                    onClick={() => {
+                      const url = `https://maps.google.com/?q=${job.latitude && job.longitude ? `${job.latitude},${job.longitude}` : encodeURIComponent(job.address)}`;
+                      navigator.clipboard.writeText(url);
+                      toast({ title: "Copied Google Maps link" });
+                    }}
+                  >
+                    <Copy className="h-3 w-3" />
+                    Copy
+                  </button>
+                </div>
+                {/* Apple Maps */}
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`https://maps.apple.com/?${job.latitude && job.longitude ? `ll=${job.latitude},${job.longitude}&q=${encodeURIComponent(job.address)}` : `q=${encodeURIComponent(job.address)}`}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    Apple Maps
+                  </a>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded border border-gray-200 hover:bg-gray-100 text-gray-600 transition-colors"
+                    onClick={() => {
+                      const url = `https://maps.apple.com/?${job.latitude && job.longitude ? `ll=${job.latitude},${job.longitude}&q=${encodeURIComponent(job.address)}` : `q=${encodeURIComponent(job.address)}`}`;
+                      navigator.clipboard.writeText(url);
+                      toast({ title: "Copied Apple Maps link" });
+                    }}
+                  >
+                    <Copy className="h-3 w-3" />
+                    Copy
+                  </button>
+                </div>
+              </div>
             </CardContent>
           </Card>
 

@@ -107,6 +107,31 @@ export function useJobs(filters: JobFilters = {}) {
   });
 }
 
+export function useSearchJobs(searchTerm: string) {
+  return useQuery<Job[]>({
+    queryKey: ['/api/jobs', 'dropdown-search', searchTerm],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('search', searchTerm);
+      const url = `/api/jobs?${params.toString()}`;
+      const response = await fetch(url, {
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+          throw new Error('Authentication required');
+        }
+        throw new Error(`Failed to search jobs`);
+      }
+      return response.json();
+    },
+    enabled: searchTerm.trim().length > 0,
+    staleTime: 30 * 1000,
+  });
+}
+
 export function useJobStats() {
   return useQuery({
     queryKey: ['/api/stats'],

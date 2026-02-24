@@ -6,7 +6,7 @@ import AddJobModal from "@/components/modals/AddJobModal";
 import { JobDetailsModal } from "@/components/modals/JobDetailsModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useJobs, useJobStats } from "@/hooks/useJobs";
+import { useJobs, useJobStats, useSearchJobs } from "@/hooks/useJobs";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -75,6 +75,7 @@ export default function Dashboard() {
   }, [filters, debouncedSearch]);
 
   const { data: fetchedJobs = [], isLoading, isFetching, refetch } = useJobs(modifiedFilters);
+  const { data: searchResults = [], isFetching: isSearching } = useSearchJobs(debouncedSearch);
   const { data: globalStats } = useJobStats();
 
   const showSearchDropdown = searchFocused && searchQuery.trim().length > 0;
@@ -204,49 +205,52 @@ export default function Dashboard() {
                 )}
                 {showSearchDropdown && (
                   <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-xl shadow-xl border border-gray-200/80 max-h-[420px] overflow-y-auto z-[100]">
-                    {jobs.length === 0 && isFetching ? (
+                    {searchResults.length === 0 && isSearching ? (
                       <div className="p-4 text-center text-sm text-gray-400">Searching...</div>
-                    ) : jobs.length === 0 ? (
+                    ) : searchResults.length === 0 ? (
                       <div className="p-4 text-center text-sm text-gray-400">No matching jobs found</div>
                     ) : (
                       <>
-                        {jobs.slice(0, 10).map((job) => (
-                          <button
-                            key={job.id}
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => { handleJobSelect(job); setSearchFocused(false); }}
-                            className="w-full text-left px-3.5 py-2.5 hover:bg-blue-50/80 border-b border-gray-100/80 last:border-0 transition-colors group"
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div className={cn(
-                                "h-2 w-2 rounded-full flex-shrink-0",
-                                job.temperature === 'hot' ? "bg-red-500" :
-                                job.temperature === 'warm' ? "bg-orange-400" :
-                                job.temperature === 'cold' ? "bg-blue-400" :
-                                job.temperature === 'green' ? "bg-green-500" :
-                                "bg-gray-200"
-                              )} />
-                              <span className="font-medium text-sm text-gray-900 truncate group-hover:text-blue-700">{job.name}</span>
-                              {job.type === 'office' && (
-                                <span className="flex-shrink-0 text-[10px] font-medium bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">OFFICE</span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1.5 mt-0.5 pl-4">
-                              <MapPin className="h-3 w-3 text-gray-300 flex-shrink-0" />
-                              <span className="text-xs text-gray-500 truncate">{job.address}</span>
+                        {searchResults.slice(0, 10).map((job) => {
+                          const term = searchQuery.toLowerCase();
+                          const contractorMatch = job.contractor?.toLowerCase().includes(term);
+                          return (
+                            <button
+                              key={job.id}
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => { handleJobSelect(job); setSearchFocused(false); }}
+                              className="w-full text-left px-3.5 py-2.5 hover:bg-blue-50/80 border-b border-gray-100/80 last:border-0 transition-colors group"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className={cn(
+                                  "h-2 w-2 rounded-full flex-shrink-0",
+                                  job.temperature === 'hot' ? "bg-red-500" :
+                                  job.temperature === 'warm' ? "bg-orange-400" :
+                                  job.temperature === 'cold' ? "bg-blue-400" :
+                                  job.temperature === 'green' ? "bg-green-500" :
+                                  "bg-gray-200"
+                                )} />
+                                <span className="font-medium text-sm text-gray-900 truncate group-hover:text-blue-700">{job.name}</span>
+                                {job.type === 'office' && (
+                                  <span className="flex-shrink-0 text-[10px] font-medium bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">OFFICE</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5 mt-0.5 pl-4">
+                                <MapPin className="h-3 w-3 text-gray-300 flex-shrink-0" />
+                                <span className="text-xs text-gray-500 truncate">{job.address}</span>
+                              </div>
                               {job.contractor && (
-                                <>
-                                  <span className="text-gray-300 flex-shrink-0">·</span>
+                                <div className="flex items-center gap-1.5 mt-0.5 pl-4">
                                   <Building2 className="h-3 w-3 text-gray-300 flex-shrink-0" />
-                                  <span className="text-xs text-gray-500 truncate">{job.contractor}</span>
-                                </>
+                                  <span className={cn("text-xs truncate", contractorMatch ? "text-blue-600 font-medium" : "text-gray-500")}>{job.contractor}</span>
+                                </div>
                               )}
-                            </div>
-                          </button>
-                        ))}
-                        {jobs.length > 10 && (
+                            </button>
+                          );
+                        })}
+                        {searchResults.length > 10 && (
                           <div className="px-3.5 py-2 text-xs text-gray-400 text-center bg-gray-50/50 border-t border-gray-100/80">
-                            Showing 10 of {jobs.length} results
+                            Showing 10 of {searchResults.length} results
                           </div>
                         )}
                       </>
@@ -371,39 +375,49 @@ export default function Dashboard() {
                 )}
                 {showSearchDropdown && (
                   <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-xl shadow-xl border border-gray-200/80 max-h-[350px] overflow-y-auto z-[100]">
-                    {jobs.length === 0 && isFetching ? (
+                    {searchResults.length === 0 && isSearching ? (
                       <div className="p-4 text-center text-sm text-gray-400">Searching...</div>
-                    ) : jobs.length === 0 ? (
+                    ) : searchResults.length === 0 ? (
                       <div className="p-4 text-center text-sm text-gray-400">No matching jobs found</div>
                     ) : (
                       <>
-                        {jobs.slice(0, 10).map((job) => (
-                          <button
-                            key={job.id}
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => { handleJobSelect(job); setSearchFocused(false); setSearchOpen(false); }}
-                            className="w-full text-left px-3.5 py-2.5 hover:bg-blue-50/80 border-b border-gray-100/80 last:border-0 transition-colors group"
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div className={cn(
-                                "h-2 w-2 rounded-full flex-shrink-0",
-                                job.temperature === 'hot' ? "bg-red-500" :
-                                job.temperature === 'warm' ? "bg-orange-400" :
-                                job.temperature === 'cold' ? "bg-blue-400" :
-                                job.temperature === 'green' ? "bg-green-500" :
-                                "bg-gray-200"
-                              )} />
-                              <span className="font-medium text-sm text-gray-900 truncate group-hover:text-blue-700">{job.name}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 mt-0.5 pl-4">
-                              <MapPin className="h-3 w-3 text-gray-300 flex-shrink-0" />
-                              <span className="text-xs text-gray-500 truncate">{job.address}</span>
-                            </div>
-                          </button>
-                        ))}
-                        {jobs.length > 10 && (
+                        {searchResults.slice(0, 10).map((job) => {
+                          const term = searchQuery.toLowerCase();
+                          const contractorMatch = job.contractor?.toLowerCase().includes(term);
+                          return (
+                            <button
+                              key={job.id}
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => { handleJobSelect(job); setSearchFocused(false); setSearchOpen(false); }}
+                              className="w-full text-left px-3.5 py-2.5 hover:bg-blue-50/80 border-b border-gray-100/80 last:border-0 transition-colors group"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className={cn(
+                                  "h-2 w-2 rounded-full flex-shrink-0",
+                                  job.temperature === 'hot' ? "bg-red-500" :
+                                  job.temperature === 'warm' ? "bg-orange-400" :
+                                  job.temperature === 'cold' ? "bg-blue-400" :
+                                  job.temperature === 'green' ? "bg-green-500" :
+                                  "bg-gray-200"
+                                )} />
+                                <span className="font-medium text-sm text-gray-900 truncate group-hover:text-blue-700">{job.name}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 mt-0.5 pl-4">
+                                <MapPin className="h-3 w-3 text-gray-300 flex-shrink-0" />
+                                <span className="text-xs text-gray-500 truncate">{job.address}</span>
+                              </div>
+                              {job.contractor && (
+                                <div className="flex items-center gap-1.5 mt-0.5 pl-4">
+                                  <Building2 className="h-3 w-3 text-gray-300 flex-shrink-0" />
+                                  <span className={cn("text-xs truncate", contractorMatch ? "text-blue-600 font-medium" : "text-gray-500")}>{job.contractor}</span>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                        {searchResults.length > 10 && (
                           <div className="px-3.5 py-2 text-xs text-gray-400 text-center bg-gray-50/50 border-t border-gray-100/80">
-                            Showing 10 of {jobs.length} results
+                            Showing 10 of {searchResults.length} results
                           </div>
                         )}
                       </>
