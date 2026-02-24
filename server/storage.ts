@@ -1,6 +1,6 @@
 import { jobs, equipment, documents, users, emailVerifications, type Job, type InsertJob, type Equipment, type InsertEquipment, type Document, type InsertDocument, type User, type InsertUser, type EmailVerification, type InsertEmailVerification, type FilterPreferences } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, or, desc, ilike, gte, lte, inArray } from "drizzle-orm";
+import { eq, and, or, desc, ilike, gte, lte, inArray, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -452,6 +452,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async searchJobs(filters: {
+    search?: string;
     status?: string[];
     type?: string[];
     temperature?: string[];
@@ -472,6 +473,19 @@ export class DatabaseStorage implements IStorage {
     
     if (filters.userId) {
       conditions.push(eq(jobs.userId, filters.userId));
+    }
+
+    if (filters.search) {
+      const term = `%${filters.search}%`;
+      conditions.push(
+        or(
+          ilike(jobs.name, term),
+          ilike(jobs.address, term),
+          ilike(jobs.contractor, term),
+          ilike(jobs.county, term),
+          ilike(jobs.owner, term)
+        )!
+      );
     }
 
     // County filter

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, decimal, timestamp, boolean, json, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, decimal, timestamp, boolean, json, pgEnum, integer } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -117,12 +117,17 @@ export const rentalEquipment = pgTable("rental_equipment", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   equipmentNumber: text("equipment_number").notNull(),
   model: text("model").notNull(),
-  customer: text("customer").notNull(), 
-  customerOnRent: text("customer_on_rent"), // Customer currently renting
-  acctMgr: text("acct_mgr"), // Account Manager (Hudson, etc.)
+  serialNumber: text("serial_number"),
+  year: text("year"),
+  specs: text("specs"),
+  customer: text("customer").notNull(),
+  customerOnRent: text("customer_on_rent"),
+  acctMgr: text("acct_mgr"),
   location: text("location"),
-  dateOnOffRent: text("date_on_off_rent"), // Date equipment went on/off rent
-  status: rentalStatusEnum("status").notNull().default("on_rent"), // on_rent, off_rent, maintenance
+  dateOnOffRent: text("date_on_off_rent"),
+  daysOnOffRent: integer("days_on_off_rent"),
+  monthlyRate: integer("monthly_rate"),
+  status: rentalStatusEnum("status").notNull().default("on_rent"),
   notes: text("notes"),
   emailProcessedAt: timestamp("email_processed_at").defaultNow(),
   lastUpdated: timestamp("last_updated").defaultNow().notNull()

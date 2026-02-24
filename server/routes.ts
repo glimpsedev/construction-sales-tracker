@@ -11,7 +11,6 @@ import { documentProcessor } from "./services/documentProcessor";
 import { emailProcessor } from "./services/emailProcessor";
 import { emailWebhookService } from "./services/emailWebhookService";
 import { csvImportService } from "./services/csvImportService";
-import { appleMapsImportService } from "./services/appleMapsImportService";
 import { geocodeAddress } from "./services/geocodingService";
 import multer from 'multer';
 
@@ -202,6 +201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/jobs", authenticate, async (req: AuthRequest, res) => {
     try {
       const {
+        search,
         status,
         type,
         temperature,
@@ -219,6 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } = req.query;
 
       const filters = {
+        search: search as string | undefined,
         status: status ? (status as string).split(',') : undefined,
         type: type ? (type as string).split(',') : undefined,
         temperature: temperature ? (temperature as string).split(',') : undefined,
@@ -413,6 +414,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         industrialJobs: allJobs.filter(job => job.type === 'industrial').length,
         equipmentJobs: allJobs.filter(job => job.type === 'equipment').length,
         customJobs: allJobs.filter(job => job.isCustom).length,
+        visitedJobs: allJobs.filter(job => job.visited).length,
+        unvisitedJobs: allJobs.filter(job => !job.visited && job.type !== 'office').length,
+        officeJobs: allJobs.filter(job => job.type === 'office').length,
         totalValue: allJobs.reduce((sum, job) => {
           const value = job.projectValue ? parseFloat(job.projectValue) : 0;
           return sum + value;
@@ -423,6 +427,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching stats:', error);
       res.status(500).json({ error: 'Failed to fetch statistics' });
+    }
+  });
+
+  // Detailed statistics for analytics dashboard
+  app.get("/api/stats/detailed", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const allJobs = await storage.getAllJobs(req.userId);
+      const nonOfficeJobs = allJobs.filter(j => j.type !== 'office');
+
+      // Jobs by county (top 15)
+      const countyMap: Record<string, number> = {};
+      nonOfficeJobs.forEach(job => {
+        const county = job.county || 'Unknown';
+        countyMap[county] = (countyMap[county] || 0) + 1;
+      });
+      const jobsByCounty = Object.entries(countyMap)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 15);
+
+      // Jobs by temperature
+      const tempMap: Record<string, number> = { hot: 0, warm: 0, cold: 0, green: 0, unvisited: 0 };
+      nonOfficeJobs.forEach(job => {
+        if (job.temperature && tempMap[job.temperature] !== undefined) {
+          tempMap[job.temperature]++;
+        } else if (!job.visited) {
+          tempMap.unvisited++;
+        }
+      });
+      const jobsByTemperature = Object.entries(tempMap).map(([name, count]) => ({ name, count }));
+
+      // Jobs by status
+      const statusMap: Record<string, number> = { active: 0, planning: 0, completed: 0, pending: 0 };
+      nonOfficeJobs.forEach(job => {
+        if (statusMap[job.status] !== undefined) statusMap[job.status]++;
+      });
+      const jobsByStatus = Object.entries(statusMap).map(([name, count]) => ({ name, count }));
+
+      // Pipeline value by status
+      const valueByStatus: Record<string, number> = { active: 0, planning: 0, completed: 0, pending: 0 };
+      nonOfficeJobs.forEach(job => {
+        const val = job.projectValue ? parseFloat(job.projectValue) : 0;
+        if (!isNaN(val) && valueByStatus[job.status] !== undefined) {
+          valueByStatus[job.status] += val;
+        }
+      });
+      const pipelineByStatus = Object.entries(valueByStatus).map(([name, value]) => ({ name, value }));
+
+      // Visit coverage
+      const visited = nonOfficeJobs.filter(j => j.visited).length;
+      const total = nonOfficeJobs.length;
+      const visitCoverage = { visited, unvisited: total - visited, rate: total > 0 ? Math.round((visited / total) * 100) : 0 };
+
+      // Jobs added over time (last 12 months)
+      const now = new Date();
+      const monthlyJobs: { month: string; count: number }[] = [];
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        const nextMonth = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+        const count = nonOfficeJobs.filter(j => {
+          const created = j.createdAt ? new Date(j.createdAt) : null;
+          return created && created >= d && created < nextMonth;
+        }).length;
+        monthlyJobs.push({ month: label, count });
+      }
+
+      // Top contractors
+      const contractorMap: Record<string, number> = {};
+      nonOfficeJobs.forEach(job => {
+        if (job.contractor && job.contractor.trim()) {
+          const name = job.contractor.trim();
+          contractorMap[name] = (contractorMap[name] || 0) + 1;
+        }
+      });
+      const topContractors = Object.entries(contractorMap)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      res.json({
+        jobsByCounty,
+        jobsByTemperature,
+        jobsByStatus,
+        pipelineByStatus,
+        visitCoverage,
+        monthlyJobs,
+        topContractors,
+      });
+    } catch (error) {
+      console.error('Error fetching detailed stats:', error);
+      res.status(500).json({ error: 'Failed to fetch detailed statistics' });
     }
   });
 
@@ -464,8 +560,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      await emailProcessor.processEquipmentStatusExcel(req.file.buffer);
-      res.json({ success: true, message: "Equipment status processed successfully" });
+      const count = await emailProcessor.processEquipmentStatusExcel(req.file.buffer);
+      res.json({ success: true, count, message: `Processed ${count} equipment records` });
     } catch (error) {
       console.error("Error processing equipment email:", error);
       res.status(500).json({ error: "Failed to process equipment email" });
@@ -530,36 +626,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Apple Maps guide import route for offices
-  app.post("/api/import-apple-maps", authenticate, async (req: AuthRequest, res) => {
-    try {
-      const { url } = req.body;
-      
-      if (!url || typeof url !== 'string') {
-        return res.status(400).json({ error: "Apple Maps guide URL is required" });
-      }
-
-      const dryRun = req.query.dryRun === 'true';
-      const results = await appleMapsImportService.importAppleMapsGuide(url, req.userId, dryRun);
-      
-      const message = dryRun 
-        ? `Dry-run completed: ${results.imported} offices would be imported, ${results.skipped} skipped`
-        : `Import completed: ${results.imported} new offices, ${results.skipped} skipped`;
-      
-      res.json({ 
-        success: true,
-        dryRun,
-        message,
-        results 
-      });
-    } catch (error) {
-      console.error("Error importing Apple Maps guide:", error);
-      res.status(500).json({ 
-        error: "Failed to import Apple Maps guide",
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
 
   // Mark job as viewed
   app.put("/api/jobs/:id/mark-viewed", async (req, res) => {

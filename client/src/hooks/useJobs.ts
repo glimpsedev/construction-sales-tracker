@@ -4,6 +4,7 @@ import type { Job } from "@shared/schema";
 import { getAuthHeaders } from "@/lib/auth";
 
 interface JobFilters {
+  search?: string;
   status?: string[];
   startDate?: string;
   endDate?: string;
@@ -58,6 +59,7 @@ export function useJobs(filters: JobFilters = {}) {
     queryFn: async () => {
       const params = new URLSearchParams();
       
+      if (filters.search) params.append('search', filters.search);
       if (filters.status?.length) params.append('status', filters.status.join(','));
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
@@ -119,6 +121,27 @@ export function useJobStats() {
           throw new Error('Authentication required');
         }
         throw new Error('Failed to fetch stats');
+      }
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useDetailedStats() {
+  return useQuery({
+    queryKey: ['/api/stats/detailed'],
+    queryFn: async () => {
+      const response = await fetch('/api/stats/detailed', {
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+          throw new Error('Authentication required');
+        }
+        throw new Error('Failed to fetch detailed stats');
       }
       return response.json();
     },
