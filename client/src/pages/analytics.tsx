@@ -8,9 +8,8 @@ import {
   DollarSign,
   Eye,
   TrendingUp,
-  MapPin,
-  Flame,
-  Users,
+  CalendarDays,
+  BarChart3,
 } from "lucide-react";
 import { Link } from "wouter";
 import {
@@ -26,6 +25,8 @@ import {
   Cell,
   AreaChart,
   Area,
+  LineChart,
+  Line,
 } from "recharts";
 
 const TEMP_COLORS: Record<string, string> = {
@@ -41,6 +42,14 @@ const STATUS_COLORS: Record<string, string> = {
   planning: "#f59e0b",
   completed: "#22c55e",
   pending: "#8b5cf6",
+};
+
+const TYPE_COLORS: Record<string, string> = {
+  commercial: "#3b82f6",
+  residential: "#f59e0b",
+  industrial: "#6366f1",
+  equipment: "#14b8a6",
+  other: "#94a3b8",
 };
 
 function formatCurrency(value: number): string {
@@ -153,7 +162,7 @@ export default function Analytics() {
 
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 space-y-6">
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <KpiCard
             label="Total Jobs"
             value={stats?.totalJobs?.toLocaleString() ?? "—"}
@@ -181,6 +190,20 @@ export default function Analytics() {
             value={stats?.activeJobs?.toLocaleString() ?? "—"}
             icon={TrendingUp}
             color="#f59e0b"
+            loading={loading}
+          />
+          <KpiCard
+            label="Avg Job Value"
+            value={detailed?.avgJobValue ? formatCurrency(detailed.avgJobValue) : "—"}
+            icon={BarChart3}
+            color="#6366f1"
+            loading={loading}
+          />
+          <KpiCard
+            label="Jobs This Month"
+            value={detailed?.jobsThisMonth?.toLocaleString() ?? "—"}
+            icon={CalendarDays}
+            color="#14b8a6"
             loading={loading}
           />
         </div>
@@ -309,9 +332,183 @@ export default function Analytics() {
           </ChartCard>
         </div>
 
-        {/* Charts Row 3 */}
+        {/* Row 3: Jobs by Type + Jobs by Status */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Visit Coverage */}
+          <ChartCard title="Jobs by Type">
+            {loading ? (
+              <Skeleton className="h-[300px] w-full rounded-lg" />
+            ) : (
+              <div className="flex items-center">
+                <ResponsiveContainer width="60%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={detailed?.jobsByType?.filter((d: any) => d.count > 0) ?? []}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={3}
+                      dataKey="count"
+                      nameKey="name"
+                    >
+                      {(detailed?.jobsByType ?? []).filter((d: any) => d.count > 0).map((entry: any) => (
+                        <Cell key={entry.name} fill={TYPE_COLORS[entry.name] || "#94a3b8"} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex-1 space-y-3 pl-2">
+                  {(detailed?.jobsByType ?? []).filter((d: any) => d.count > 0).map((entry: any) => (
+                    <div key={entry.name} className="flex items-center gap-2">
+                      <div
+                        className="h-3 w-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: TYPE_COLORS[entry.name] || "#94a3b8" }}
+                      />
+                      <span className="text-sm text-gray-600 capitalize">{entry.name}</span>
+                      <span className="text-sm font-semibold text-gray-900 ml-auto">{entry.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </ChartCard>
+
+          <ChartCard title="Jobs by Status">
+            {loading ? (
+              <Skeleton className="h-[300px] w-full rounded-lg" />
+            ) : (
+              <div className="flex items-center">
+                <ResponsiveContainer width="60%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={detailed?.jobsByStatus?.filter((d: any) => d.count > 0) ?? []}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={3}
+                      dataKey="count"
+                      nameKey="name"
+                    >
+                      {(detailed?.jobsByStatus ?? []).filter((d: any) => d.count > 0).map((entry: any) => (
+                        <Cell key={entry.name} fill={STATUS_COLORS[entry.name] || "#94a3b8"} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex-1 space-y-3 pl-2">
+                  {(detailed?.jobsByStatus ?? []).filter((d: any) => d.count > 0).map((entry: any) => (
+                    <div key={entry.name} className="flex items-center gap-2">
+                      <div
+                        className="h-3 w-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: STATUS_COLORS[entry.name] || "#94a3b8" }}
+                      />
+                      <span className="text-sm text-gray-600 capitalize">{entry.name}</span>
+                      <span className="text-sm font-semibold text-gray-900 ml-auto">{entry.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </ChartCard>
+        </div>
+
+        {/* Row 4: Value Distribution + Avg Value by Type */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <ChartCard title="Job Value Distribution">
+            {loading ? (
+              <Skeleton className="h-[260px] w-full rounded-lg" />
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={detailed?.valueDistribution?.filter((d: any) => d.count > 0) ?? []} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#9ca3af" }} />
+                  <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="count" name="Jobs" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </ChartCard>
+
+          <ChartCard title="Avg Value by Type">
+            {loading ? (
+              <Skeleton className="h-[260px] w-full rounded-lg" />
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={detailed?.avgValueByType ?? []} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#9ca3af" }} />
+                  <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} tickFormatter={(v) => formatCurrency(v)} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="value" name="Avg Value" radius={[4, 4, 0, 0]} barSize={48}>
+                    {(detailed?.avgValueByType ?? []).map((entry: any) => (
+                      <Cell key={entry.name} fill={TYPE_COLORS[entry.name] || "#94a3b8"} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </ChartCard>
+        </div>
+
+        {/* Row 5: Top Counties by Value + Top Cities */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <ChartCard title="Top Counties by Pipeline Value">
+            {loading ? (
+              <Skeleton className="h-[300px] w-full rounded-lg" />
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={detailed?.valueByCounty ?? []}
+                  layout="vertical"
+                  margin={{ top: 0, right: 20, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 11, fill: "#9ca3af" }} tickFormatter={(v) => formatCurrency(v)} />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={110}
+                    tick={{ fontSize: 11, fill: "#6b7280" }}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="value" name="Pipeline Value" fill="#22c55e" radius={[0, 4, 4, 0]} barSize={16} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </ChartCard>
+
+          <ChartCard title="Top Cities (Top 15)">
+            {loading ? (
+              <Skeleton className="h-[300px] w-full rounded-lg" />
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={detailed?.jobsByCity ?? []}
+                  layout="vertical"
+                  margin={{ top: 0, right: 20, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 11, fill: "#9ca3af" }} />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={110}
+                    tick={{ fontSize: 11, fill: "#6b7280" }}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="count" name="Jobs" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={16} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </ChartCard>
+        </div>
+
+        {/* Row 6: Visit Coverage + Top Contractors */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <ChartCard title="Visit Coverage">
             {loading ? (
               <Skeleton className="h-[160px] w-full rounded-lg" />
@@ -343,7 +540,6 @@ export default function Analytics() {
             )}
           </ChartCard>
 
-          {/* Top Contractors */}
           <ChartCard title="Top Contractors">
             {loading ? (
               <Skeleton className="h-[160px] w-full rounded-lg" />
@@ -362,6 +558,98 @@ export default function Analytics() {
                   <p className="text-sm text-gray-400 text-center py-4">No contractor data</p>
                 )}
               </div>
+            )}
+          </ChartCard>
+        </div>
+
+        {/* Row 7: Top Owners + Top Architects */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <ChartCard title="Top Owners">
+            {loading ? (
+              <Skeleton className="h-[160px] w-full rounded-lg" />
+            ) : (
+              <div className="space-y-2.5 max-h-[220px] overflow-y-auto">
+                {(detailed?.topOwners ?? []).map((owner: any, i: number) => (
+                  <div key={owner.name} className="flex items-center gap-3">
+                    <span className="text-xs text-gray-400 w-5 text-right">{i + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-700 truncate">{owner.name}</p>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 flex-shrink-0">{owner.count}</span>
+                  </div>
+                ))}
+                {(!detailed?.topOwners || detailed.topOwners.length === 0) && (
+                  <p className="text-sm text-gray-400 text-center py-4">No owner data</p>
+                )}
+              </div>
+            )}
+          </ChartCard>
+
+          <ChartCard title="Top Architects">
+            {loading ? (
+              <Skeleton className="h-[160px] w-full rounded-lg" />
+            ) : (
+              <div className="space-y-2.5 max-h-[220px] overflow-y-auto">
+                {(detailed?.topArchitects ?? []).map((architect: any, i: number) => (
+                  <div key={architect.name} className="flex items-center gap-3">
+                    <span className="text-xs text-gray-400 w-5 text-right">{i + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-700 truncate">{architect.name}</p>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 flex-shrink-0">{architect.count}</span>
+                  </div>
+                ))}
+                {(!detailed?.topArchitects || detailed.topArchitects.length === 0) && (
+                  <p className="text-sm text-gray-400 text-center py-4">No architect data</p>
+                )}
+              </div>
+            )}
+          </ChartCard>
+        </div>
+
+        {/* Row 8: Cumulative Growth + Temperature by Value */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <ChartCard title="Cumulative Job Growth">
+            {loading ? (
+              <Skeleton className="h-[260px] w-full rounded-lg" />
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={detailed?.cumulativeJobs ?? []} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#9ca3af" }} />
+                  <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line
+                    type="monotone"
+                    dataKey="total"
+                    name="Total Jobs"
+                    stroke="#6366f1"
+                    strokeWidth={2}
+                    dot={{ r: 3, fill: "#6366f1" }}
+                    activeDot={{ r: 5 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </ChartCard>
+
+          <ChartCard title="Pipeline Value by Temperature">
+            {loading ? (
+              <Skeleton className="h-[260px] w-full rounded-lg" />
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={detailed?.valueByTemperature ?? []} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#9ca3af" }} />
+                  <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} tickFormatter={(v) => formatCurrency(v)} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="value" name="Pipeline Value" radius={[4, 4, 0, 0]} barSize={48}>
+                    {(detailed?.valueByTemperature ?? []).map((entry: any) => (
+                      <Cell key={entry.name} fill={TEMP_COLORS[entry.name] || "#94a3b8"} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             )}
           </ChartCard>
         </div>

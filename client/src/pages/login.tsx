@@ -53,12 +53,38 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-50 p-4">
-      {/* Background Pattern */}
+      {/* Topography Background */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-blue-50/50" />
-        <div className="absolute top-0 left-0 w-full h-full opacity-[0.03]" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }} />
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-gray-50 to-blue-50/50" />
+        <svg className="absolute inset-0 w-full h-full opacity-[0.07]" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="topo" x="0" y="0" width="400" height="400" patternUnits="userSpaceOnUse">
+              <g fill="none" stroke="#3b82f6" strokeWidth="1">
+                <path d="M20,80 Q60,20 120,60 T220,40 T320,70 T400,50" />
+                <path d="M0,120 Q50,70 100,100 T200,80 T300,110 T380,90 L400,95" />
+                <path d="M30,160 Q80,110 140,140 T240,120 T340,155 T400,135" />
+                <path d="M0,200 Q70,160 130,190 T230,170 T330,200 T400,180" />
+                <path d="M10,240 Q60,200 120,230 T220,210 T320,245 T400,225" />
+                <path d="M0,280 Q80,240 140,270 T240,250 T340,280 T400,265" />
+                <path d="M20,320 Q70,280 130,310 T230,290 T330,325 T400,305" />
+                <path d="M0,360 Q60,320 120,350 T220,335 T320,365 T400,345" />
+                <path d="M0,400 Q80,370 140,395 T240,375 T340,400 T400,385" />
+                <ellipse cx="180" cy="140" rx="60" ry="35" />
+                <ellipse cx="180" cy="140" rx="35" ry="20" />
+                <ellipse cx="320" cy="300" rx="50" ry="30" />
+                <ellipse cx="320" cy="300" rx="28" ry="16" />
+                <ellipse cx="70" cy="330" rx="45" ry="25" />
+                <ellipse cx="70" cy="330" rx="22" ry="12" />
+                <path d="M250,50 Q270,30 290,50 Q310,70 290,80 Q270,90 250,70 Z" />
+                <path d="M255,55 Q270,40 285,55 Q300,70 285,75 Q270,80 255,65 Z" />
+                <path d="M80,180 Q100,165 115,185 Q125,200 110,210 Q95,215 80,200 Z" />
+                <path d="M300,170 Q330,150 350,175 Q365,195 345,210 Q320,215 305,195 Z" />
+                <path d="M305,178 Q325,163 340,180 Q350,193 338,202 Q322,207 310,192 Z" />
+              </g>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#topo)" />
+        </svg>
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-blue-100/40 rounded-full blur-3xl" />
         <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] bg-blue-50/60 rounded-full blur-3xl" />
       </div>

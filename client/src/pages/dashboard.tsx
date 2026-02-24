@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { MapContainer } from "@/components/ui/map-container";
 import InteractiveMap from "@/components/map/InteractiveMap";
 import FilterSidebar from "@/components/sidebar/FilterSidebar";
@@ -21,6 +21,7 @@ import {
   MoreVertical,
   X,
   MapPin,
+  Truck,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -35,7 +36,10 @@ export default function Dashboard() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
   const searchTimerRef = useRef<NodeJS.Timeout>();
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const mobileSearchContainerRef = useRef<HTMLDivElement>(null);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [, setLocation] = useLocation();
   const [filters, setFilters] = useState({
@@ -48,7 +52,7 @@ export default function Dashboard() {
     county: '',
     nearMe: false,
     company: '',
-    showUnvisited: false,
+    showUnvisited: true,
     showOffices: true
   });
 
@@ -70,8 +74,31 @@ export default function Dashboard() {
     return newFilters;
   }, [filters, debouncedSearch]);
 
-  const { data: fetchedJobs = [], isLoading, refetch } = useJobs(modifiedFilters);
+  const { data: fetchedJobs = [], isLoading, isFetching, refetch } = useJobs(modifiedFilters);
   const { data: globalStats } = useJobStats();
+
+  const showSearchDropdown = searchFocused && searchQuery.trim().length > 0;
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        searchContainerRef.current && !searchContainerRef.current.contains(target) &&
+        (!mobileSearchContainerRef.current || !mobileSearchContainerRef.current.contains(target))
+      ) {
+        setSearchFocused(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSearchFocused(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, []);
 
   const getEffectiveStatus = (job: Job) => {
     if (job.status === 'completed') return 'completed';
@@ -157,22 +184,74 @@ export default function Dashboard() {
 
             {/* Desktop Search + Nav */}
             <div className="hidden lg:flex items-center gap-2 flex-1 max-w-2xl mx-6">
-              <div className="relative flex-1">
+              <div className="relative flex-1" ref={searchContainerRef}>
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   type="text"
                   placeholder="Search jobs, contractors, addresses..."
                   value={searchQuery}
                   onChange={(e) => handleSearchChange(e.target.value)}
+                  onFocus={() => setSearchFocused(true)}
                   className="pl-10 h-9 bg-gray-50/80 border-gray-200/80 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
                 />
                 {searchQuery && (
                   <button
-                    onClick={() => { handleSearchChange(""); }}
+                    onClick={() => { handleSearchChange(""); setSearchFocused(false); }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
+                )}
+                {showSearchDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-xl shadow-xl border border-gray-200/80 max-h-[420px] overflow-y-auto z-[100]">
+                    {jobs.length === 0 && isFetching ? (
+                      <div className="p-4 text-center text-sm text-gray-400">Searching...</div>
+                    ) : jobs.length === 0 ? (
+                      <div className="p-4 text-center text-sm text-gray-400">No matching jobs found</div>
+                    ) : (
+                      <>
+                        {jobs.slice(0, 10).map((job) => (
+                          <button
+                            key={job.id}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => { handleJobSelect(job); setSearchFocused(false); }}
+                            className="w-full text-left px-3.5 py-2.5 hover:bg-blue-50/80 border-b border-gray-100/80 last:border-0 transition-colors group"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className={cn(
+                                "h-2 w-2 rounded-full flex-shrink-0",
+                                job.temperature === 'hot' ? "bg-red-500" :
+                                job.temperature === 'warm' ? "bg-orange-400" :
+                                job.temperature === 'cold' ? "bg-blue-400" :
+                                job.temperature === 'green' ? "bg-green-500" :
+                                "bg-gray-200"
+                              )} />
+                              <span className="font-medium text-sm text-gray-900 truncate group-hover:text-blue-700">{job.name}</span>
+                              {job.type === 'office' && (
+                                <span className="flex-shrink-0 text-[10px] font-medium bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">OFFICE</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-0.5 pl-4">
+                              <MapPin className="h-3 w-3 text-gray-300 flex-shrink-0" />
+                              <span className="text-xs text-gray-500 truncate">{job.address}</span>
+                              {job.contractor && (
+                                <>
+                                  <span className="text-gray-300 flex-shrink-0">·</span>
+                                  <Building2 className="h-3 w-3 text-gray-300 flex-shrink-0" />
+                                  <span className="text-xs text-gray-500 truncate">{job.contractor}</span>
+                                </>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                        {jobs.length > 10 && (
+                          <div className="px-3.5 py-2 text-xs text-gray-400 text-center bg-gray-50/50 border-t border-gray-100/80">
+                            Showing 10 of {jobs.length} results
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -203,6 +282,12 @@ export default function Dashboard() {
                 <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-lg border-gray-200 hover:bg-gray-50">
                   <FileSpreadsheet className="h-3.5 w-3.5" />
                   Import
+                </Button>
+              </Link>
+              <Link href="/equipment">
+                <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-lg border-gray-200 hover:bg-gray-50">
+                  <Truck className="h-3.5 w-3.5" />
+                  Equipment
                 </Button>
               </Link>
               <Button
@@ -265,23 +350,65 @@ export default function Dashboard() {
           {/* Mobile Search Bar */}
           {searchOpen && (
             <div className="lg:hidden pb-3">
-              <div className="relative">
+              <div className="relative" ref={mobileSearchContainerRef}>
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   type="text"
                   placeholder="Search jobs, contractors, addresses..."
                   value={searchQuery}
                   onChange={(e) => handleSearchChange(e.target.value)}
+                  onFocus={() => setSearchFocused(true)}
                   className="pl-10 h-10 bg-gray-50 border-gray-200 rounded-lg"
                   autoFocus
                 />
                 {searchQuery && (
                   <button
-                    onClick={() => handleSearchChange("")}
+                    onClick={() => { handleSearchChange(""); setSearchFocused(false); }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
                   >
                     <X className="h-4 w-4" />
                   </button>
+                )}
+                {showSearchDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-xl shadow-xl border border-gray-200/80 max-h-[350px] overflow-y-auto z-[100]">
+                    {jobs.length === 0 && isFetching ? (
+                      <div className="p-4 text-center text-sm text-gray-400">Searching...</div>
+                    ) : jobs.length === 0 ? (
+                      <div className="p-4 text-center text-sm text-gray-400">No matching jobs found</div>
+                    ) : (
+                      <>
+                        {jobs.slice(0, 10).map((job) => (
+                          <button
+                            key={job.id}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => { handleJobSelect(job); setSearchFocused(false); setSearchOpen(false); }}
+                            className="w-full text-left px-3.5 py-2.5 hover:bg-blue-50/80 border-b border-gray-100/80 last:border-0 transition-colors group"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className={cn(
+                                "h-2 w-2 rounded-full flex-shrink-0",
+                                job.temperature === 'hot' ? "bg-red-500" :
+                                job.temperature === 'warm' ? "bg-orange-400" :
+                                job.temperature === 'cold' ? "bg-blue-400" :
+                                job.temperature === 'green' ? "bg-green-500" :
+                                "bg-gray-200"
+                              )} />
+                              <span className="font-medium text-sm text-gray-900 truncate group-hover:text-blue-700">{job.name}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-0.5 pl-4">
+                              <MapPin className="h-3 w-3 text-gray-300 flex-shrink-0" />
+                              <span className="text-xs text-gray-500 truncate">{job.address}</span>
+                            </div>
+                          </button>
+                        ))}
+                        {jobs.length > 10 && (
+                          <div className="px-3.5 py-2 text-xs text-gray-400 text-center bg-gray-50/50 border-t border-gray-100/80">
+                            Showing 10 of {jobs.length} results
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -315,7 +442,7 @@ export default function Dashboard() {
                   onClick={() => setShowMobileMenu(false)}
                   className="w-full text-left px-3 py-2.5 hover:bg-gray-50 rounded-lg flex items-center gap-3 text-sm text-gray-700"
                 >
-                  <Building2 className="h-4 w-4 text-gray-400" />
+                  <Truck className="h-4 w-4 text-gray-400" />
                   Equipment
                 </button>
               </Link>
@@ -339,7 +466,7 @@ export default function Dashboard() {
             className={cn(
               "bg-white border-r border-gray-200/60 shadow-xl",
               "fixed lg:relative",
-              "top-14 md:top-[60px] left-0 right-0 bottom-0",
+              "top-14 md:top-[60px] lg:top-0 left-0 right-0 bottom-0 lg:bottom-auto",
               "w-full lg:w-[380px]",
               "z-50 lg:h-full",
               "animate-in slide-in-from-left duration-200"

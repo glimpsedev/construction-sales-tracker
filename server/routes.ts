@@ -507,6 +507,142 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .sort((a, b) => b.count - a.count)
         .slice(0, 10);
 
+      // Jobs by type
+      const typeMap: Record<string, number> = {};
+      nonOfficeJobs.forEach(job => {
+        typeMap[job.type] = (typeMap[job.type] || 0) + 1;
+      });
+      const jobsByType = Object.entries(typeMap)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count);
+
+      // Value by county (top 15)
+      const countyValueMap: Record<string, number> = {};
+      nonOfficeJobs.forEach(job => {
+        const val = job.projectValue ? parseFloat(job.projectValue) : 0;
+        if (!isNaN(val) && val > 0) {
+          const county = job.county || 'Unknown';
+          countyValueMap[county] = (countyValueMap[county] || 0) + val;
+        }
+      });
+      const valueByCounty = Object.entries(countyValueMap)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 15);
+
+      // Jobs by city (top 15, parsed from address)
+      const cityMap: Record<string, number> = {};
+      nonOfficeJobs.forEach(job => {
+        if (job.address) {
+          const parts = job.address.split(',').map(s => s.trim());
+          const city = parts.length >= 2 ? parts[parts.length - 2] : parts[0];
+          if (city) cityMap[city] = (cityMap[city] || 0) + 1;
+        }
+      });
+      const jobsByCity = Object.entries(cityMap)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 15);
+
+      // Average value by type
+      const typeValueMap: Record<string, { total: number; count: number }> = {};
+      nonOfficeJobs.forEach(job => {
+        const val = job.projectValue ? parseFloat(job.projectValue) : 0;
+        if (!isNaN(val) && val > 0) {
+          if (!typeValueMap[job.type]) typeValueMap[job.type] = { total: 0, count: 0 };
+          typeValueMap[job.type].total += val;
+          typeValueMap[job.type].count++;
+        }
+      });
+      const avgValueByType = Object.entries(typeValueMap)
+        .map(([name, { total, count }]) => ({ name, value: Math.round(total / count) }))
+        .sort((a, b) => b.value - a.value);
+
+      // Value distribution (histogram buckets)
+      const buckets = [
+        { label: '$0–100K', min: 0, max: 100_000, count: 0 },
+        { label: '$100K–500K', min: 100_000, max: 500_000, count: 0 },
+        { label: '$500K–1M', min: 500_000, max: 1_000_000, count: 0 },
+        { label: '$1M–5M', min: 1_000_000, max: 5_000_000, count: 0 },
+        { label: '$5M–10M', min: 5_000_000, max: 10_000_000, count: 0 },
+        { label: '$10M+', min: 10_000_000, max: Infinity, count: 0 },
+      ];
+      nonOfficeJobs.forEach(job => {
+        const val = job.projectValue ? parseFloat(job.projectValue) : 0;
+        if (!isNaN(val) && val > 0) {
+          const bucket = buckets.find(b => val >= b.min && val < b.max);
+          if (bucket) bucket.count++;
+        }
+      });
+      const valueDistribution = buckets.map(b => ({ name: b.label, count: b.count }));
+
+      // Top owners
+      const ownerMap: Record<string, number> = {};
+      nonOfficeJobs.forEach(job => {
+        if (job.owner && job.owner.trim()) {
+          const name = job.owner.trim();
+          ownerMap[name] = (ownerMap[name] || 0) + 1;
+        }
+      });
+      const topOwners = Object.entries(ownerMap)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      // Top architects
+      const architectMap: Record<string, number> = {};
+      nonOfficeJobs.forEach(job => {
+        if (job.architect && job.architect.trim()) {
+          const name = job.architect.trim();
+          architectMap[name] = (architectMap[name] || 0) + 1;
+        }
+      });
+      const topArchitects = Object.entries(architectMap)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      // Cumulative jobs (running total over last 12 months)
+      let runningTotal = nonOfficeJobs.filter(j => {
+        const created = j.createdAt ? new Date(j.createdAt) : null;
+        const firstMonth = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+        return created && created < firstMonth;
+      }).length;
+      const cumulativeJobs = monthlyJobs.map(m => {
+        runningTotal += m.count;
+        return { month: m.month, total: runningTotal };
+      });
+
+      // Pipeline value by temperature
+      const tempValueMap: Record<string, number> = { hot: 0, warm: 0, cold: 0, green: 0, unvisited: 0 };
+      nonOfficeJobs.forEach(job => {
+        const val = job.projectValue ? parseFloat(job.projectValue) : 0;
+        if (!isNaN(val) && val > 0) {
+          if (job.temperature && tempValueMap[job.temperature] !== undefined) {
+            tempValueMap[job.temperature] += val;
+          } else if (!job.visited) {
+            tempValueMap.unvisited += val;
+          }
+        }
+      });
+      const valueByTemperature = Object.entries(tempValueMap)
+        .map(([name, value]) => ({ name, value }))
+        .filter(d => d.value > 0);
+
+      // Jobs this month
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const jobsThisMonth = nonOfficeJobs.filter(j => {
+        const created = j.createdAt ? new Date(j.createdAt) : null;
+        return created && created >= monthStart;
+      }).length;
+
+      // Average job value
+      const totalValue = nonOfficeJobs.reduce((sum, job) => {
+        const val = job.projectValue ? parseFloat(job.projectValue) : 0;
+        return sum + (isNaN(val) ? 0 : val);
+      }, 0);
+      const avgJobValue = nonOfficeJobs.length > 0 ? Math.round(totalValue / nonOfficeJobs.length) : 0;
+
       res.json({
         jobsByCounty,
         jobsByTemperature,
@@ -515,6 +651,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         visitCoverage,
         monthlyJobs,
         topContractors,
+        jobsByType,
+        valueByCounty,
+        jobsByCity,
+        avgValueByType,
+        valueDistribution,
+        topOwners,
+        topArchitects,
+        cumulativeJobs,
+        valueByTemperature,
+        jobsThisMonth,
+        avgJobValue,
       });
     } catch (error) {
       console.error('Error fetching detailed stats:', error);

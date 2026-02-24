@@ -7,10 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn, getMergedFilterPreferences } from "@/lib/utils";
 import JobCard from "./JobCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Settings, X, Star, MapPin, ChevronDown, ChevronRight } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { getAuthHeaders } from "@/lib/auth";
+import { Settings, X, Star, ChevronDown, ChevronRight } from "lucide-react";
 import type { Job } from "@shared/schema";
 import CompanyFilter from "./CompanyFilter";
 import { useFilterPreferences } from "@/hooks/useFilterPreferences";
@@ -77,24 +74,6 @@ export default function FilterSidebar({
   const { preferences } = useFilterPreferences();
   const [showPreferencesModal, setShowPreferencesModal] = useState(false);
   const [showFavorites, setShowFavorites] = useState(true);
-  const { toast } = useToast();
-
-  const geocodeOfficesMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch('/api/geocode-missing?type=office&limit=500', {
-        method: 'POST',
-        headers: { ...getAuthHeaders() }
-      });
-      if (!response.ok) throw new Error('Failed to geocode offices');
-      return response.json();
-    },
-    onSuccess: (data) => {
-      toast({ title: "Geocoding Complete", description: data.message || "Office geocoding completed" });
-    },
-    onError: () => {
-      toast({ title: "Geocoding Failed", description: "Unable to geocode office addresses", variant: "destructive" });
-    }
-  });
 
   const filterPreferences = useMemo(() => getMergedFilterPreferences(preferences), [preferences]);
 
@@ -310,7 +289,39 @@ export default function FilterSidebar({
             />
           </div>
 
-          {/* Temperature Visibility */}
+          {/* Display Toggles */}
+          <div>
+            <SectionHeader title="Display" />
+            <div className="space-y-2">
+              <label htmlFor="show-unvisited" className="flex items-center justify-between cursor-pointer group">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="show-unvisited"
+                    checked={!!filters.showUnvisited}
+                    onCheckedChange={(checked) => handleFilterChange('showUnvisited', !!checked)}
+                  />
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: '#3b82f6' }} />
+                  <span className="text-sm text-gray-700 group-hover:text-gray-900">Unvisited Jobs</span>
+                </div>
+                <span className="text-xs font-medium text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">{stats.unvisited}</span>
+              </label>
+
+              <label htmlFor="show-offices" className="flex items-center justify-between cursor-pointer group">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="show-offices"
+                    checked={filters.showOffices !== false}
+                    onCheckedChange={(checked) => handleFilterChange('showOffices', !!checked)}
+                  />
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: '#0891b2' }} />
+                  <span className="text-sm text-gray-700 group-hover:text-gray-900">Offices</span>
+                </div>
+                <span className="text-xs font-medium text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">{stats.offices}</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Temperature */}
           <div>
             <SectionHeader title="Temperature">
               <Button
@@ -323,46 +334,9 @@ export default function FilterSidebar({
                 Manage
               </Button>
             </SectionHeader>
-            <div className="space-y-1.5">
-              <label htmlFor="show-unvisited" className="flex items-center justify-between cursor-pointer group py-1">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="show-unvisited"
-                    checked={!!filters.showUnvisited}
-                    onCheckedChange={(checked) => handleFilterChange('showUnvisited', !!checked)}
-                  />
-                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: '#3b82f6' }} />
-                  <span className="text-sm text-gray-700">Unvisited Jobs</span>
-                </div>
-                <span className="text-xs text-gray-400">{stats.unvisited}</span>
-              </label>
-
-              <label htmlFor="show-offices" className="flex items-center justify-between cursor-pointer group py-1">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="show-offices"
-                    checked={filters.showOffices !== false}
-                    onCheckedChange={(checked) => handleFilterChange('showOffices', !!checked)}
-                  />
-                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: '#0891b2' }} />
-                  <span className="text-sm text-gray-700">Offices</span>
-                </div>
-                <span className="text-xs text-gray-400">{stats.offices}</span>
-              </label>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs text-gray-500 hover:text-gray-700"
-                onClick={() => geocodeOfficesMutation.mutate()}
-                disabled={geocodeOfficesMutation.isPending}
-              >
-                <MapPin className="h-3 w-3 mr-1" />
-                {geocodeOfficesMutation.isPending ? "Geocoding..." : "Geocode Offices"}
-              </Button>
-
+            <div className="space-y-2">
               {Object.entries(filterPreferences).map(([key, filter]) => (
-                <label key={key} htmlFor={`temp-${key}`} className="flex items-center justify-between cursor-pointer group py-1">
+                <label key={key} htmlFor={`temp-${key}`} className="flex items-center justify-between cursor-pointer group">
                   <div className="flex items-center gap-2">
                     <Checkbox
                       id={`temp-${key}`}
@@ -375,7 +349,7 @@ export default function FilterSidebar({
                       }}
                     />
                     <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: filter.color }} />
-                    <span className="text-sm text-gray-700">{filter.name}</span>
+                    <span className="text-sm text-gray-700 group-hover:text-gray-900">{filter.name}</span>
                   </div>
                 </label>
               ))}
