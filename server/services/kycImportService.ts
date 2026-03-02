@@ -46,6 +46,15 @@ function mapInteractionType(typeRaw: string): InteractionType {
   return "note";
 }
 
+function toStr(val: unknown): string {
+  if (val === null || val === undefined) return "";
+  if (typeof val === "string") return val;
+  if (val instanceof Date) {
+    return `${val.getMonth() + 1}/${val.getDate()}/${val.getFullYear()}`;
+  }
+  return String(val);
+}
+
 function parseDate(dateStr: string): Date | null {
   if (!dateStr || !dateStr.trim()) return null;
   const parts = dateStr.trim().split("/");
@@ -117,12 +126,12 @@ export async function importKycCsv(
   }
 
   const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-  const rawData = XLSX.utils.sheet_to_json<KycCSVRow>(firstSheet);
+  const rawData = XLSX.utils.sheet_to_json<KycCSVRow>(firstSheet, { raw: false, dateNF: "m/d/yyyy" });
 
   for (let i = 0; i < rawData.length; i++) {
     const row = rawData[i];
     try {
-      const customerRaw = (row.Customer ?? row.customer ?? "").trim();
+      const customerRaw = toStr(row.Customer ?? row.customer).trim();
       if (!customerRaw) {
         results.duplicatesSkipped++;
         continue;
@@ -164,8 +173,8 @@ export async function importKycCsv(
         }
       }
 
-      const contactRaw = (row.Contact ?? row.contact ?? "").trim();
-      const roleFromCol = (row.Role ?? row.role ?? "").trim();
+      const contactRaw = toStr(row.Contact ?? row.contact).trim();
+      const roleFromCol = toStr(row.Role ?? row.role).trim();
       const { fullName, role } = parseContact(contactRaw, roleFromCol);
 
       const contactKey = normalizeContactKey(fullName, normalizedCompany);
@@ -212,10 +221,10 @@ export async function importKycCsv(
         }
       }
 
-      const typeRaw = (row.Type ?? row.type ?? "").trim();
+      const typeRaw = toStr(row.Type ?? row.type).trim();
       const interactionType = mapInteractionType(typeRaw);
-      const notes = (row.Notes ?? row.notes ?? "").trim();
-      const dateStr = (row.Date ?? row.date ?? "").trim();
+      const notes = toStr(row.Notes ?? row.notes).trim();
+      const dateStr = toStr(row.Date ?? row.date).trim();
       const occurredAt = parseDate(dateStr) || new Date();
 
       if (!dryRun && !contactId.startsWith("dry-run-")) {
