@@ -15,14 +15,16 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import type { RentalEquipment } from "@shared/schema";
 import { Link } from "wouter";
-import { Calendar } from "lucide-react";
+import { Calendar, Wrench } from "lucide-react";
 import { DownDayModal } from "@/components/modals/DownDayModal";
+import { ServiceCallModal } from "@/components/modals/ServiceCallModal";
 
 export default function Equipment() {
   const [file, setFile] = useState<File | null>(null);
   const [search, setSearch] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [downDayEquipment, setDownDayEquipment] = useState<RentalEquipment | null>(null);
+  const [serviceCallEquipment, setServiceCallEquipment] = useState<RentalEquipment | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -373,16 +375,28 @@ export default function Equipment() {
                               : "—"}
                           </TableCell>
                           <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-                              onClick={() => setDownDayEquipment(item)}
-                              title="Report Down Day"
-                            >
-                              <Calendar className="h-3.5 w-3.5" />
-                              Down Day
-                            </Button>
+                            <div className="flex flex-col gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                onClick={() => setServiceCallEquipment(item)}
+                                title="Service Call"
+                              >
+                                <Wrench className="h-3.5 w-3.5" />
+                                Service Call
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                onClick={() => setDownDayEquipment(item)}
+                                title="Report Down Day"
+                              >
+                                <Calendar className="h-3.5 w-3.5" />
+                                Down Day
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
@@ -418,6 +432,11 @@ export default function Equipment() {
         equipment={downDayEquipment}
         isOpen={!!downDayEquipment}
         onClose={() => setDownDayEquipment(null)}
+      />
+      <ServiceCallModal
+        equipment={serviceCallEquipment}
+        isOpen={!!serviceCallEquipment}
+        onClose={() => setServiceCallEquipment(null)}
       />
     </div>
   );

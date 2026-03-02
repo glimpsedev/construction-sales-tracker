@@ -18,6 +18,7 @@ import {
   FileSpreadsheet,
   BarChart3,
   Building2,
+  LayoutDashboard,
   MoreVertical,
   X,
   MapPin,
@@ -277,6 +278,12 @@ export default function Dashboard() {
                 <Filter className="h-3.5 w-3.5" />
                 {sidebarOpen ? "Hide Filters" : "Filters"}
               </Button>
+              <Link href="/crm">
+                <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-lg border-gray-200 hover:bg-gray-50">
+                  <LayoutDashboard className="h-3.5 w-3.5" />
+                  CRM
+                </Button>
+              </Link>
               <Link href="/contacts">
                 <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-lg border-gray-200 hover:bg-gray-50">
                   <Users className="h-3.5 w-3.5" />
@@ -446,6 +453,15 @@ export default function Dashboard() {
         {showMobileMenu && (
           <div className="lg:hidden border-t border-gray-100 bg-white/95 backdrop-blur-sm">
             <div className="px-2 py-2 space-y-0.5">
+              <Link href="/crm">
+                <button
+                  onClick={() => setShowMobileMenu(false)}
+                  className="w-full text-left px-3 py-2.5 hover:bg-gray-50 rounded-lg flex items-center gap-3 text-sm text-gray-700"
+                >
+                  <LayoutDashboard className="h-4 w-4 text-gray-400" />
+                  CRM
+                </button>
+              </Link>
               <Link href="/contacts">
                 <button
                   onClick={() => setShowMobileMenu(false)}
