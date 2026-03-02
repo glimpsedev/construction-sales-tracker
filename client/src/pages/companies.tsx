@@ -178,6 +178,11 @@ export default function CompaniesPage() {
                   Import VCF
                 </Button>
               </Link>
+              <Link href="/kyc-import">
+                <Button size="sm" variant="outline" className="gap-1.5">
+                  Import Sales Log
+                </Button>
+              </Link>
             </div>
           </div>
         </div>

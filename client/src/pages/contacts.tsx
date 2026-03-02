@@ -64,6 +64,12 @@ export default function ContactsPage() {
                   Import VCF
                 </Button>
               </Link>
+              <Link href="/kyc-import">
+                <Button size="sm" variant="outline" className="gap-1.5">
+                  <Upload className="h-4 w-4" />
+                  Import Sales Log
+                </Button>
+              </Link>
               <Link href="/companies">
                 <Button size="sm" variant="outline" className="gap-1.5">
                   <Building2 className="h-4 w-4" />

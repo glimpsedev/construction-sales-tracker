@@ -12,6 +12,7 @@ import { documentProcessor } from "./services/documentProcessor";
 import { emailProcessor } from "./services/emailProcessor";
 import { emailWebhookService } from "./services/emailWebhookService";
 import { csvImportService } from "./services/csvImportService";
+import { importKycCsv } from "./services/kycImportService";
 import { generateDownDayPdf } from "./services/downDayPdfService";
 import { emailService } from "./services/emailService";
 import { geocodeAddress } from "./services/geocodingService";
@@ -1034,6 +1035,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error importing VCF:", error);
       res.status(500).json({
         error: "Failed to import VCF",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  });
+
+  // KYC Master sales log CSV import
+  app.post("/api/import-kyc-csv", authenticate, uploadExcel.single("file"), async (req: AuthRequest, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "No CSV file uploaded" });
+      const dryRun = req.query.dryRun === "true";
+      const results = await importKycCsv(req.file.buffer, req.userId!, dryRun);
+      const message = dryRun
+        ? `Dry-run completed: ${results.companiesCreated} companies, ${results.contactsCreated} contacts, ${results.interactionsCreated} interactions would be created`
+        : `Import completed: ${results.companiesCreated} companies, ${results.contactsCreated} contacts, ${results.interactionsCreated} interactions`;
+      res.json({ success: true, dryRun, message, results });
+    } catch (error) {
+      console.error("Error importing KYC CSV:", error);
+      res.status(500).json({
+        error: "Failed to import KYC CSV",
         details: error instanceof Error ? error.message : "Unknown error",
       });
     }

@@ -11,6 +11,7 @@ import Equipment from "@/pages/equipment";
 import { EmailSetupPage } from "@/pages/email-setup";
 import { DodgeImportPage } from "@/pages/dodge-import";
 import { ContactImportPage } from "@/pages/contact-import";
+import { KycImportPage } from "@/pages/kyc-import";
 import ContactsPage from "@/pages/contacts";
 import CompaniesPage from "@/pages/companies";
 import DatabaseManagement from "@/pages/database-management";
@@ -48,6 +49,7 @@ function Router() {
           <Route path="/companies/:id" component={CompaniesPage} />
           <Route path="/companies" component={CompaniesPage} />
           <Route path="/contact-import" component={ContactImportPage} />
+          <Route path="/kyc-import" component={KycImportPage} />
           <Route path="/database" component={DatabaseManagement} />
           <Route component={NotFound} />
         </>

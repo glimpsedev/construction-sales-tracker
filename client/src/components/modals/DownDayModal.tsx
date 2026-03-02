@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -91,10 +92,11 @@ export function DownDayModal({ equipment, isOpen, onClose }: DownDayModalProps) 
   const customerName = equipment?.customerOnRent ?? equipment?.customer ?? "Unknown";
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()} modal={false}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Report Down Day</DialogTitle>
+          <DialogDescription>Select down dates and enter a reason to generate the Down Day Form.</DialogDescription>
         </DialogHeader>
 
         {equipment && (
@@ -110,7 +112,7 @@ export function DownDayModal({ equipment, isOpen, onClose }: DownDayModalProps) 
               </div>
             </div>
 
-            <div>
+            <div className="pointer-events-auto">
               <Label className="text-sm mb-2 block">Down Date/s</Label>
               <Calendar
                 mode="multiple"
