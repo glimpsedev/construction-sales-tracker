@@ -84,6 +84,34 @@ export interface IStorage {
   createInteraction(interaction: InsertInteraction): Promise<Interaction>;
   getInteractions(filters: { contactId?: string; companyId?: string; jobId?: string; userId?: string; limit?: number }): Promise<Interaction[]>;
   getLastInteraction(contactId?: string, companyId?: string): Promise<Interaction | undefined>;
+  getInteractionsWithDetails(filters: {
+    userId?: string;
+    type?: string;
+    direction?: string;
+    companyId?: string;
+    contactId?: string;
+    search?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+    offset?: number;
+  }): Promise<(Interaction & { contactName?: string | null; companyName?: string | null })[]>;
+  getCrmOverview(userId?: string): Promise<{
+    companies: (Company & {
+      contactCount: number;
+      interactionCount: number;
+      lastInteractionAt: Date | null;
+      linkedJobCount: number;
+      pipelineValue: number;
+      linkedJobs: Job[];
+    })[];
+    totalCompanies: number;
+    totalContacts: number;
+    totalInteractions: number;
+    interactionsThisMonth: number;
+    staleCount: number;
+    totalPipelineValue: number;
+  }>;
 }
 
 export class MemStorage implements IStorage {
@@ -426,6 +454,26 @@ export class MemStorage implements IStorage {
   }
   async getInteractions(): Promise<Interaction[]> { return []; }
   async getLastInteraction(): Promise<Interaction | undefined> { return undefined; }
+  async getInteractionsWithDetails(): Promise<(Interaction & { contactName?: string | null; companyName?: string | null })[]> { return []; }
+  async getCrmOverview(): Promise<{
+    companies: (Company & { contactCount: number; interactionCount: number; lastInteractionAt: Date | null; linkedJobCount: number; pipelineValue: number; linkedJobs: Job[] })[];
+    totalCompanies: number;
+    totalContacts: number;
+    totalInteractions: number;
+    interactionsThisMonth: number;
+    staleCount: number;
+    totalPipelineValue: number;
+  }> {
+    return {
+      companies: [],
+      totalCompanies: 0,
+      totalContacts: 0,
+      totalInteractions: 0,
+      interactionsThisMonth: 0,
+      staleCount: 0,
+      totalPipelineValue: 0,
+    };
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -906,6 +954,171 @@ export class DatabaseStorage implements IStorage {
     if (conditions.length === 0) return undefined;
     const [last] = await db.select().from(interactions).where(and(...conditions)).orderBy(desc(interactions.occurredAt)).limit(1);
     return last || undefined;
+  }
+
+  async getInteractionsWithDetails(filters: {
+    userId?: string;
+    type?: string;
+    direction?: string;
+    companyId?: string;
+    contactId?: string;
+    search?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+    offset?: number;
+  }): Promise<(Interaction & { contactName?: string | null; companyName?: string | null })[]> {
+    const conditions = [];
+    if (filters.userId) conditions.push(eq(interactions.userId, filters.userId));
+    if (filters.type) conditions.push(eq(interactions.type, filters.type as any));
+    if (filters.direction) conditions.push(eq(interactions.direction, filters.direction as any));
+    if (filters.companyId) conditions.push(eq(interactions.companyId, filters.companyId));
+    if (filters.contactId) conditions.push(eq(interactions.contactId, filters.contactId));
+    if (filters.search) {
+      const term = `%${filters.search}%`;
+      conditions.push(ilike(interactions.summary, term));
+    }
+    if (filters.startDate) conditions.push(gte(interactions.occurredAt, filters.startDate));
+    if (filters.endDate) conditions.push(lte(interactions.occurredAt, filters.endDate));
+
+    let query = db
+      .select({
+        id: interactions.id,
+        userId: interactions.userId,
+        contactId: interactions.contactId,
+        companyId: interactions.companyId,
+        jobId: interactions.jobId,
+        type: interactions.type,
+        direction: interactions.direction,
+        summary: interactions.summary,
+        notes: interactions.notes,
+        occurredAt: interactions.occurredAt,
+        createdAt: interactions.createdAt,
+        contactName: contacts.fullName,
+        companyName: companies.name,
+      })
+      .from(interactions)
+      .leftJoin(contacts, eq(interactions.contactId, contacts.id))
+      .leftJoin(companies, eq(interactions.companyId, companies.id))
+      .orderBy(desc(interactions.occurredAt));
+
+    if (conditions.length > 0) query = query.where(and(...conditions));
+    if (filters.limit) query = query.limit(filters.limit);
+    if (filters.offset) query = query.offset(filters.offset);
+
+    const rows = await query;
+    return rows.map((r) => ({
+      id: r.id,
+      userId: r.userId,
+      contactId: r.contactId,
+      companyId: r.companyId,
+      jobId: r.jobId,
+      type: r.type,
+      direction: r.direction,
+      summary: r.summary,
+      notes: r.notes,
+      occurredAt: r.occurredAt,
+      createdAt: r.createdAt,
+      contactName: r.contactName,
+      companyName: r.companyName,
+    }));
+  }
+
+  async getCrmOverview(userId?: string): Promise<{
+    companies: (Company & {
+      contactCount: number;
+      interactionCount: number;
+      lastInteractionAt: Date | null;
+      linkedJobCount: number;
+      pipelineValue: number;
+      linkedJobs: Job[];
+    })[];
+    totalCompanies: number;
+    totalContacts: number;
+    totalInteractions: number;
+    interactionsThisMonth: number;
+    staleCount: number;
+    totalPipelineValue: number;
+  }> {
+    const allCompanies = userId
+      ? await db.select().from(companies).where(eq(companies.userId, userId)).orderBy(desc(companies.name))
+      : await db.select().from(companies).orderBy(desc(companies.name));
+
+    const allContacts = userId
+      ? await db.select().from(contacts).where(eq(contacts.userId, userId))
+      : await db.select().from(contacts);
+
+    const allInteractions = userId
+      ? await db.select().from(interactions).where(eq(interactions.userId, userId))
+      : await db.select().from(interactions);
+
+    const allJobs = userId
+      ? await db.select().from(jobs).where(eq(jobs.userId, userId))
+      : await db.select().from(jobs);
+
+    const contactJobRows = await db.select().from(contactJobs);
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const staleThreshold = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const companiesWithDetails = allCompanies.map((company) => {
+      const companyContacts = allContacts.filter((c) => c.companyId === company.id);
+      const companyInteractions = allInteractions.filter((i) => i.companyId === company.id);
+      const lastInteraction = companyInteractions.length > 0
+        ? companyInteractions.reduce((latest, i) => {
+            const d = i.occurredAt ? new Date(i.occurredAt) : null;
+            return d && (!latest || d > latest) ? d : latest;
+          }, null as Date | null)
+        : null;
+
+      const linkedViaContacts = new Set<string>();
+      for (const c of companyContacts) {
+        for (const cj of contactJobRows) {
+          if (cj.contactId === c.id) linkedViaContacts.add(cj.jobId);
+        }
+      }
+      const linkedViaText = allJobs.filter(
+        (j) =>
+          (company.name && (
+            (j.contractor && j.contractor.toLowerCase().includes(company.name.toLowerCase())) ||
+            (j.owner && j.owner.toLowerCase().includes(company.name.toLowerCase())) ||
+            (j.architect && j.architect.toLowerCase().includes(company.name.toLowerCase()))
+          ))
+      ).map((j) => j.id);
+      const linkedJobIds = new Set([...linkedViaContacts, ...linkedViaText]);
+      const linkedJobsList = allJobs.filter((j) => linkedJobIds.has(j.id));
+      const pipelineValue = linkedJobsList.reduce((sum, j) => {
+        const v = j.projectValue ? parseFloat(String(j.projectValue)) : 0;
+        return sum + v;
+      }, 0);
+
+      return {
+        ...company,
+        contactCount: companyContacts.length,
+        interactionCount: companyInteractions.length,
+        lastInteractionAt: lastInteraction,
+        linkedJobCount: linkedJobsList.length,
+        pipelineValue,
+        linkedJobs: linkedJobsList,
+      };
+    });
+
+    const totalPipelineValue = allJobs.reduce((sum, j) => sum + (j.projectValue ? parseFloat(String(j.projectValue)) : 0), 0);
+    const interactionsThisMonth = allInteractions.filter((i) => i.occurredAt && new Date(i.occurredAt) >= monthStart).length;
+    const staleCount = companiesWithDetails.filter(
+      (c) => !c.lastInteractionAt || new Date(c.lastInteractionAt) < staleThreshold
+    ).length;
+
+    return {
+      companies: companiesWithDetails,
+      totalCompanies: allCompanies.length,
+      totalContacts: allContacts.length,
+      totalInteractions: allInteractions.length,
+      interactionsThisMonth,
+      staleCount,
+      totalPipelineValue,
+    };
   }
 }
 

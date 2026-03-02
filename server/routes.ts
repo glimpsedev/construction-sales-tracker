@@ -726,6 +726,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PATCH rental equipment status (e.g. mark as maintenance)
+  app.patch("/api/rental-equipment/:id", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body as { status?: "on_rent" | "off_rent" | "maintenance" };
+
+      const validStatuses = ["on_rent", "off_rent", "maintenance"] as const;
+      if (!status || !validStatuses.includes(status)) {
+        return res.status(400).json({ error: "Invalid status. Must be on_rent, off_rent, or maintenance." });
+      }
+
+      const [updated] = await db
+        .update(rentalEquipment)
+        .set({ status, lastUpdated: new Date() })
+        .where(eq(rentalEquipment.id, id))
+        .returning();
+
+      if (!updated) {
+        return res.status(404).json({ error: "Equipment not found" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating rental equipment status:", error);
+      res.status(500).json({ error: "Failed to update equipment status" });
+    }
+  });
+
   // Down Day Form - generate PDF and optionally email
   app.post("/api/rental-equipment/:id/down-day", authenticate, async (req: AuthRequest, res) => {
     try {
@@ -961,6 +989,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching contact jobs:", error);
       res.status(500).json({ error: "Failed to fetch contact jobs" });
+    }
+  });
+
+  // Global interactions list (sales activity log)
+  app.get("/api/interactions", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const { type, direction, companyId, contactId, search, startDate, endDate, limit, offset } = req.query;
+      const filters: any = { userId: req.userId };
+      if (type) filters.type = type as string;
+      if (direction) filters.direction = direction as string;
+      if (companyId) filters.companyId = companyId as string;
+      if (contactId) filters.contactId = contactId as string;
+      if (search) filters.search = search as string;
+      if (startDate) filters.startDate = new Date(startDate as string);
+      if (endDate) filters.endDate = new Date(endDate as string);
+      if (limit) filters.limit = parseInt(limit as string, 10);
+      if (offset) filters.offset = parseInt(offset as string, 10);
+      const list = await storage.getInteractionsWithDetails(filters);
+      res.json(list);
+    } catch (error) {
+      console.error("Error fetching interactions:", error);
+      res.status(500).json({ error: "Failed to fetch interactions" });
+    }
+  });
+
+  // CRM overview (companies, contacts, interactions, pipeline)
+  app.get("/api/crm/overview", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const overview = await storage.getCrmOverview(req.userId!);
+      res.json(overview);
+    } catch (error) {
+      console.error("Error fetching CRM overview:", error);
+      res.status(500).json({ error: "Failed to fetch CRM overview" });
     }
   });
 

@@ -14,6 +14,7 @@ import { ContactImportPage } from "@/pages/contact-import";
 import { KycImportPage } from "@/pages/kyc-import";
 import ContactsPage from "@/pages/contacts";
 import CompaniesPage from "@/pages/companies";
+import CrmPage from "@/pages/crm";
 import DatabaseManagement from "@/pages/database-management";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
@@ -45,6 +46,7 @@ function Router() {
           <Route path="/equipment" component={Equipment} />
           <Route path="/email-setup" component={EmailSetupPage} />
           <Route path="/dodge-import" component={DodgeImportPage} />
+          <Route path="/crm" component={CrmPage} />
           <Route path="/contacts" component={ContactsPage} />
           <Route path="/companies/:id" component={CompaniesPage} />
           <Route path="/companies" component={CompaniesPage} />
