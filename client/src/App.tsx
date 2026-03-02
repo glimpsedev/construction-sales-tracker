@@ -10,6 +10,9 @@ import Analytics from "@/pages/analytics";
 import Equipment from "@/pages/equipment";
 import { EmailSetupPage } from "@/pages/email-setup";
 import { DodgeImportPage } from "@/pages/dodge-import";
+import { ContactImportPage } from "@/pages/contact-import";
+import ContactsPage from "@/pages/contacts";
+import CompaniesPage from "@/pages/companies";
 import DatabaseManagement from "@/pages/database-management";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
@@ -41,6 +44,10 @@ function Router() {
           <Route path="/equipment" component={Equipment} />
           <Route path="/email-setup" component={EmailSetupPage} />
           <Route path="/dodge-import" component={DodgeImportPage} />
+          <Route path="/contacts" component={ContactsPage} />
+          <Route path="/companies/:id" component={CompaniesPage} />
+          <Route path="/companies" component={CompaniesPage} />
+          <Route path="/contact-import" component={ContactImportPage} />
           <Route path="/database" component={DatabaseManagement} />
           <Route component={NotFound} />
         </>

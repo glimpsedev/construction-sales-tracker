@@ -37,11 +37,117 @@ import type { Job } from "@shared/schema";
 import { getAuthHeaders } from "@/lib/auth";
 import { useFilterPreferences } from "@/hooks/useFilterPreferences";
 import { getMergedFilterPreferences } from "@/lib/utils";
+import { useJobContacts, useAssignContactToJob, useRemoveContactFromJob } from "@/hooks/useContacts";
+import { ContactPicker } from "@/components/ContactPicker";
+import { Link } from "wouter";
 
 interface JobDetailsModalProps {
   job: Job | null;
   isOpen: boolean;
   onClose: () => void;
+}
+
+function JobLinkedContacts({ jobId }: { jobId: string }) {
+  const { data: jobContacts = [], refetch } = useJobContacts(jobId);
+  const assignMutation = useAssignContactToJob();
+  const removeMutation = useRemoveContactFromJob();
+  const { toast } = useToast();
+
+  const handleAssign = (contact: { id: string }) => {
+    assignMutation.mutate(
+      { contactId: contact.id, jobId, role: "contractor" },
+      {
+        onSuccess: () => {
+          toast({ title: "Contact assigned", description: "Contact assigned to job" });
+          refetch();
+        },
+        onError: (err) => toast({ variant: "destructive", title: "Error", description: err.message }),
+      }
+    );
+  };
+
+  const handleRemove = (contactId: string) => {
+    removeMutation.mutate(
+      { contactId, jobId },
+      {
+        onSuccess: () => {
+          toast({ title: "Contact removed", description: "Contact removed from job" });
+          refetch();
+        },
+        onError: (err) => toast({ variant: "destructive", title: "Error", description: err.message }),
+      }
+    );
+  };
+
+  const excludeIds = jobContacts.map((cj) => cj.contact.id);
+
+  return (
+    <Card>
+      <CardContent className="pt-4">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="font-medium flex items-center gap-2">
+            <User className="h-4 w-4" />
+            Linked Contacts
+          </h4>
+          <ContactPicker
+            onSelect={handleAssign}
+            excludeIds={excludeIds}
+          />
+        </div>
+        {jobContacts.length === 0 ? (
+          <p className="text-sm text-gray-500">No contacts linked. Assign from your contacts to add.</p>
+        ) : (
+          <div className="space-y-2">
+            {jobContacts.map((cj) => {
+              const c = cj.contact;
+              const phone = c.phonePrimary || c.phoneCell || c.phoneWork;
+              const email = c.emailPrimary || c.emailSecondary;
+              return (
+                <div
+                  key={cj.id}
+                  className="flex items-center justify-between p-2 rounded-lg bg-gray-50 border border-gray-100"
+                >
+                  <div className="min-w-0 flex-1">
+                    <Link href="/contacts">
+                      <button className="font-medium text-blue-600 hover:underline truncate block text-left">
+                        {c.fullName || `${c.firstName} ${c.lastName}`.trim() || "Unknown"}
+                      </button>
+                    </Link>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {phone && (
+                        <a href={`tel:${phone}`} className="text-xs text-blue-600 hover:underline">
+                          <Phone className="h-3 w-3 inline mr-0.5" />
+                          Call
+                        </a>
+                      )}
+                      {email && (
+                        <a href={`mailto:${email}`} className="text-xs text-blue-600 hover:underline">
+                          <Mail className="h-3 w-3 inline mr-0.5" />
+                          Email
+                        </a>
+                      )}
+                      <Badge variant="secondary" className="text-xs">
+                        {cj.role}
+                      </Badge>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => handleRemove(c.id)}
+                    disabled={removeMutation.isPending}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) {
@@ -826,6 +932,9 @@ export function JobDetailsModal({ job, isOpen, onClose }: JobDetailsModalProps) 
               )}
             </CardContent>
           </Card>
+
+          {/* Linked Contacts */}
+          <JobLinkedContacts jobId={job.id} />
 
           {/* Contact Information */}
           {(job.phone || job.email) && (

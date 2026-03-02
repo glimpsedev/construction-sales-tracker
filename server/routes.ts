@@ -1,8 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertJobSchema, insertEquipmentSchema, insertDocumentSchema, jobs, type Job, DEFAULT_FILTER_PREFERENCES, type FilterPreferences } from "@shared/schema";
+import { insertJobSchema, insertEquipmentSchema, insertDocumentSchema, insertCompanySchema, insertContactSchema, insertContactJobSchema, insertInteractionSchema, jobs, type Job, DEFAULT_FILTER_PREFERENCES, type FilterPreferences } from "@shared/schema";
 import { eq, desc, and, or, gte, lte, sql, count, asc, isNotNull } from "drizzle-orm";
+import { rentalEquipment } from "@shared/schema";
 import { db } from "./db";
 import { authenticate, AuthRequest, hashPassword, verifyPassword, generateToken, createInitialUser } from "./auth";
 import authRoutes from "./authRoutes";
@@ -11,6 +12,8 @@ import { documentProcessor } from "./services/documentProcessor";
 import { emailProcessor } from "./services/emailProcessor";
 import { emailWebhookService } from "./services/emailWebhookService";
 import { csvImportService } from "./services/csvImportService";
+import { generateDownDayPdf } from "./services/downDayPdfService";
+import { emailService } from "./services/emailService";
 import { geocodeAddress } from "./services/geocodingService";
 import multer from 'multer';
 
@@ -60,6 +63,18 @@ const uploadExcel = multer({
       cb(new Error('Invalid file type. Only Excel and CSV files are allowed.'));
     }
   }
+});
+
+// Configure multer for VCF contact import
+const uploadVcf = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (req, file, cb) => {
+    const allowed = ['text/vcard', 'text/x-vcard'];
+    const hasVcfExt = file.originalname.toLowerCase().endsWith('.vcf');
+    if (allowed.includes(file.mimetype) || hasVcfExt) cb(null, true);
+    else cb(new Error('Invalid file type. Only VCF files are allowed.'));
+  },
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -332,6 +347,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching equipment:', error);
       res.status(500).json({ error: 'Failed to fetch equipment' });
+    }
+  });
+
+  app.get("/api/jobs/:jobId/contacts", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const contacts = await storage.getJobContacts(req.params.jobId, req.userId);
+      res.json(contacts);
+    } catch (error) {
+      console.error('Error fetching job contacts:', error);
+      res.status(500).json({ error: 'Failed to fetch job contacts' });
     }
   });
 
@@ -700,6 +725,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Down Day Form - generate PDF and optionally email
+  app.post("/api/rental-equipment/:id/down-day", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const { dates, reason, sendEmail } = req.body as { dates: string[]; reason: string; sendEmail?: boolean };
+
+      const [equipment] = await db.select().from(rentalEquipment).where(eq(rentalEquipment.id, id));
+      if (!equipment) {
+        return res.status(404).json({ error: "Equipment not found" });
+      }
+
+      const customerName = equipment.customerOnRent ?? equipment.customer ?? "Unknown";
+      const equipmentNumbers = equipment.equipmentNumber;
+
+      const pdfBuffer = await generateDownDayPdf({
+        customerName,
+        equipmentNumbers,
+        dates: Array.isArray(dates) ? dates : [],
+        reason: String(reason ?? ""),
+      });
+
+      if (sendEmail) {
+        await emailService.sendDownDayForm(pdfBuffer, equipmentNumbers, customerName);
+      }
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="DownDayForm-${equipmentNumbers}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("Error generating Down Day Form:", error);
+      res.status(500).json({ error: "Failed to generate Down Day Form" });
+    }
+  });
+
   // Process equipment status email (Excel file)
   app.post("/api/process-equipment-email", uploadExcel.single('file'), async (req, res) => {
     try {
@@ -773,6 +832,212 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Companies routes
+  app.get("/api/companies", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const { search, type } = req.query;
+      const list = search || type
+        ? await storage.searchCompanies({ search: search as string, type: type as string, userId: req.userId! })
+        : await storage.getCompanies(req.userId);
+      res.json(list);
+    } catch (error) {
+      console.error("Error fetching companies:", error);
+      res.status(500).json({ error: "Failed to fetch companies" });
+    }
+  });
+
+  app.post("/api/companies", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const data = insertCompanySchema.parse(req.body);
+      const company = await storage.createCompany({ ...data, userId: req.userId! });
+      res.status(201).json(company);
+    } catch (error) {
+      console.error("Error creating company:", error);
+      res.status(500).json({ error: "Failed to create company" });
+    }
+  });
+
+  app.get("/api/companies/:id", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const company = await storage.getCompanyById(req.params.id, req.userId);
+      if (!company) return res.status(404).json({ error: "Company not found" });
+      const companyContacts = await storage.getContactsByCompany(req.params.id, req.userId);
+      const companyInteractions = await storage.getInteractions({ companyId: req.params.id, userId: req.userId, limit: 50 });
+      res.json({ ...company, contacts: companyContacts, interactions: companyInteractions });
+    } catch (error) {
+      console.error("Error fetching company:", error);
+      res.status(500).json({ error: "Failed to fetch company" });
+    }
+  });
+
+  app.put("/api/companies/:id", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const updates = insertCompanySchema.partial().parse(req.body);
+      const company = await storage.updateCompany(req.params.id, updates, req.userId);
+      if (!company) return res.status(404).json({ error: "Company not found" });
+      res.json(company);
+    } catch (error) {
+      console.error("Error updating company:", error);
+      res.status(500).json({ error: "Failed to update company" });
+    }
+  });
+
+  app.delete("/api/companies/:id", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const deleted = await storage.deleteCompany(req.params.id, req.userId);
+      if (!deleted) return res.status(404).json({ error: "Company not found" });
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting company:", error);
+      res.status(500).json({ error: "Failed to delete company" });
+    }
+  });
+
+  // Contacts routes
+  app.get("/api/contacts", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const { search, companyId } = req.query;
+      const list = await storage.getContacts({ userId: req.userId!, companyId: companyId as string | undefined, search: search as string | undefined });
+      res.json(list);
+    } catch (error) {
+      console.error("Error fetching contacts:", error);
+      res.status(500).json({ error: "Failed to fetch contacts" });
+    }
+  });
+
+  app.post("/api/contacts", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const data = insertContactSchema.parse(req.body);
+      const contact = await storage.createContact({ ...data, userId: req.userId! });
+      res.status(201).json(contact);
+    } catch (error) {
+      console.error("Error creating contact:", error);
+      res.status(500).json({ error: "Failed to create contact" });
+    }
+  });
+
+  app.get("/api/contacts/:id", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const contact = await storage.getContactById(req.params.id, req.userId);
+      if (!contact) return res.status(404).json({ error: "Contact not found" });
+      const contactJobs = await storage.getContactJobs(req.params.id, req.userId);
+      const contactInteractions = await storage.getInteractions({ contactId: req.params.id, userId: req.userId, limit: 50 });
+      const company = contact.companyId ? await storage.getCompanyById(contact.companyId, req.userId) : null;
+      res.json({ ...contact, jobs: contactJobs, interactions: contactInteractions, company });
+    } catch (error) {
+      console.error("Error fetching contact:", error);
+      res.status(500).json({ error: "Failed to fetch contact" });
+    }
+  });
+
+  app.put("/api/contacts/:id", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const updates = insertContactSchema.partial().parse(req.body);
+      const contact = await storage.updateContact(req.params.id, updates, req.userId);
+      if (!contact) return res.status(404).json({ error: "Contact not found" });
+      res.json(contact);
+    } catch (error) {
+      console.error("Error updating contact:", error);
+      res.status(500).json({ error: "Failed to update contact" });
+    }
+  });
+
+  app.delete("/api/contacts/:id", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const deleted = await storage.deleteContact(req.params.id, req.userId);
+      if (!deleted) return res.status(404).json({ error: "Contact not found" });
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting contact:", error);
+      res.status(500).json({ error: "Failed to delete contact" });
+    }
+  });
+
+  app.get("/api/contacts/:id/jobs", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const jobs = await storage.getContactJobs(req.params.id, req.userId);
+      res.json(jobs);
+    } catch (error) {
+      console.error("Error fetching contact jobs:", error);
+      res.status(500).json({ error: "Failed to fetch contact jobs" });
+    }
+  });
+
+  app.get("/api/contacts/:id/interactions", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const interactions = await storage.getInteractions({ contactId: req.params.id, userId: req.userId, limit: 100 });
+      res.json(interactions);
+    } catch (error) {
+      console.error("Error fetching contact interactions:", error);
+      res.status(500).json({ error: "Failed to fetch interactions" });
+    }
+  });
+
+  app.post("/api/contacts/:id/interactions", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const data = insertInteractionSchema.parse(req.body);
+      const contact = await storage.getContactById(req.params.id, req.userId);
+      if (!contact) return res.status(404).json({ error: "Contact not found" });
+      const interaction = await storage.createInteraction({
+        ...data,
+        userId: req.userId!,
+        contactId: req.params.id,
+        companyId: contact.companyId ?? undefined,
+      });
+      await storage.updateContact(req.params.id, {
+        lastInteractionAt: interaction.occurredAt || new Date(),
+        lastInteractionType: interaction.type,
+      }, req.userId);
+      if (contact.companyId) {
+        await storage.updateCompany(contact.companyId, {
+          lastInteractionAt: interaction.occurredAt || new Date(),
+          lastInteractionType: interaction.type,
+        }, req.userId);
+      }
+      res.status(201).json(interaction);
+    } catch (error) {
+      console.error("Error creating interaction:", error);
+      res.status(500).json({ error: "Failed to create interaction" });
+    }
+  });
+
+  app.post("/api/contacts/:contactId/jobs/:jobId", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const { role } = req.body;
+      const cj = await storage.assignContactToJob(req.params.contactId, req.params.jobId, role || "other", req.userId);
+      res.status(201).json(cj);
+    } catch (error) {
+      console.error("Error assigning contact to job:", error);
+      res.status(500).json({ error: "Failed to assign contact to job" });
+    }
+  });
+
+  app.delete("/api/contacts/:contactId/jobs/:jobId", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const deleted = await storage.removeContactFromJob(req.params.contactId, req.params.jobId, req.userId);
+      if (!deleted) return res.status(404).json({ error: "Assignment not found" });
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error removing contact from job:", error);
+      res.status(500).json({ error: "Failed to remove contact from job" });
+    }
+  });
+
+  // VCF import - will be implemented in Phase 3
+  app.post("/api/import-contacts-vcf", authenticate, uploadVcf.single("file"), async (req: AuthRequest, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "No VCF file uploaded" });
+      const vcfImportService = (await import("./services/vcfImportService")).default;
+      const results = await vcfImportService.importVcf(req.file.buffer, req.userId!);
+      res.json({ success: true, results });
+    } catch (error) {
+      console.error("Error importing VCF:", error);
+      res.status(500).json({
+        error: "Failed to import VCF",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  });
 
   // Mark job as viewed
   app.put("/api/jobs/:id/mark-viewed", async (req, res) => {

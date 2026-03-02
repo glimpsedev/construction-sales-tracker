@@ -15,11 +15,14 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import type { RentalEquipment } from "@shared/schema";
 import { Link } from "wouter";
+import { Calendar } from "lucide-react";
+import { DownDayModal } from "@/components/modals/DownDayModal";
 
 export default function Equipment() {
   const [file, setFile] = useState<File | null>(null);
   const [search, setSearch] = useState("");
   const [dragOver, setDragOver] = useState(false);
+  const [downDayEquipment, setDownDayEquipment] = useState<RentalEquipment | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -328,6 +331,7 @@ export default function Equipment() {
                       <TableHead className="font-semibold text-gray-600 text-xs uppercase tracking-wide">Date On Rent</TableHead>
                       <TableHead className="font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Days</TableHead>
                       <TableHead className="font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Monthly Rate</TableHead>
+                      <TableHead className="font-semibold text-gray-600 text-xs uppercase tracking-wide w-20">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -368,12 +372,24 @@ export default function Equipment() {
                               ? `$${item.monthlyRate.toLocaleString()}`
                               : "—"}
                           </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                              onClick={() => setDownDayEquipment(item)}
+                              title="Report Down Day"
+                            >
+                              <Calendar className="h-3.5 w-3.5" />
+                              Down Day
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       );
                     })}
                     {filtered.length === 0 && search && (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-gray-400">
+                        <TableCell colSpan={9} className="text-center py-8 text-gray-400">
                           No equipment matching "{search}"
                         </TableCell>
                       </TableRow>
@@ -397,6 +413,12 @@ export default function Equipment() {
           </Card>
         )}
       </div>
+
+      <DownDayModal
+        equipment={downDayEquipment}
+        isOpen={!!downDayEquipment}
+        onClose={() => setDownDayEquipment(null)}
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { jobs, equipment, documents, users, emailVerifications, type Job, type InsertJob, type Equipment, type InsertEquipment, type Document, type InsertDocument, type User, type InsertUser, type EmailVerification, type InsertEmailVerification, type FilterPreferences } from "@shared/schema";
+import { jobs, equipment, documents, users, emailVerifications, companies, contacts, contactJobs, interactions, type Job, type InsertJob, type Equipment, type InsertEquipment, type Document, type InsertDocument, type User, type InsertUser, type EmailVerification, type InsertEmailVerification, type FilterPreferences, type Company, type InsertCompany, type Contact, type InsertContact, type ContactJob, type InsertContactJob, type Interaction, type InsertInteraction } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, ilike, gte, lte, inArray, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -54,6 +54,36 @@ export interface IStorage {
   // Filter preferences methods
   getFilterPreferences(userId: string): Promise<FilterPreferences | null>;
   updateFilterPreferences(userId: string, preferences: FilterPreferences): Promise<void>;
+
+  // Company methods
+  getCompanies(userId?: string): Promise<Company[]>;
+  getCompanyById(id: string, userId?: string): Promise<Company | undefined>;
+  createCompany(company: InsertCompany): Promise<Company>;
+  updateCompany(id: string, updates: Partial<InsertCompany>, userId?: string): Promise<Company | undefined>;
+  deleteCompany(id: string, userId?: string): Promise<boolean>;
+  searchCompanies(filters: { search?: string; type?: string; userId?: string }): Promise<Company[]>;
+  getCompanyByNormalizedName(normalizedName: string, userId?: string): Promise<Company | undefined>;
+
+  // Contact methods
+  getContacts(filters?: { userId?: string; companyId?: string; search?: string; tags?: string[] }): Promise<Contact[]>;
+  getContactById(id: string, userId?: string): Promise<Contact | undefined>;
+  createContact(contact: InsertContact): Promise<Contact>;
+  updateContact(id: string, updates: Partial<InsertContact>, userId?: string): Promise<Contact | undefined>;
+  deleteContact(id: string, userId?: string): Promise<boolean>;
+  searchContacts(filters: { search?: string; companyId?: string; userId?: string }): Promise<Contact[]>;
+  getContactsByCompany(companyId: string, userId?: string): Promise<Contact[]>;
+  getContactsByJob(jobId: string, userId?: string): Promise<(Contact & { contactJob: ContactJob })[]>;
+
+  // Contact-job junction methods
+  assignContactToJob(contactId: string, jobId: string, role: string, userId?: string): Promise<ContactJob>;
+  removeContactFromJob(contactId: string, jobId: string, userId?: string): Promise<boolean>;
+  getJobContacts(jobId: string, userId?: string): Promise<(ContactJob & { contact: Contact })[]>;
+  getContactJobs(contactId: string, userId?: string): Promise<(ContactJob & { job: Job })[]>;
+
+  // Interaction methods
+  createInteraction(interaction: InsertInteraction): Promise<Interaction>;
+  getInteractions(filters: { contactId?: string; companyId?: string; jobId?: string; userId?: string; limit?: number }): Promise<Interaction[]>;
+  getLastInteraction(contactId?: string, companyId?: string): Promise<Interaction | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -355,6 +385,47 @@ export class MemStorage implements IStorage {
       user.filterPreferences = preferences;
     }
   }
+
+  async getCompanies(): Promise<Company[]> { return []; }
+  async getCompanyById(): Promise<Company | undefined> { return undefined; }
+  async createCompany(company: InsertCompany): Promise<Company> {
+    const id = randomUUID();
+    const now = new Date();
+    const newCompany: Company = { ...company, id, createdAt: now, updatedAt: now, tags: company.tags || [] } as Company;
+    return newCompany;
+  }
+  async updateCompany(): Promise<Company | undefined> { return undefined; }
+  async deleteCompany(): Promise<boolean> { return false; }
+  async searchCompanies(): Promise<Company[]> { return []; }
+  async getCompanyByNormalizedName(): Promise<Company | undefined> { return undefined; }
+
+  async getContacts(): Promise<Contact[]> { return []; }
+  async getContactById(): Promise<Contact | undefined> { return undefined; }
+  async createContact(contact: InsertContact): Promise<Contact> {
+    const id = randomUUID();
+    const now = new Date();
+    const newContact: Contact = { ...contact, id, createdAt: now, updatedAt: now, tags: contact.tags || [] } as Contact;
+    return newContact;
+  }
+  async updateContact(): Promise<Contact | undefined> { return undefined; }
+  async deleteContact(): Promise<boolean> { return false; }
+  async searchContacts(): Promise<Contact[]> { return []; }
+  async getContactsByCompany(): Promise<Contact[]> { return []; }
+  async getContactsByJob(): Promise<(Contact & { contactJob: ContactJob })[]> { return []; }
+
+  async assignContactToJob(): Promise<ContactJob> { throw new Error("MemStorage: assignContactToJob not implemented"); }
+  async removeContactFromJob(): Promise<boolean> { return false; }
+  async getJobContacts(): Promise<(ContactJob & { contact: Contact })[]> { return []; }
+  async getContactJobs(): Promise<(ContactJob & { job: Job })[]> { return []; }
+
+  async createInteraction(interaction: InsertInteraction): Promise<Interaction> {
+    const id = randomUUID();
+    const now = new Date();
+    const newInteraction: Interaction = { ...interaction, id, createdAt: now } as Interaction;
+    return newInteraction;
+  }
+  async getInteractions(): Promise<Interaction[]> { return []; }
+  async getLastInteraction(): Promise<Interaction | undefined> { return undefined; }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -666,6 +737,175 @@ export class DatabaseStorage implements IStorage {
     await db.update(users)
       .set({ filterPreferences: preferences })
       .where(eq(users.id, userId));
+  }
+
+  async getCompanies(userId?: string): Promise<Company[]> {
+    if (userId) {
+      return await db.select().from(companies).where(eq(companies.userId, userId)).orderBy(desc(companies.name));
+    }
+    return await db.select().from(companies).orderBy(desc(companies.name));
+  }
+
+  async getCompanyById(id: string, userId?: string): Promise<Company | undefined> {
+    const conditions = [eq(companies.id, id)];
+    if (userId) conditions.push(eq(companies.userId, userId));
+    const [company] = await db.select().from(companies).where(and(...conditions));
+    return company || undefined;
+  }
+
+  async createCompany(company: InsertCompany): Promise<Company> {
+    const [created] = await db.insert(companies).values(company).returning();
+    return created;
+  }
+
+  async updateCompany(id: string, updates: Partial<InsertCompany>, userId?: string): Promise<Company | undefined> {
+    const conditions = [eq(companies.id, id)];
+    if (userId) conditions.push(eq(companies.userId, userId));
+    const [updated] = await db.update(companies).set({ ...updates, updatedAt: new Date() }).where(and(...conditions)).returning();
+    return updated || undefined;
+  }
+
+  async deleteCompany(id: string, userId?: string): Promise<boolean> {
+    const conditions = [eq(companies.id, id)];
+    if (userId) conditions.push(eq(companies.userId, userId));
+    const result = await db.delete(companies).where(and(...conditions));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async searchCompanies(filters: { search?: string; type?: string; userId?: string }): Promise<Company[]> {
+    const conditions = [];
+    if (filters.userId) conditions.push(eq(companies.userId, filters.userId));
+    if (filters.search) conditions.push(or(ilike(companies.name, `%${filters.search}%`), ilike(companies.normalizedName, `%${filters.search}%`))!);
+    if (filters.type) conditions.push(eq(companies.type, filters.type as any));
+    let query = db.select().from(companies);
+    if (conditions.length > 0) query = query.where(and(...conditions));
+    return await query.orderBy(desc(companies.name));
+  }
+
+  async getCompanyByNormalizedName(normalizedName: string, userId?: string): Promise<Company | undefined> {
+    const conditions = [ilike(companies.normalizedName, normalizedName)];
+    if (userId) conditions.push(eq(companies.userId, userId));
+    const [company] = await db.select().from(companies).where(and(...conditions));
+    return company || undefined;
+  }
+
+  async getContacts(filters?: { userId?: string; companyId?: string; search?: string; tags?: string[] }): Promise<Contact[]> {
+    const conditions = [];
+    if (filters?.userId) conditions.push(eq(contacts.userId, filters.userId));
+    if (filters?.companyId) conditions.push(eq(contacts.companyId, filters.companyId));
+    if (filters?.search) {
+      const term = `%${filters.search}%`;
+      conditions.push(or(ilike(contacts.fullName, term), ilike(contacts.firstName, term), ilike(contacts.lastName, term), ilike(contacts.emailPrimary, term), ilike(contacts.phonePrimary, term))!);
+    }
+    let query = db.select().from(contacts);
+    if (conditions.length > 0) query = query.where(and(...conditions));
+    return await query.orderBy(desc(contacts.lastInteractionAt), desc(contacts.createdAt));
+  }
+
+  async getContactById(id: string, userId?: string): Promise<Contact | undefined> {
+    const conditions = [eq(contacts.id, id)];
+    if (userId) conditions.push(eq(contacts.userId, userId));
+    const [contact] = await db.select().from(contacts).where(and(...conditions));
+    return contact || undefined;
+  }
+
+  async createContact(contact: InsertContact): Promise<Contact> {
+    const [created] = await db.insert(contacts).values(contact).returning();
+    return created;
+  }
+
+  async updateContact(id: string, updates: Partial<InsertContact>, userId?: string): Promise<Contact | undefined> {
+    const conditions = [eq(contacts.id, id)];
+    if (userId) conditions.push(eq(contacts.userId, userId));
+    const [updated] = await db.update(contacts).set({ ...updates, updatedAt: new Date() }).where(and(...conditions)).returning();
+    return updated || undefined;
+  }
+
+  async deleteContact(id: string, userId?: string): Promise<boolean> {
+    const conditions = [eq(contacts.id, id)];
+    if (userId) conditions.push(eq(contacts.userId, userId));
+    const result = await db.delete(contacts).where(and(...conditions));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async searchContacts(filters: { search?: string; companyId?: string; userId?: string }): Promise<Contact[]> {
+    return this.getContacts({ userId: filters.userId, companyId: filters.companyId, search: filters.search });
+  }
+
+  async getContactsByCompany(companyId: string, userId?: string): Promise<Contact[]> {
+    return this.getContacts({ companyId, userId });
+  }
+
+  async getContactsByJob(jobId: string, userId?: string): Promise<(Contact & { contactJob: ContactJob })[]> {
+    const cjRows = await db.select().from(contactJobs).where(eq(contactJobs.jobId, jobId));
+    const result: (Contact & { contactJob: ContactJob })[] = [];
+    for (const cj of cjRows) {
+      const contact = await this.getContactById(cj.contactId, userId);
+      if (contact) result.push({ ...contact, contactJob: cj });
+    }
+    return result;
+  }
+
+  async assignContactToJob(contactId: string, jobId: string, role: string, userId?: string): Promise<ContactJob> {
+    const contact = await this.getContactById(contactId, userId);
+    if (!contact) throw new Error("Contact not found");
+    const job = await this.getJobById(jobId, userId);
+    if (!job) throw new Error("Job not found");
+    const [created] = await db.insert(contactJobs).values({ contactId, jobId, role: role as any }).returning();
+    return created;
+  }
+
+  async removeContactFromJob(contactId: string, jobId: string, userId?: string): Promise<boolean> {
+    const conditions = [eq(contactJobs.contactId, contactId), eq(contactJobs.jobId, jobId)];
+    const result = await db.delete(contactJobs).where(and(...conditions));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async getJobContacts(jobId: string, userId?: string): Promise<(ContactJob & { contact: Contact })[]> {
+    const cjRows = await db.select().from(contactJobs).where(eq(contactJobs.jobId, jobId));
+    const result: (ContactJob & { contact: Contact })[] = [];
+    for (const cj of cjRows) {
+      const contact = await this.getContactById(cj.contactId, userId);
+      if (contact) result.push({ ...cj, contact });
+    }
+    return result;
+  }
+
+  async getContactJobs(contactId: string, userId?: string): Promise<(ContactJob & { job: Job })[]> {
+    const cjRows = await db.select().from(contactJobs).where(eq(contactJobs.contactId, contactId));
+    const result: (ContactJob & { job: Job })[] = [];
+    for (const cj of cjRows) {
+      const job = await this.getJobById(cj.jobId, userId);
+      if (job) result.push({ ...cj, job });
+    }
+    return result;
+  }
+
+  async createInteraction(interaction: InsertInteraction): Promise<Interaction> {
+    const [created] = await db.insert(interactions).values(interaction).returning();
+    return created;
+  }
+
+  async getInteractions(filters: { contactId?: string; companyId?: string; jobId?: string; userId?: string; limit?: number }): Promise<Interaction[]> {
+    const conditions = [];
+    if (filters.contactId) conditions.push(eq(interactions.contactId, filters.contactId));
+    if (filters.companyId) conditions.push(eq(interactions.companyId, filters.companyId));
+    if (filters.jobId) conditions.push(eq(interactions.jobId, filters.jobId));
+    if (filters.userId) conditions.push(eq(interactions.userId, filters.userId));
+    let query = db.select().from(interactions);
+    if (conditions.length > 0) query = query.where(and(...conditions));
+    query = query.orderBy(desc(interactions.occurredAt));
+    if (filters.limit) query = query.limit(filters.limit);
+    return await query;
+  }
+
+  async getLastInteraction(contactId?: string, companyId?: string): Promise<Interaction | undefined> {
+    const conditions = [];
+    if (contactId) conditions.push(eq(interactions.contactId, contactId));
+    if (companyId) conditions.push(eq(interactions.companyId, companyId));
+    if (conditions.length === 0) return undefined;
+    const [last] = await db.select().from(interactions).where(and(...conditions)).orderBy(desc(interactions.occurredAt)).limit(1);
+    return last || undefined;
   }
 }
 

@@ -9,6 +9,11 @@ export const jobTypeEnum = pgEnum("job_type", ["commercial", "residential", "ind
 export const equipmentStatusEnum = pgEnum("equipment_status", ["starting", "stopping", "maintenance"]);
 export const rentalStatusEnum = pgEnum("rental_status", ["on_rent", "off_rent", "maintenance"]);
 export const jobTemperatureEnum = pgEnum("job_temperature", ["hot", "warm", "cold", "green"]);
+export const companyTypeEnum = pgEnum("company_type", ["contractor", "owner", "architect", "agency", "vendor", "subcontractor", "other"]);
+export const contactSourceEnum = pgEnum("contact_source", ["vcf_import", "manual", "dodge_import"]);
+export const contactJobRoleEnum = pgEnum("contact_job_role", ["contractor", "owner", "architect", "construction_manager", "ordered_by", "office_contact", "other"]);
+export const interactionTypeEnum = pgEnum("interaction_type", ["call", "email", "meeting", "site_visit", "text", "note"]);
+export const interactionDirectionEnum = pgEnum("interaction_direction", ["inbound", "outbound"]);
 
 export const jobs = pgTable("jobs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -133,13 +138,130 @@ export const rentalEquipment = pgTable("rental_equipment", {
   lastUpdated: timestamp("last_updated").defaultNow().notNull()
 });
 
+// Companies table - canonical company records, deduplicated
+export const companies = pgTable("companies", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  normalizedName: text("normalized_name"),
+  phone: text("phone"),
+  email: text("email"),
+  website: text("website"),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  zip: text("zip"),
+  county: text("county"),
+  type: companyTypeEnum("type").default("other"),
+  licenseNumber: text("license_number"),
+  tags: json("tags").$type<string[]>().default([]).notNull(),
+  notes: text("notes"),
+  lastInteractionAt: timestamp("last_interaction_at"),
+  lastInteractionType: text("last_interaction_type"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Contacts table - individual people, linked to a company
+export const contacts = pgTable("contacts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
+  companyId: varchar("company_id").references(() => companies.id, { onDelete: "set null" }),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  fullName: text("full_name"),
+  title: text("title"),
+  role: text("role"),
+  phonePrimary: text("phone_primary"),
+  phoneCell: text("phone_cell"),
+  phoneWork: text("phone_work"),
+  phoneFax: text("phone_fax"),
+  emailPrimary: text("email_primary"),
+  emailSecondary: text("email_secondary"),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  zip: text("zip"),
+  tags: json("tags").$type<string[]>().default([]).notNull(),
+  source: contactSourceEnum("source").default("manual"),
+  notes: text("notes"),
+  lastInteractionAt: timestamp("last_interaction_at"),
+  lastInteractionType: text("last_interaction_type"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Contact-jobs junction table - many-to-many between contacts and jobs
+export const contactJobs = pgTable("contact_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  contactId: varchar("contact_id").notNull().references(() => contacts.id, { onDelete: "cascade" }),
+  jobId: varchar("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
+  role: contactJobRoleEnum("role").default("other"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Interactions table - activity log for CRM tracking
+export const interactions = pgTable("interactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
+  contactId: varchar("contact_id").references(() => contacts.id, { onDelete: "cascade" }),
+  companyId: varchar("company_id").references(() => companies.id, { onDelete: "cascade" }),
+  jobId: varchar("job_id").references(() => jobs.id, { onDelete: "set null" }),
+  type: interactionTypeEnum("type").notNull(),
+  direction: interactionDirectionEnum("direction").default("outbound"),
+  summary: text("summary"),
+  notes: text("notes"),
+  occurredAt: timestamp("occurred_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const jobsRelations = relations(jobs, ({ many }) => ({
   equipment: many(equipment),
+  contactJobs: many(contactJobs),
 }));
 
 export const equipmentRelations = relations(equipment, ({ one }) => ({
   job: one(jobs, {
     fields: [equipment.jobId],
+    references: [jobs.id],
+  }),
+}));
+
+export const companiesRelations = relations(companies, ({ many }) => ({
+  contacts: many(contacts),
+}));
+
+export const contactsRelations = relations(contacts, ({ one, many }) => ({
+  company: one(companies, {
+    fields: [contacts.companyId],
+    references: [companies.id],
+  }),
+  contactJobs: many(contactJobs),
+  interactions: many(interactions),
+}));
+
+export const contactJobsRelations = relations(contactJobs, ({ one }) => ({
+  contact: one(contacts, {
+    fields: [contactJobs.contactId],
+    references: [contacts.id],
+  }),
+  job: one(jobs, {
+    fields: [contactJobs.jobId],
+    references: [jobs.id],
+  }),
+}));
+
+export const interactionsRelations = relations(interactions, ({ one }) => ({
+  contact: one(contacts, {
+    fields: [interactions.contactId],
+    references: [contacts.id],
+  }),
+  company: one(companies, {
+    fields: [interactions.companyId],
+    references: [companies.id],
+  }),
+  job: one(jobs, {
+    fields: [interactions.jobId],
     references: [jobs.id],
   }),
 }));
@@ -177,6 +299,28 @@ export const insertRentalEquipmentSchema = createInsertSchema(rentalEquipment).o
   lastUpdated: true,
 });
 
+export const insertCompanySchema = createInsertSchema(companies).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertContactSchema = createInsertSchema(contacts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertContactJobSchema = createInsertSchema(contactJobs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertInteractionSchema = createInsertSchema(interactions).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type Job = typeof jobs.$inferSelect;
 export type InsertJob = z.infer<typeof insertJobSchema>;
 export type Equipment = typeof equipment.$inferSelect;
@@ -189,6 +333,14 @@ export type EmailVerification = typeof emailVerifications.$inferSelect;
 export type InsertEmailVerification = z.infer<typeof insertEmailVerificationSchema>;
 export type RentalEquipment = typeof rentalEquipment.$inferSelect;
 export type InsertRentalEquipment = z.infer<typeof insertRentalEquipmentSchema>;
+export type Company = typeof companies.$inferSelect;
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
+export type Contact = typeof contacts.$inferSelect;
+export type InsertContact = z.infer<typeof insertContactSchema>;
+export type ContactJob = typeof contactJobs.$inferSelect;
+export type InsertContactJob = z.infer<typeof insertContactJobSchema>;
+export type Interaction = typeof interactions.$inferSelect;
+export type InsertInteraction = z.infer<typeof insertInteractionSchema>;
 
 // Filter preferences types
 export interface FilterPreference {

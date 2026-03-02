@@ -22,6 +22,7 @@ import {
   X,
   MapPin,
   Truck,
+  Users,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -276,6 +277,18 @@ export default function Dashboard() {
                 <Filter className="h-3.5 w-3.5" />
                 {sidebarOpen ? "Hide Filters" : "Filters"}
               </Button>
+              <Link href="/contacts">
+                <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-lg border-gray-200 hover:bg-gray-50">
+                  <Users className="h-3.5 w-3.5" />
+                  Contacts
+                </Button>
+              </Link>
+              <Link href="/companies">
+                <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-lg border-gray-200 hover:bg-gray-50">
+                  <Building2 className="h-3.5 w-3.5" />
+                  Companies
+                </Button>
+              </Link>
               <Link href="/analytics">
                 <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-lg border-gray-200 hover:bg-gray-50">
                   <BarChart3 className="h-3.5 w-3.5" />
@@ -433,6 +446,24 @@ export default function Dashboard() {
         {showMobileMenu && (
           <div className="lg:hidden border-t border-gray-100 bg-white/95 backdrop-blur-sm">
             <div className="px-2 py-2 space-y-0.5">
+              <Link href="/contacts">
+                <button
+                  onClick={() => setShowMobileMenu(false)}
+                  className="w-full text-left px-3 py-2.5 hover:bg-gray-50 rounded-lg flex items-center gap-3 text-sm text-gray-700"
+                >
+                  <Users className="h-4 w-4 text-gray-400" />
+                  Contacts
+                </button>
+              </Link>
+              <Link href="/companies">
+                <button
+                  onClick={() => setShowMobileMenu(false)}
+                  className="w-full text-left px-3 py-2.5 hover:bg-gray-50 rounded-lg flex items-center gap-3 text-sm text-gray-700"
+                >
+                  <Building2 className="h-4 w-4 text-gray-400" />
+                  Companies
+                </button>
+              </Link>
               <Link href="/analytics">
                 <button
                   onClick={() => setShowMobileMenu(false)}

@@ -6,6 +6,7 @@ interface EmailOptions {
   to: string;
   subject: string;
   html: string;
+  attachments?: nodemailer.SendMailOptions['attachments'];
 }
 
 class EmailService {
@@ -117,15 +118,37 @@ class EmailService {
     });
   }
 
+  async sendDownDayForm(
+    pdfBuffer: Buffer,
+    equipmentNumber: string,
+    customerName: string
+  ): Promise<void> {
+    await this.sendEmail({
+      to: 'DownDays@jscole.com',
+      subject: `Down Day Form - ${equipmentNumber} - ${customerName}`,
+      html: '<p>Please see attached Down Day Form.</p>',
+      attachments: [
+        {
+          filename: `DownDayForm-${equipmentNumber}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf',
+        },
+      ],
+    });
+  }
+
   private async sendEmail(options: EmailOptions): Promise<void> {
     if (this.isProduction && this.transporter) {
       // Production: Send via configured provider
-      const mailOptions = {
+      const mailOptions: nodemailer.SendMailOptions = {
         from: process.env.EMAIL_FROM || 'noreply@construction-tracker.com',
         to: options.to,
         subject: options.subject,
         html: options.html,
       };
+      if (options.attachments?.length) {
+        mailOptions.attachments = options.attachments;
+      }
 
       try {
         const info = await this.transporter.sendMail(mailOptions);
@@ -141,6 +164,9 @@ class EmailService {
         to: options.to,
         subject: options.subject,
         html: options.html,
+        attachments: options.attachments?.map((a) =>
+          typeof a === 'object' && 'filename' in a ? a.filename : 'attachment'
+        ),
       };
 
       // Log to console
@@ -148,6 +174,9 @@ class EmailService {
       console.log('To:', emailLog.to);
       console.log('Subject:', emailLog.subject);
       console.log('Content:', emailLog.html.replace(/<[^>]*>/g, '')); // Strip HTML for console
+      if (emailLog.attachments?.length) {
+        console.log('Attachments:', emailLog.attachments.join(', '));
+      }
       console.log('========================\n');
 
       // Log to file
