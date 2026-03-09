@@ -105,6 +105,7 @@ export default function CrmPage() {
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [showContactModal, setShowContactModal] = useState(false);
   const [expandedCompanyId, setExpandedCompanyId] = useState<string | null>(null);
+  const [selectedContactIdFromCompany, setSelectedContactIdFromCompany] = useState<string | null>(null);
 
   // Activity log filters
   const [activitySearch, setActivitySearch] = useState("");
@@ -418,8 +419,14 @@ export default function CrmPage() {
                               <div className="font-medium text-gray-900 truncate">
                                 {company.name}
                               </div>
-                              <div className="flex items-center gap-3 mt-0.5 text-sm text-gray-500">
+                              <div className="flex items-center gap-3 mt-0.5 text-sm text-gray-500 flex-wrap">
                                 <span>{company.contactCount} contacts</span>
+                                {company.contacts && company.contacts.length > 0 && (
+                                  <span className="text-gray-600">
+                                    ({company.contacts.slice(0, 3).map((c) => c.fullName || "Unknown").join(", ")}
+                                    {company.contacts.length > 3 && "..."})
+                                  </span>
+                                )}
                                 <span>{company.interactionCount} interactions</span>
                                 <span>{company.linkedJobCount} job sites</span>
                                 {company.pipelineValue > 0 && (
@@ -441,6 +448,74 @@ export default function CrmPage() {
                         </div>
                         {isExpanded && (
                           <div className="border-t bg-gray-50/50 p-4 space-y-4">
+                            {company.contacts && company.contacts.length > 0 && (
+                              <div>
+                                <div className="font-medium text-sm mb-2 flex items-center gap-1">
+                                  <Users className="h-4 w-4" />
+                                  Contacts
+                                </div>
+                                <div className="space-y-2">
+                                  {company.contacts.map((c) => (
+                                    <div
+                                      key={c.id}
+                                      className="flex items-center justify-between gap-2 p-2 rounded bg-white border hover:border-blue-200 cursor-pointer group"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedContactIdFromCompany(c.id);
+                                        setShowContactModal(true);
+                                      }}
+                                    >
+                                      <div className="min-w-0 flex-1">
+                                        <div className="font-medium text-gray-900">
+                                          {c.fullName || "Unknown"}
+                                          {c.title && (
+                                            <span className="text-gray-500 font-normal"> · {c.title}</span>
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-600">
+                                          {c.phone && (
+                                            <a
+                                              href={`tel:${c.phone}`}
+                                              className="flex items-center gap-1 hover:text-blue-600"
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              <Phone className="h-3 w-3" />
+                                              {c.phone}
+                                            </a>
+                                          )}
+                                          {c.email && (
+                                            <a
+                                              href={`mailto:${c.email}`}
+                                              className="flex items-center gap-1 hover:text-blue-600 truncate"
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              <Mail className="h-3 w-3" />
+                                              {c.email}
+                                            </a>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div className="flex gap-1 flex-shrink-0">
+                                        {c.phone && (
+                                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" asChild>
+                                            <a href={`tel:${c.phone}`} onClick={(e) => e.stopPropagation()}>
+                                              <Phone className="h-3.5 w-3.5" />
+                                            </a>
+                                          </Button>
+                                        )}
+                                        {c.email && (
+                                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" asChild>
+                                            <a href={`mailto:${c.email}`} onClick={(e) => e.stopPropagation()}>
+                                              <Mail className="h-3.5 w-3.5" />
+                                            </a>
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                             {company.linkedJobs && company.linkedJobs.length > 0 && (
                               <div>
                                 <div className="font-medium text-sm mb-2 flex items-center gap-1">
@@ -482,7 +557,7 @@ export default function CrmPage() {
                                   View Company
                                 </Button>
                               </Link>
-                              <Link href="/contacts">
+                              <Link href={`/contacts?companyId=${company.id}`}>
                                 <Button size="sm" variant="outline">
                                   View Contacts
                                 </Button>
@@ -543,11 +618,12 @@ export default function CrmPage() {
       </div>
 
       <ContactDetailModal
-        contactId={selectedContactId}
+        contactId={selectedContactId ?? selectedContactIdFromCompany}
         isOpen={showContactModal}
         onClose={() => {
           setShowContactModal(false);
           setSelectedContactId(null);
+          setSelectedContactIdFromCompany(null);
         }}
       />
     </div>

@@ -53,6 +53,8 @@ export function ContactImportPage() {
       setResults(data);
       queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/interactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/overview"] });
       toast({
         title: "Import Successful",
         description: `Imported ${data.contactsCreated} contacts and ${data.companiesCreated} companies`,

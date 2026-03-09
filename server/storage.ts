@@ -104,6 +104,14 @@ export interface IStorage {
       linkedJobCount: number;
       pipelineValue: number;
       linkedJobs: Job[];
+      contacts: Array<{
+        id: string;
+        fullName: string | null;
+        title: string | null;
+        phone: string | null;
+        email: string | null;
+        lastInteractionAt: Date | string | null;
+      }>;
     })[];
     totalCompanies: number;
     totalContacts: number;
@@ -456,7 +464,7 @@ export class MemStorage implements IStorage {
   async getLastInteraction(): Promise<Interaction | undefined> { return undefined; }
   async getInteractionsWithDetails(): Promise<(Interaction & { contactName?: string | null; companyName?: string | null })[]> { return []; }
   async getCrmOverview(): Promise<{
-    companies: (Company & { contactCount: number; interactionCount: number; lastInteractionAt: Date | null; linkedJobCount: number; pipelineValue: number; linkedJobs: Job[] })[];
+    companies: (Company & { contactCount: number; interactionCount: number; lastInteractionAt: Date | null; linkedJobCount: number; pipelineValue: number; linkedJobs: Job[]; contacts: Array<{ id: string; fullName: string | null; title: string | null; phone: string | null; email: string | null; lastInteractionAt: Date | string | null }> })[];
     totalCompanies: number;
     totalContacts: number;
     totalInteractions: number;
@@ -1032,6 +1040,14 @@ export class DatabaseStorage implements IStorage {
       linkedJobCount: number;
       pipelineValue: number;
       linkedJobs: Job[];
+      contacts: Array<{
+        id: string;
+        fullName: string | null;
+        title: string | null;
+        phone: string | null;
+        email: string | null;
+        lastInteractionAt: Date | string | null;
+      }>;
     })[];
     totalCompanies: number;
     totalContacts: number;
@@ -1093,6 +1109,15 @@ export class DatabaseStorage implements IStorage {
         return sum + v;
       }, 0);
 
+      const topContacts = companyContacts.slice(0, 10).map((c) => ({
+        id: c.id,
+        fullName: c.fullName || [c.firstName, c.lastName].filter(Boolean).join(" ").trim() || null,
+        title: c.title,
+        phone: c.phonePrimary || c.phoneCell || c.phoneWork || null,
+        email: c.emailPrimary || c.emailSecondary || null,
+        lastInteractionAt: c.lastInteractionAt,
+      }));
+
       return {
         ...company,
         contactCount: companyContacts.length,
@@ -1101,6 +1126,7 @@ export class DatabaseStorage implements IStorage {
         linkedJobCount: linkedJobsList.length,
         pipelineValue,
         linkedJobs: linkedJobsList,
+        contacts: topContacts,
       };
     });
 

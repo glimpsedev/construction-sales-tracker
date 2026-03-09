@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useRoute } from "wouter";
 import { useCompanies, useCompany } from "@/hooks/useContacts";
+import { ContactDetailModal } from "@/components/modals/ContactDetailModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,8 +25,15 @@ function CompanyDetail() {
   const [, params] = useRoute("/companies/:id");
   const id = params?.id ?? null;
   const { data: company, isLoading } = useCompany(id);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [showContactModal, setShowContactModal] = useState(false);
 
   if (!id) return null;
+
+  const handleOpenContact = (contactId: string) => {
+    setSelectedContactId(contactId);
+    setShowContactModal(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -80,16 +88,71 @@ function CompanyDetail() {
 
             {company.contacts && company.contacts.length > 0 && (
               <div>
-                <div className="font-medium text-sm mb-2">Contacts ({company.contacts.length})</div>
+                <div className="font-medium text-sm mb-2 flex items-center gap-1">
+                  <Users className="h-4 w-4" />
+                  Contacts ({company.contacts.length})
+                </div>
                 <div className="space-y-2">
-                  {company.contacts.map((c) => (
-                    <Link key={c.id} href="/contacts">
-                      <button className="block w-full text-left text-sm text-blue-600 hover:underline py-1">
-                        {c.fullName || `${c.firstName} ${c.lastName}`.trim() || "Unknown"}{" "}
-                        {c.title && `- ${c.title}`}
-                      </button>
-                    </Link>
-                  ))}
+                  {company.contacts.map((c) => {
+                    const phone = c.phonePrimary || c.phoneCell || c.phoneWork;
+                    const email = c.emailPrimary || c.emailSecondary;
+                    const displayName = c.fullName || `${(c.firstName || "").trim()} ${(c.lastName || "").trim()}`.trim() || "Unknown";
+                    return (
+                      <div
+                        key={c.id}
+                        className="flex items-center justify-between gap-2 p-3 rounded-lg border bg-gray-50/50 hover:border-blue-200 hover:bg-blue-50/30 cursor-pointer transition-colors group"
+                        onClick={() => handleOpenContact(c.id)}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-gray-900">{displayName}</div>
+                          {c.title && (
+                            <div className="text-sm text-gray-500 mt-0.5">{c.title}</div>
+                          )}
+                          <div className="flex flex-wrap items-center gap-3 mt-1.5 text-sm">
+                            {phone && (
+                              <a
+                                href={`tel:${phone}`}
+                                className="flex items-center gap-1 text-blue-600 hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Phone className="h-3.5 w-3.5" />
+                                {phone}
+                              </a>
+                            )}
+                            {email && (
+                              <a
+                                href={`mailto:${email}`}
+                                className="flex items-center gap-1 text-blue-600 hover:underline truncate max-w-[200px]"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Mail className="h-3.5 w-3.5 flex-shrink-0" />
+                                {email}
+                              </a>
+                            )}
+                          </div>
+                          <div className="mt-1">
+                            <LastInteractionBadge date={c.lastInteractionAt} />
+                          </div>
+                        </div>
+                        <div className="flex gap-1 flex-shrink-0">
+                          {phone && (
+                            <Button size="sm" variant="outline" className="h-8 w-8 p-0" asChild>
+                              <a href={`tel:${phone}`} onClick={(e) => e.stopPropagation()}>
+                                <Phone className="h-4 w-4" />
+                              </a>
+                            </Button>
+                          )}
+                          {email && (
+                            <Button size="sm" variant="outline" className="h-8 w-8 p-0" asChild>
+                              <a href={`mailto:${email}`} onClick={(e) => e.stopPropagation()}>
+                                <Mail className="h-4 w-4" />
+                              </a>
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -122,6 +185,15 @@ function CompanyDetail() {
       ) : (
         <div className="py-12 text-center text-gray-500">Company not found</div>
       )}
+
+      <ContactDetailModal
+        contactId={selectedContactId}
+        isOpen={showContactModal}
+        onClose={() => {
+          setShowContactModal(false);
+          setSelectedContactId(null);
+        }}
+      />
     </div>
   );
 }

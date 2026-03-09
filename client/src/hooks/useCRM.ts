@@ -19,6 +19,15 @@ export interface InteractionFilters {
   offset?: number;
 }
 
+export interface CrmOverviewContact {
+  id: string;
+  fullName: string | null;
+  title: string | null;
+  phone: string | null;
+  email: string | null;
+  lastInteractionAt: string | null;
+}
+
 export interface CrmOverviewCompany {
   id: string;
   name: string;
@@ -36,6 +45,7 @@ export interface CrmOverviewCompany {
     temperature: string | null;
     projectValue: string | null;
   }>;
+  contacts: CrmOverviewContact[];
 }
 
 export interface CrmOverview {

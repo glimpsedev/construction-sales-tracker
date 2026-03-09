@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { Link } from "wouter";
-import { useContacts } from "@/hooks/useContacts";
+import { useState, useMemo } from "react";
+import { Link, useLocation } from "wouter";
+import { useContacts, useCompany } from "@/hooks/useContacts";
 import { ContactDetailModal } from "@/components/modals/ContactDetailModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,8 +26,19 @@ export default function ContactsPage() {
   const [search, setSearch] = useState("");
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [location] = useLocation();
+  const companyIdFromUrl = useMemo(() => {
+    const idx = location.indexOf("?");
+    if (idx === -1) return undefined;
+    const params = new URLSearchParams(location.slice(idx));
+    return params.get("companyId") || undefined;
+  }, [location]);
 
-  const { data: contacts = [], isLoading } = useContacts({ search: search || undefined });
+  const { data: contacts = [], isLoading } = useContacts({
+    search: search || undefined,
+    companyId: companyIdFromUrl,
+  });
+  const { data: filterCompany } = useCompany(companyIdFromUrl ?? null);
 
   const handleSelectContact = (id: string) => {
     setSelectedContactId(id);
@@ -82,6 +93,17 @@ export default function ContactsPage() {
       </header>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {companyIdFromUrl && filterCompany && (
+          <div className="mb-4 flex items-center gap-2">
+            <Badge variant="secondary" className="gap-1">
+              <Building2 className="h-3 w-3" />
+              Showing contacts for {filterCompany.name}
+            </Badge>
+            <Link href="/contacts">
+              <button className="text-sm text-blue-600 hover:underline">Clear filter</button>
+            </Link>
+          </div>
+        )}
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input

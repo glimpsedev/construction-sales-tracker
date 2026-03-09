@@ -177,6 +177,8 @@ export function useLogInteraction(contactId: string | null) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/contacts", contactId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/interactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/overview"] });
     },
   });
 }

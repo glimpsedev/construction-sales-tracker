@@ -60,6 +60,8 @@ export function KycImportPage() {
       setIsDryRunResult(data.dryRun);
       queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/interactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/overview"] });
       toast({
         title: "Import Successful",
         description: data.message,
