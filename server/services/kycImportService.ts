@@ -61,9 +61,15 @@ function parseDate(dateStr: string): Date | null {
   if (parts.length !== 3) return null;
   const month = parseInt(parts[0], 10) - 1;
   const day = parseInt(parts[1], 10);
-  const year = parseInt(parts[2], 10);
+  let year = parseInt(parts[2], 10);
+  // Source files often use 2-digit years (e.g. 2/24/26). Treat these as 20xx.
+  if (!isNaN(year) && year < 100) {
+    year += 2000;
+  }
   if (isNaN(month) || isNaN(day) || isNaN(year)) return null;
   const d = new Date(year, month, day);
+  // Guard against obviously bad historical/future years from malformed input.
+  if (d.getFullYear() < 2021 || d.getFullYear() > 2026) return null;
   return isNaN(d.getTime()) ? null : d;
 }
 
@@ -224,6 +230,7 @@ export async function importKycCsv(
       const typeRaw = toStr(row.Type ?? row.type).trim();
       const interactionType = mapInteractionType(typeRaw);
       const notes = toStr(row.Notes ?? row.notes).trim();
+      const summary = toStr(row.Summary ?? row.summary).trim() || notes;
       const dateStr = toStr(row.Date ?? row.date).trim();
       const occurredAt = parseDate(dateStr) || new Date();
 
@@ -234,6 +241,7 @@ export async function importKycCsv(
           companyId,
           type: interactionType,
           direction: "outbound",
+          summary: summary || null,
           notes: notes || null,
           occurredAt,
         };

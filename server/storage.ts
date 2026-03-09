@@ -984,7 +984,15 @@ export class DatabaseStorage implements IStorage {
     if (filters.contactId) conditions.push(eq(interactions.contactId, filters.contactId));
     if (filters.search) {
       const term = `%${filters.search}%`;
-      conditions.push(ilike(interactions.summary, term));
+      conditions.push(
+        or(
+          ilike(interactions.summary, term),
+          ilike(contacts.fullName, term),
+          ilike(companies.name, term),
+          ilike(contacts.title, term),
+          ilike(contacts.role, term)
+        )!
+      );
     }
     if (filters.startDate) conditions.push(gte(interactions.occurredAt, filters.startDate));
     if (filters.endDate) conditions.push(lte(interactions.occurredAt, filters.endDate));

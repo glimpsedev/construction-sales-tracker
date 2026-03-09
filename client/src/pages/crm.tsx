@@ -100,6 +100,17 @@ function LastInteractionBadge({ date }: { date: Date | string | null }) {
 const INTERACTION_TYPES = ["call", "email", "meeting", "site_visit", "text", "note"];
 const DIRECTIONS = ["inbound", "outbound"];
 
+function getInteractionBadgeClass(type: string): string {
+  switch (type) {
+    case "call":
+      return "bg-blue-100 text-blue-800 hover:bg-blue-100";
+    case "site_visit":
+      return "bg-green-100 text-green-800 hover:bg-green-100";
+    default:
+      return "bg-gray-100 text-gray-700 hover:bg-gray-100";
+  }
+}
+
 export default function CrmPage() {
   const [activeTab, setActiveTab] = useState("activity");
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
@@ -269,7 +280,7 @@ export default function CrmPage() {
                   <div className="relative flex-1 min-w-[200px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
-                      placeholder="Search summary..."
+                      placeholder="Search summary, company, contact, position..."
                       value={activitySearch}
                       onChange={(e) => setActivitySearch(e.target.value)}
                       className="pl-10"
@@ -358,7 +369,10 @@ export default function CrmPage() {
                               {i.occurredAt ? format(new Date(i.occurredAt), "MMM d, yyyy") : "—"}
                             </TableCell>
                             <TableCell>
-                              <Badge variant="secondary" className="capitalize">
+                              <Badge
+                                variant="secondary"
+                                className={`capitalize ${getInteractionBadgeClass(i.type)}`}
+                              >
                                 {i.type.replace("_", " ")}
                               </Badge>
                             </TableCell>
